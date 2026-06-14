@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义打字练习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .char-correct { color: #10b981; }
+        .char-wrong { color: #ef4444; background-color: #fecaca; border-radius: 2px; }
+        .char-current { border-bottom: 2px solid #3b82f6; animation: blink 1s infinite; }
+        .char-pending { color: #6b7280; }
+        .sentence-speaking { background-color: #dbeafe; border-radius: 3px; }
+        
+        @keyframes blink {
+            0%, 50% { border-color: #3b82f6; }
+            51%, 100% { border-color: transparent; }
+        }
+        
+        textarea:focus { outline: none; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        #displayArea {
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: normal;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        .header-title h1 {
+            margin: 0;
+        }
+        .version-info {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: normal;
+            user-select: none;
+        }
+
+        .btn-speaking {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+
+        #speechRate {
+            background-color: #f1f5f9;
+            border: none;
+            outline: none;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #334155;
+            vertical-align: middle;
+        }
+        #speechRate:hover {
+            background-color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="header-title">
+            <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
+            <span class="version-info">v1.7.5</span>
+        </div>
+        
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
+                <div class="text-xs text-slate-500 mt-1">速度 (字/分钟)</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-green-600" id="accuracy">100%</div>
+                <div class="text-xs text-slate-500 mt-1">准确率</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-amber-600" id="time">00:00</div>
+                <div class="text-xs text-slate-500 mt-1">用时</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600" id="progress">0%</div>
+                <div class="text-xs text-slate-500 mt-1">进度</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-semibold text-slate-700">练习内容设置</h2>
+                <div class="flex gap-2 items-center">
+                    <label class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm cursor-pointer transition">
+                        📁 上传TXT文件
+                        <input type="file" id="fileInput" accept=".txt" class="hidden">
+                    </label>
+                    <button id="speakBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm transition">🔊 朗读全文</button>
+                    <select id="speechRate">
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75" selected>0.75x</option>
+                        <option value="1.0">1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                    </select>
+                    <button id="translateBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm transition">🌐 英译中对照</button>
+                    <button id="clearBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm transition">清空</button>
+                </div>
+            </div>
+            <textarea 
+                id="sourceText" 
+                class="w-full h-28 p-3 border border-slate-200 rounded-lg text-sm custom-scroll resize-none"
+                placeholder="在此粘贴练习文本，或上传TXT文件...&#10;• 英文内容自动统一为英文标点、删除标点后空格&#10;• 句号自动长停顿，问号感叹号短停顿&#10;• 包含中文将自动弹出模式选择"
+            ></textarea>
+            <div class="flex justify-between items-center mt-3">
+                <span class="text-xs text-slate-400">字符数: <span id="charCount">0</span></span>
+                <button id="startBtn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
+                    开始练习
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-4">
+            <div id="translationArea" class="bg-slate-50 rounded-lg p-4 mb-4 hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500" id="translationLabel">对照参考</span>
+                    <button id="toggleTranslation" class="text-xs text-blue-600 hover:text-blue-800">隐藏</button>
+                </div>
+                <p id="translationText" class="text-sm text-slate-60 leading-relaxed whitespace-pre-wrap"></p>
+            </div>
+            
+            <div 
+                id="displayArea" 
+                class="text-lg leading-loose font-mono min-h-[120px] custom-scroll overflow-y-auto mb-4 select-none"
+                style="letter-spacing: 0.5px;"
+            >
+                <span class="text-slate-400">请先在上方设置练习内容，然后点击「开始练习」</span>
+            </div>
+            
+            <textarea 
+                id="inputArea" 
+                class="w-full p-3 border-2 border-slate-200 focus:border-blue-500 rounded-lg font-mono text-lg custom-scroll resize-none transition-colors"
+                rows="3"
+                placeholder="在此输入..."
+                disabled
+            ></textarea>
+        </div>
+        
+        <div class="flex justify-center gap-3">
+            <button id="resetBtn" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-sm transition" disabled>重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== 百度翻译配置 ==========
+        const BAIDU_APPID = '';
+        const BAIDU_SECRET = '';
+        // =================================
+
+        // 停顿时长配置（可自行修改毫秒数）
+        const PAUSE_CONFIG = {
+            period: 700,      // 句号 . 长停顿
+            mark: 400,        // ! ? 短停顿
+            newline: 150      // 单纯换行无标点极短停顿
+        };
+        let pauseTimer = null; // 延时计时器，停止朗读时清空
+
+        // 数字转英文单词工具函数（仅处理非负整数）
+        function numberToEnglish(num) {
+            const ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                "seventeen", "eighteen", "nineteen"];
+            const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+            if (num < 20) return ones[num];
+            if (num < 100) {
+                const ten = Math.floor(num / 10);
+                const one = num % 10;
+                return one > 0 ? `${tens[ten]}-${ones[one]}` : tens[ten];
+            }
+            if (num < 1000) {
+                const hundred = Math.floor(num / 100);
+                const rem = num % 100;
+                let res = `${ones[hundred]} hundred`;
+                if (rem > 0) res += " " + numberToEnglish(rem);
+                return res;
+            }
+            return String(num);
+        }
+
+        // 英文数字替换
+        function replaceDigitsToEnglish(text) {
+            return text.replace(/\d+/g, match => numberToEnglish(parseInt(match, 10)));
+        }
+
+        // a弱读修正，uh替代/ə/，引擎正常识别
+        function fixArticleAReduction(text) {
+            text = text.replace(/\sa\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g, ' uh $1');
+            text = text.replace(/^a\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm, 'uh $1');
+            return text;
+        }
+
+        // ========== 朗读模块 ==========
+        const speechModule = {
+            utterance: null,
+            currentSentenceIndex: -1,
+            sentences: [],
+            isSpeaking: false,
+            isPaused: false,
+            rate: 0.75,
+
+            // 分句同时标记结尾标点类型
+            splitSentences(text) {
+                const sentences = [];
+                const regex = /[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    const sentenceText = match[0];
+                    let pauseType = 'newline';
+                    const lastChar = sentenceText.trimEnd().slice(-1);
+                    if (lastChar === '.') pauseType = 'period';
+                    else if (lastChar === '!' || lastChar === '?') pauseType = 'mark';
+                    sentences.push({
+                        text: sentenceText,
+                        start: match.index,
+                        end: match.index + sentenceText.length,
+                        pauseType
+                    });
+                }
+                if (sentences.length === 0 && text.length > 0) {
+                    sentences.push({ text, start: 0, end: text.length, pauseType: 'newline' });
+                }
+                return sentences;
+            },
+
+            createUtterance(rawText) {
+                const utter = new SpeechSynthesisUtterance();
+                utter.rate = this.rate;
+                utter.pitch = 1.0;
+
+                const isChinese = /[\u4e00-\u9fa5]/.test(rawText);
+                if (isChinese) {
+                    utter.lang = 'zh-CN';
+                    utter.text = rawText;
+                } else {
+                    utter.lang = 'en-US';
+                    let ttsText = replaceDigitsToEnglish(rawText);
+                    ttsText = fixArticleAReduction(ttsText);
+                    utter.text = ttsText;
+                }
+                return utter;
+            },
+
+            speak(text) {
+                this.stop();
+                this.sentences = this.splitSentences(text);
+                this.currentSentenceIndex = -1;
+                this.isSpeaking = true;
+                this.isPaused = false;
+                this.playNext();
+                document.getElementById('speakBtn').classList.add('btn-speaking');
+                document.getElementById('speakBtn').textContent = '⏹ 停止朗读';
+            },
+
+            playNext() {
+                if (!this.isSpeaking) return;
+                this.currentSentenceIndex++;
+                if (this.currentSentenceIndex >= this.sentences.length) {
+                    this.stop();
+                    return;
+                }
+                const sentence = this.sentences[this.currentSentenceIndex];
+                if (!sentence.text.trim()) {
+                    // 空句子直接跳过，无停顿
+                    this.playNext();
+                    return;
+                }
+
+                this.utterance = this.createUtterance(sentence.text);
+                const self = this;
+                this.utterance.onend = function () {
+                    if (!self.isSpeaking || self.isPaused) return;
+                    // 根据标点取对应停顿时长
+                    const waitMs = PAUSE_CONFIG[sentence.pauseType];
+                    pauseTimer = setTimeout(() => {
+                        self.playNext();
+                    }, waitMs);
+                };
+                this.utterance.onerror = function () {
+                    if (!self.isSpeaking || self.isPaused) return;
+                    const waitMs = PAUSE_CONFIG[sentence.pauseType];
+                    pauseTimer = setTimeout(() => {
+                        self.playNext();
+                    }, waitMs);
+                };
+
+                if (typeof updateSentenceHighlight === 'function') {
+                    updateSentenceHighlight(sentence.start, sentence.end);
+                }
+                window.speechSynthesis.speak(this.utterance);
+            },
+
+            stop() {
+                clearTimeout(pauseTimer); // 清除等待下一句的延时
+                window.speechSynthesis.cancel();
+                this.isSpeaking = false;
+                this.isPaused = false;
+                this.currentSentenceIndex = -1;
+                this.utterance = null;
+                const btn = document.getElementById('speakBtn');
+                if (btn) {
+                    btn.classList.remove('btn-speaking');
+                    btn.textContent = '🔊 朗读全文';
+                }
+                if (typeof clearSentenceHighlight === 'function') clearSentenceHighlight();
+            },
+
+            toggle(text) {
+                if (this.isSpeaking) this.stop();
+                else this.speak(text);
+            },
+
+            updateRate(newRate) {
+                this.rate = parseFloat(newRate);
+                if (this.isSpeaking && !this.isPaused && this.currentSentenceIndex >= 0) {
+                    clearTimeout(pauseTimer);
+                    window.speechSynthesis.cancel();
+                    const currSen = this.sentences[this.currentSentenceIndex];
+                    if (!currSen) return;
+                    this.utterance = this.createUtterance(currSen.text);
+                    const self = this;
+                    this.utterance.onend = function () {
+                        if (!self.isSpeaking || self.isPaused) return;
+                        const waitMs = PAUSE_CONFIG[currSen.pauseType];
+                        pauseTimer = setTimeout(() => self.playNext(), waitMs);
+                    };
+                    this.utterance.onerror = function () {
+                        if (!self.isSpeaking || self.isPaused) return;
+                        const waitMs = PAUSE_CONFIG[currSen.pauseType];
+                        pauseTimer = setTimeout(() => self.playNext(), waitMs);
+                    };
+                    window.speechSynthesis.speak(this.utterance);
+                }
+            }
+        };
+
+        // MD5不变
+        function md5(str) {
+            function rotateLeft(value, shift) {
+                return (value << shift) | (value >>> (32 - shift));
+            }
+            function addUnsigned(x, y) {
+                const x8 = x & 0x80000000;
+                const y8 = y & 0x80000000;
+                const x4 = x & 0x40000000;
+                const y4 = y & 0x40000000;
+                const result = (x & 0x3FFFFFFF) + (y & 0x3FFFFFFF);
+                if (x4 & y4) return result ^ 0x80000000 ^ x8 ^ y8;
+                if (x4 | y4) {
+                    if (result & 0x40000000) return result ^ 0xC0000000 ^ x8 ^ y8;
+                    else return result ^ 0x40000000 ^ x8 ^ y8;
+                } else return result ^ x8 ^ y8;
+            }
+            function F(x, y, z) { return (x & y) | ((~x) & z); }
+            function G(x, y, z) { return (x & z) | (y & (~z)); }
+            function H(x, y, z) { return x ^ y ^ z; }
+            function I(x, y, z) { return y ^ (x | (~z)); }
+            function FF(a, b, c, d, x, s, ac) {
+                a = addUnsigned(a, addUnsigned(addUnsigned(F(b, c, d), x), ac));
+                return addUnsigned(rotateLeft(a, s), b);
+            }
+            function GG(a, b, c, d, x, s, ac) {
+                a = addUnsigned(a, addUnsigned(addUnsigned(G(b, c, d), x), ac));
+                return addUnsigned(rotateLeft(a, s), b);
+            }
+            function HH(a, b, c, d, x, s, ac) {
+                a = addUnsigned(a, addUnsigned(addUnsigned(H(b, c, d), x), ac));
+                return addUnsigned(rotateLeft(a, s), b);
+            }
+            function II(a, b, c, d, x, s, ac) {
+                a = addUnsigned(a, addUnsigned(addUnsigned(I(b, c, d), x), ac));
+                return addUnsigned(rotateLeft(a, s), b);
+            }
+            function convertToWordArray(str) {
+                const wordCount = (((str.length + 8) - ((str.length + 8) % 64)) / 64 + 1) * 16;
+                const wordArray = new Array(wordCount - 1).fill(0);
+                let bytePos = 0, byteCount = 0;
+                while (byteCount < str.length) {
+                    const offset = (byteCount % 4) * 8;
+                    wordArray[bytePos] = wordArray[bytePos] | (str.charCodeAt(byteCount) & 0xFF) << offset;
+                    byteCount++;
+                    if (offset === 24) bytePos++;
+                }
+                const offset = (byteCount % 4) * 8;
+                wordArray[bytePos] = wordArray[bytePos] | (0x80 & 0xFF) << offset;
+                wordArray[wordCount - 2] = str.length * 8;
+                return wordArray;
+            }
+            function wordToHex(value) {
+                let hex = '';
+                for (let i = 0; i <= 3; i++) {
+                    const byte = (value >>> (i * 8)) & 0xFF;
+                    hex += ('0' + byte.toString(16)).slice(-2);
+                }
+                return hex;
+            }
+            str = unescape(encodeURIComponent(str));
+            const x = convertToWordArray(str);
+            const digest = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476];
+            for (let k = 0; k < x.length; k += 16) {
+                const AA = digest[0], BB = digest[1], CC = digest[2], DD = digest[3];
+                digest[0] = FF(digest[0], digest[1], digest[2], digest[3], x[k+0], 7, 0xD76AA478);
+                digest[3] = FF(digest[3], digest[0], digest[1], digest[2], x[k+1], 12, 0xE8C7B756);
+                digest[2] = FF(digest[2], digest[3], digest[0], digest[1], x[k+2], 17, 0x242070DB);
+                digest[1] = FF(digest[1], digest[2], digest[3], digest[0], x[k+3], 22, 0xC1BDCEEE);
+                digest[0] = FF(digest[0], digest[1], digest[2], digest[3], x[k+4], 7, 0xF57C0FAF);
+                digest[3] = FF(digest[3], digest[0], digest[1], digest[2], x[k+5], 12, 0x4787C62A);
+                digest[2] = FF(digest[2], digest[3], digest[0], digest[1], x[k+6], 17, 0xA8304613);
+                digest[1] = FF(digest[1], digest[2], digest[3], digest[0], x[k+7], 22, 0xFD469501);
+                digest[0] = FF(digest[0], digest[1], digest[2], digest[3], x[k+8], 7, 0x698098D8);
+                digest[3] = FF(digest[3], digest[0], digest[1], digest[2], x[k+9], 12, 0x8B44F7AF);
+                digest[2] = FF(digest[2], digest[3], digest[0], digest[1], x[k+10], 17, 0xFFFF5BB1);
+                digest[1] = FF(digest[1], digest[2], digest[3], digest[0], x[k+11], 22, 0x895CD7BE);
+                digest[0] = FF(digest[0], digest[1], digest[2], digest[3], x[k+12], 7, 0x6B901122);
+                digest[3] = FF(digest[3], digest[0], digest[1], digest[2], x[k+13], 12, 0xFD987193);
+                digest[2] = FF(digest[2], digest[3], digest[0], digest[1], x[k+14], 17, 0xA679438E);
+                digest[1] = FF(digest[1], digest[2], digest[3], digest[0], x[k+15], 22, 0x49B40821);
+                digest[0] = GG(digest[0], digest[1], digest[2], digest[3], x[k+1], 5, 0xF61E2562);
+                digest[3] = GG(digest[3], digest[0], digest[1], digest[2], x[k+6], 9, 0xC040B340);
+                digest[2] = GG(digest[2], digest[3], digest[0], digest[1], x[k+11], 14, 0x265E5A51);
+                digest[1] = GG(digest[1], digest[2], digest[3], digest[0], x[k+0], 20, 0xE9B6C7AA);
+                digest[0] = GG(digest[0], digest[1], digest[2], digest[3], x[k+5], 5, 0xD62F105D);
+                digest[3] = GG(digest[3], digest[0], digest[1], digest[2], x[k+10], 9, 0x02441453);
+                digest[2] = GG(digest[2], digest[3], digest[0], digest[1], x[k+15], 14, 0xD8A1E681);
+                digest[1] = GG(digest[1], digest[2], digest[3], digest[0], x[k+4], 20, 0xE7D3FBC8);
+                digest[0] = GG(digest[0], digest[1], digest[2], digest[3], x[k+9], 5, 0x21E1CDE6);
+                digest[3] = GG(digest[3], digest[0], digest[1], digest[2], x[k+14], 9, 0xC33707D6);
+                digest[2] = GG(digest[2], digest[3], digest[0], digest[1], x[k+3], 14, 0xF4D50D87);
+                digest[1] = GG(digest[1], digest[2], digest[3], digest[0], x[k+8], 20, 0x455A14ED);
+                digest[0] = GG(digest[0], digest[1], digest[2], digest[3], x[k+13], 5, 0xA9E3E905);
+                digest[3] = GG(digest[3], digest[0], digest[1], digest[2], x[k+2], 9, 0xFCEFA3F8);
+                digest[2] = GG(digest[2], digest[3], digest[0], digest[1], x[k+7], 14, 0x676F02D9);
+                digest[1] = GG(digest[1], digest[2], digest[3], digest[0], x[k+12], 20, 0x8D2A4C8A);
+                digest[0] = HH(digest[0], digest[1], digest[2], digest[3], x[k+5], 4, 0xFFFA3942);
+                digest[3] = HH(digest[3], digest[0], digest[1], digest[2], x[k+8], 11, 0x8771F681);
+                digest[2] = HH(digest[2], digest[3], digest[0], digest[1], x[k+11], 16, 0x6D9D6122);
+                digest[1] = HH(digest[1], digest[2], digest[3], digest[0], x[k+14], 23, 0xFDE5380C);
+                digest[0] = HH(digest[0], digest[1], digest[2], digest[3], x[k+1], 4, 0xA4BEEA44);
+                digest[3] = HH(digest[3], digest[0], digest[1], digest[2], x[k+4], 11, 0x4BDECFA9);
+                digest[2] = HH(digest[2], digest[3], digest[0], digest[1], x[k+7], 16, 0xF6BB4B60);
+                digest[1] = HH(digest[1], digest[2], digest[3], digest[0], x[k+10], 23, 0xBEBFBC70);
+                digest[0] = HH(digest[0], digest[1], digest[2], digest[3], x[k+13], 4, 0x289B7EC6);
+                digest[3] = HH(digest[3], digest[0], digest[1], digest[2], x[k+0], 11, 0xEAA127FA);
+                digest[2] = HH(digest[2], digest[3], digest[0], digest[1], x[k+3], 16, 0xD4EF3085);
+                digest[1] = HH(digest[1], digest[2], digest[3], digest[0], x[k+6], 23, 0x04881D05);
+                digest[0] = HH(digest[0], digest[1], digest[2], digest[3], x[k+9], 4, 0xD9D4D039);
+                digest[3] = HH(digest[3], digest[0], digest[1], digest[2], x[k+12], 11, 0xE6DB99E5);
+                digest[2] = HH(digest[2], digest[3], digest[0], digest[1], x[k+15], 16, 0x1FA27CF8);
+                digest[1] = HH(digest[1], digest[2], digest[3], digest[0], x[k+2], 23, 0xC4AC5665);
+                digest[0] = II(digest[0], digest[1], digest[2], digest[3], x[k+0], 6, 0xF4292244);
+                digest[3] = II(digest[3], digest[0], digest[1], digest[2], x[k+7], 10, 0x432AFF97);
+                digest[2] = II(digest[2], digest[3], digest[0], digest[1], x[k+14], 15, 0xAB9423A7);
+                digest[1] = II(digest[1], digest[2], digest[3], digest[0], x[k+5], 21, 0xFC93A039);
+                digest[0] = II(digest[0], digest[1], digest[2], digest[3], x[k+12], 6, 0x655B59C3);
+                digest[3] = II(digest[3], digest[0], digest[1], digest[2], x[k+3], 10, 0x8F0CCC92);
+                digest[2] = II(digest[2], digest[3], digest[0], digest[1], x[k+10], 15, 0xFFEFF47D);
+                digest[1] = II(digest[1], digest[2], digest[3], digest[0], x[k+1], 21, 0x85845DD1);
+                digest[0] = II(digest[0], digest[1], digest[2], digest[3], x[k+8], 6, 0x6FA87E4F);
+                digest[3] = II(digest[3], digest[0], digest[1], digest[2], x[k+15], 10, 0xFE2CE6E0);
+                digest[2] = II(digest[2], digest[3], digest[0], digest[1], x[k+6], 15, 0xA3014314);
+                digest[1] = II(digest[1], digest[2], digest[3], digest[0], x[k+13], 21, 0x4E0811A1);
+                digest[0] = II(digest[0], digest[1], digest[2], digest[3], x[k+4], 6, 0xF7537E82);
+                digest[3] = II(digest[3], digest[0], digest[1], digest[2], x[k+11], 10, 0xBD3AF235);
+                digest[2] = II(digest[2], digest[3], digest[0], digest[1], x[k+2], 15, 0x2AD7D2BB);
+                digest[1] = II(digest[1], digest[2], digest[3], digest[0], x[k+9], 21, 0xEB86D391);
+                digest[0] = addUnsigned(digest[0], AA);
+                digest[1] = addUnsigned(digest[1], BB);
+                digest[2] = addUnsigned(digest[2], CC);
+                digest[3] = addUnsigned(digest[3], DD);
+            }
+            return wordToHex(digest[0]) + wordToHex(digest[1]) + wordToHex(digest[2]) + wordToHex(digest[3]);
+        }
+
+        function hasChinese(text) {
+            return /[\u4e00-\u9fa5]/.test(text);
+        }
+
+        function standardizeEnglishText(text) {
+            const punctMap = {
+                '，': ',', '。': '.', '！': '!', '？': '?',
+                '“': '"', '”': '"', '‘': "'", '’': "'",
+                '；': ';', '：': ':', '（': '(', '）': ')', '、': ','
+            };
+            let result = text.replace(/[，。！？“”‘’；：（）、]/g, match => punctMap[match] || match);
+            result = result.replace(/([.,!?;"'\:()]) +/g, '$1');
+            return result;
+        }
+
+        function separateChineseEnglish(text) {
+            const lines = text.split('\n');
+            const englishLines = [];
+            const chineseLines = [];
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    englishLines.push('');
+                    chineseLines.push('');
+                    return;
+                }
+                if (hasChinese(trimmed)) {
+                    chineseLines.push(line);
+                } else {
+                    englishLines.push(line);
+                }
+            });
+            function collapseEmptyLines(arr) {
+                const result = [];
+                let prevEmpty = false;
+                for (const line of arr) {
+                    const isEmpty = line.trim() === '';
+                    if (isEmpty) {
+                        if (!prevEmpty) result.push('');
+                        prevEmpty = true;
+                    } else {
+                        result.push(line);
+                        prevEmpty = false;
+                    }
+                }
+                while (result.length && result[0].trim() === '') result.shift();
+                while (result.length && result[result.length-1].trim() === '') result.pop();
+                return result;
+            }
+            const collapsedEnglish = collapseEmptyLines(englishLines).join('\n');
+            const collapsedChinese = collapseEmptyLines(chineseLines).join('\n');
+            return {
+                english: standardizeEnglishText(collapsedEnglish),
+                chinese: collapsedChinese
+            };
+        }
+
+        const sourceText = document.getElementById('sourceText');
+        const fileInput = document.getElementById('fileInput');
+        const charCount = document.getElementById('charCount');
+        const startBtn = document.getElementById('startBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const speakBtn = document.getElementById('speakBtn');
+        const speechRateSelect = document.getElementById('speechRate');
+        const translateBtn = document.getElementById('translateBtn');
+        const translationArea = document.getElementById('translationArea');
+        const translationText = document.getElementById('translationText');
+        const translationLabel = document.getElementById('translationLabel');
+        const toggleTranslation = document.getElementById('toggleTranslation');
+        const displayArea = document.getElementById('displayArea');
+        const inputArea = document.getElementById('inputArea');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedEl = document.getElementById('speed');
+        const accuracyEl = document.getElementById('accuracy');
+        const timeEl = document.getElementById('time');
+        const progressEl = document.getElementById('progress');
+        const finishModal = document.getElementById('finishModal');
+        const finalSpeed = document.getElementById('finalSpeed');
+        const finalAccuracy = document.getElementById('finalAccuracy');
+        const finalTime = document.getElementById('finalTime');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        let targetText = '';
+        let startTime = null;
+        let timerInterval = null;
+        let isStarted = false;
+        let isFinished = false;
+        let totalKeystrokes = 0;
+        let correctKeystrokes = 0;
+        let translatedText = '';
+
+        function updateSentenceHighlight(start, end) {
+            const spans = displayArea.querySelectorAll('span');
+            for (let i = 0; i < spans.length; i++) {
+                spans[i].classList.remove('sentence-speaking');
+                if (i >= start && i < end) spans[i].classList.add('sentence-speaking');
+            }
+            const currentSpan = spans[start];
+            if (currentSpan) currentSpan.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        function clearSentenceHighlight() {
+            displayArea.querySelectorAll('span').forEach(span => span.classList.remove('sentence-speaking'));
+        }
+
+        sourceText.addEventListener('input', () => charCount.textContent = sourceText.value.length);
+        sourceText.addEventListener('paste', () => setTimeout(() => checkTextMode(), 100));
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => {
+                sourceText.value = evt.target.result;
+                charCount.textContent = sourceText.value.length;
+                translatedText = '';
+                translationArea.classList.add('hidden');
+                setTimeout(() => checkTextMode(), 100);
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        speechRateSelect.addEventListener('change', () => speechModule.updateRate(speechRateSelect.value));
+
+        speakBtn.addEventListener('click', () => {
+            const text = sourceText.value;
+            if (!text.trim()) {
+                alert('请先输入或上传练习文本');
+                return;
+            }
+            if (!isStarted && !targetText) {
+                targetText = text;
+                renderDisplayText('');
+            }
+            speechModule.toggle(targetText || text);
+        });
+
+        function checkTextMode() {
+            const text = sourceText.value;
+            if (!text.trim()) return;
+            if (hasChinese(text)) {
+                const useChineseAsPractice = confirm(
+                    '检测到文本包含中文，请选择练习模式：\n\n' +
+                    '「确定」：以全文作为练习文本\n' +
+                    '「取消」：提取英文行作为练习文本，中文行作为对照参考'
+                );
+                if (!useChineseAsPractice) {
+                    const separated = separateChineseEnglish(text);
+                    if (separated.english.trim()) {
+                        sourceText.value = separated.english;
+                        charCount.textContent = separated.english.length;
+                        translatedText = separated.chinese;
+                        translationText.textContent = translatedText;
+                        translationLabel.textContent = '原文中文对照';
+                        translationArea.classList.remove('hidden');
+                    } else {
+                        alert('未检测到可提取的英文行，将保留全文作为练习文本');
+                    }
+                } else {
+                    translatedText = '';
+                    translationArea.classList.add('hidden');
+                }
+            } else {
+                sourceText.value = standardizeEnglishText(text);
+                charCount.textContent = sourceText.value.length;
+                translatedText = '';
+                translationArea.classList.add('hidden');
+            }
+        }
+
+        async function baiduTranslate(text) {
+            return new Promise((resolve, reject) => {
+                if (!BAIDU_APPID || !BAIDU_SECRET) {
+                    reject(new Error('请先配置百度翻译的APP ID和密钥'));
+                    return;
+                }
+                const salt = Date.now().toString() + Math.floor(Math.random() * 1000000).toString();
+                const signStr = BAIDU_APPID + text + salt + BAIDU_SECRET;
+                const sign = md5(signStr);
+                const callbackName = 'baidu_cb_' + Date.now() + Math.random().toString(36).slice(2, 8);
+                window[callbackName] = result => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    if (result.error_code) {
+                        const errMap = {
+                            '52001': '请求超时，请重试',
+                            '52002': '系统错误，请重试',
+                            '52003': '未授权用户，请检查APP ID',
+                            '54000': '必填参数为空',
+                            '54001': '签名错误，请检查密钥',
+                            '54003': '访问频率受限，请稍后再试',
+                            '54004': '账户余额不足',
+                            '54005': '长请求过于频繁，请稍后再试',
+                            '58000': '客户端IP非法'
+                        };
+                        reject(new Error(errMap[result.error_code] || `错误码：${result.error_code}`));
+                    } else {
+                        const res = result.trans_result.map(item => item.dst).join('\n');
+                        resolve(res);
+                    }
+                };
+                const script = document.createElement('script');
+                script.src = `https://fanyi-api.baidu.com/api/trans/vip/translate?q=${encodeURIComponent(text)}&from=en&to=zh&appid=${BAIDU_APPID}&salt=${salt}&sign=${sign}&callback=${callbackName}`;
+                script.onerror = () => {
+                    delete window[callbackName];
+                    document.body.contains(script) && document.body.removeChild(script);
+                    reject(new Error('网络请求失败，请检查网络连接'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        translateBtn.addEventListener('click', async () => {
+            const text = sourceText.value.trim();
+            if (!text) {
+                alert('请先输入或上传英文文本');
+                return;
+            }
+            if (hasChinese(text)) {
+                alert('当前练习文本包含中文，无需翻译');
+                return;
+            }
+            translateBtn.disabled = true;
+            const oldTxt = translateBtn.textContent;
+            translateBtn.textContent = '翻译中...';
+            try {
+                const res = await baiduTranslate(text);
+                translatedText = res;
+                translationText.textContent = res;
+                translationLabel.textContent = '翻译中文对照';
+                translationArea.classList.remove('hidden');
+            } catch (err) {
+                alert('翻译失败：' + err.message);
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.textContent = oldTxt;
+            }
+        });
+
+        toggleTranslation.addEventListener('click', () => {
+            const hide = translationText.classList.toggle('hidden');
+            toggleTranslation.textContent = hide ? '显示' : '隐藏';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            speechModule.stop();
+            sourceText.value = '';
+            charCount.textContent = '0';
+            translatedText = '';
+            translationArea.classList.add('hidden');
+            resetPractice();
+        });
+
+        startBtn.addEventListener('click', () => {
+            const text = sourceText.value;
+            if (!text.trim()) {
+                alert('请先输入或上传练习文本');
+                return;
+            }
+            speechModule.stop();
+            targetText = text;
+            startPractice();
+        });
+
+        function startPractice() {
+            isStarted = true;
+            isFinished = false;
+            startTime = null;
+            totalKeystrokes = 0;
+            correctKeystrokes = 0;
+            renderDisplayText('');
+            inputArea.value = '';
+            inputArea.disabled = false;
+            inputArea.focus();
+            resetBtn.disabled = false;
+            startBtn.textContent = '重新设置';
+            translatedText && translationArea.classList.remove('hidden');
+            updateStats(0, 100, 0, 0);
+        }
+
+        function renderDisplayText(inputStr) {
+            let html = '';
+            for (let i = 0; i < targetText.length; i++) {
+                let charClass = 'char-pending';
+                let ch = targetText[i];
+                if (ch === '\n') ch = '↵\n';
+                if (i < inputStr.length) {
+                    charClass = inputStr[i] === targetText[i] ? 'char-correct' : 'char-wrong';
+                } else if (i === inputStr.length) {
+                    charClass = 'char-current char-pending';
+                }
+                html += `<span class="${charClass}">${ch === ' ' ? '&nbsp;' : ch}</span>`;
+            }
+            displayArea.innerHTML = html;
+            const curr = displayArea.querySelector('.char-current');
+            curr && curr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        inputArea.addEventListener('input', () => {
+            if (!isStarted || isFinished) return;
+            if (!startTime) {
+                startTime = Date.now();
+                startTimer();
+            }
+            const inputStr = inputArea.value;
+            totalKeystrokes++;
+            let correct = 0;
+            const minLen = Math.min(inputStr.length, targetText.length);
+            for (let i = 0; i < minLen; i++) {
+                if (inputStr[i] === targetText[i]) correct++;
+            }
+            correctKeystrokes = correct;
+            renderDisplayText(inputStr);
+            const progress = Math.min(100, Math.round((inputStr.length / targetText.length) * 100));
+            const elapsed = (Date.now() - startTime) / 1000 / 60;
+            const speed = elapsed > 0 ? Math.round(correct / elapsed) : 0;
+            const accuracy = inputStr.length > 0 ? Math.round(correct / inputStr.length * 100) : 100;
+            const sec = Math.floor((Date.now() - startTime) / 1000);
+            updateStats(speed, accuracy, sec, progress);
+            if (inputStr.length >= targetText.length) finishPractice(speed, accuracy, sec);
+        });
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (!startTime || isFinished) return;
+                const sec = Math.floor((Date.当前() - startTime) / 1000);
+                const m = String(Math.floor(sec / 60)).padStart(2, '0');
+                const s = String(sec % 60).padStart(2, '0');
+                timeEl.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function updateStats(speed, accuracy, sec, progress) {
+            speedEl.textContent = speed;
+            accuracyEl.textContent = accuracy + '%';
+            progressEl.textContent = progress + '%';
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            timeEl.textContent = `${m}:${s}`;
+        }
+
+        function finishPractice(speed, accuracy, sec) {
+            isFinished = true;
+            clearInterval(timerInterval);
+            inputArea.disabled = true;
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            finalSpeed.textContent = speed;
+            finalAccuracy = accuracy + '%';
+            finalTime.textContent = `${m}:${s}`;
+            setTimeout(() => finishModal.classList.remove('hidden'), 300);
+        }
+
+        function resetPractice() {
+            speechModule.stop();
+            clearInterval(timerInterval);
+            isStarted = false;
+            isFinished = false;
+            startTime = null;
+            targetText = '';
+            inputArea.value = '';
+            inputArea.disabled = true;
+            resetBtn.disabled = true;
+            startBtn.textContent = '开始练习';
+            displayArea.innerHTML = '<span class="text-slate-400">请先在上方设置练习内容，然后点击「开始练习」</span>';
+            updateStats(0, 100, 0, 0);
+        }
+
+        resetBtn.addEventListener('click'， startPractice);
+        closeModalBtn.addEventListener('click', () => {
+            finishModal.classList.add('hidden');
+            startPractice();
+        });
+
+        inputArea.addEventListener('paste'， e => e.preventDefault());
+        inputArea.addEventListener('keydown'， e => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const st = inputArea.selectionStart;
+                const ed = inputArea.selectionEnd;
+                inputArea.value = inputArea.value.slice(0， st) + '  ' + inputArea.value.slice(ed);
+                inputArea.selectionStart = inputArea.selectionEnd = st + 2;
+                inputArea.dispatchEvent(new Event('input'));
+            }
+        });
+
+        window.addEventListener('beforeunload', () => speechModule.stop());
+    </script>
+</body>
+</html>
