@@ -126,7 +126,7 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.9</span>
+        <span class="version-info">v1.8.0</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -254,20 +254,35 @@
             return text.replace(/\d+/g, m => numberToEnglish(parseInt(m)));
         }
 
-        // a弱读修正
+        // ========= 已修复：a弱读增加单词边界，不会篡改we'll/I'll等缩写 =========
         function fixArticleAReduction(text) {
-            text = text.replace(/\sa\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g, ' uh $1');
-            text = text.replace(/^a\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm, 'uh $1');
+            // 仅匹配独立单词 a，前后有单词边界，不会进入缩写内部
+            text = text.replace(/\b a \b([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g, ' uh $1');
+            text = text.replace(/^\ba\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm, 'uh $1');
             return text;
         }
 
-        // 分句
+        // ========= 已修复：分句前保护英文缩写，避免拆分we'll/she'll/I'll =========
         function splitSentences(text) {
+            const tempMap = new Map();
+            let tempIdx = 0;
+            // 匹配所有常见英文缩写 'll / 're / 's / 't / 've / 'd
+            text = text.replace(/\w+'(ll|re|s|t|ve|d)/g, (match) => {
+                const key = `__ABBR_TMP_${tempIdx}__`;
+                tempMap.set(key, match);
+                tempIdx++;
+                return key;
+            });
+
             const sentences = [];
             const reg = /[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+/g;
             let match;
             while ((match = reg.exec(text)) !== null) {
-                const stext = match[0];
+                let stext = match[0];
+                // 还原缩写占位符
+                for (const [key, val] of tempMap) {
+                    stext = stext.replace(key, val);
+                }
                 let pauseType = 'newline';
                 const lastC = stext.trimEnd().slice(-1);
                 if (lastC === '.') pauseType = 'period';
@@ -275,7 +290,11 @@
                 sentences.push({ text: stext, pauseType });
             }
             if (sentences.length === 0 && text.length > 0) {
-                sentences.push({ text, pauseType: 'newline' });
+                let restoreText = text;
+                for (const [key, val] of tempMap) {
+                    restoreText = restoreText.replace(key, val);
+                }
+                sentences.push({ text: restoreText, pauseType: 'newline' });
             }
             return sentences;
         }
@@ -488,7 +507,7 @@
             reader.readAsText(f);
         });
 
-        // ============ 【核心修复】朗读按钮点击直接同步发起语音，绕过HTTPS拦截 ============
+        // 朗读按钮点击直接同步发起语音，绕过HTTPS拦截
         readAllBtnEl.addEventListener('click', function(){
             const txt = sourceTextEl.value.trim();
             if(!txt) return;
@@ -509,7 +528,7 @@
             this.classList.add('btn-speaking');
             this.textContent = '⏹ 停止朗读';
 
-            // 首句直接同步执行，不嵌套函数，安全校验通过
+            // 首句直接同步执行，安全校验通过
             const firstSen = speechState.sentences[0];
             const ut = createUtterance(firstSen.text, speechState.rate);
             ut.onend = function(){
