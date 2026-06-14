@@ -69,12 +69,64 @@
         #speechRate:hover {
             background-color: #e2e8f0;
         }
+
+        /* 自定义模态弹窗样式 */
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 520px;
+            width: 90%;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 28px;
+        }
+        .modal-btn-ok {
+            padding: 10px 28px;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        .modal-btn-cancel {
+            padding: 10px 28px;
+            background-color: #e5e7eb;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 max-w-5xl mx-auto">
+    <!-- 自定义弹窗DOM 初始隐藏 -->
+    <div id="modeModal" class="modal-mask hidden">
+        <div class="modal-box">
+            <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
+            <p class="text-slate-600 mb-2">「确定」：以全文作为练习文本</p>
+            <p class="text-slate-600">「取消」：提取英文行作为练习文本，中文行作为对照参考</p>
+            <div class="modal-buttons">
+                <button id="modalOkBtn" class="modal-btn-ok">确定</button>
+                <button id="modalCancelBtn" class="modal-btn-cancel">取消</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.7</span>
+        <span class="version-info">v1.7.8</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -160,7 +212,6 @@
         <button id="resetBtn" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-sm transition" disabled>重新开始</button>
     </div>
 
-    <!-- 所有JS全部内嵌在body末尾，DOM加载完毕再执行，彻底解决线上绑定失效 -->
     <script>
         // ========== 百度翻译配置 ==========
         const BAIDU_APPID = '';
@@ -175,6 +226,7 @@
         };
         let pauseTimer = null;
         let speechUtterance = null;
+        let pendingText = ''; // 暂存待处理文本
 
         // 数字转英文
         function numberToEnglish(num) {
@@ -303,7 +355,6 @@
                     btn.classList.remove('btn-speaking');
                     btn.textContent = '🔊 朗读全文';
                 }
-                clearSentenceHighlight();
             },
 
             toggle(text) {
@@ -487,6 +538,10 @@
         const accuracyEl = document.getElementById('accuracy');
         const timeUsedEl = document.getElementById('timeUsed');
         const progressEl = document.getElementById('progress');
+        // 自定义弹窗DOM
+        const modeModal = document.getElementById('modeModal');
+        const modalOkBtn = document.getElementById('modalOkBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
 
         // 打字状态
         let targetFullText = '';
@@ -515,7 +570,7 @@
             reader.readAsText(f);
         });
 
-        // 朗读全文按钮（绑定用户点击，绕过浏览器安全拦截）
+        // 朗读全文按钮
         readAllBtnEl.addEventListener('click', function(){
             speechModule.toggle(sourceTextEl.value);
         });
@@ -537,7 +592,7 @@
             translationAreaEl.classList.add('hidden');
         });
 
-        // 翻译切换（仅密钥填写后可用）
+        // 翻译切换
         translateToggleBtnEl.addEventListener('click', async function(){
             const txt = sourceTextEl.value.trim();
             if(!txt){
@@ -569,43 +624,53 @@
             }
         });
 
-        // 【恢复弹窗逻辑】判断是否包含中文，弹出选择模式
+        // 开始练习：检测中文，弹出自定义弹窗
         startBtnEl.addEventListener('click', function(){
-            let text = sourceTextEl.value.trim();
-            if(!text){
+            pendingText = sourceTextEl.value.trim();
+            if(!pendingText){
                 alert('请先填写练习文本');
                 return;
             }
-            // 检测中文
-            const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+            const hasChinese = /[\u4e00-\u9fa5]/.test(pendingText);
             if(hasChinese){
-                const confirmRes = confirm('检测到文本包含中文，请选择练习模式:\n\n「确定」: 以全文作为练习文本\n「取消」: 提取英文行作为练习文本，中文行作为对照参考');
-                if(!confirmRes){
-                    // 取消：分离中英文
-                    let enLines = [];
-                    let cnLines = [];
-                    text.split('\n').forEach(line=>{
-                        const trimLine = line.trim();
-                        if(!trimLine) return;
-                        if(/[\u4e00-\u9fa5]/.test(trimLine)){
-                            cnLines.push(trimLine);
-                        }else{
-                            enLines.push(trimLine);
-                        }
-                    });
-                    targetFullText = enLines.join('\n');
-                    translationTextEl.textContent = cnLines.join('\n');
-                    translationAreaEl.classList.remove('hidden');
-                }else{
-                    // 确定：全文直接练习
-                    targetFullText = text;
-                }
-            }else{
-                // 无中文，直接使用全文
-                targetFullText = text;
+                // 显示页面内置弹窗，不会被浏览器拦截
+                modeModal.classList.remove('hidden');
+                return;
             }
+            // 无中文直接开始
+            runTyping(pendingText);
+        });
 
-            // 重置打字状态
+        // 弹窗【确定】按钮
+        modalOkBtn.addEventListener('click', function(){
+            modeModal.classList.add('hidden');
+            runTyping(pendingText);
+        });
+
+        // 弹窗【取消】按钮：拆分中英文
+        modalCancelBtn.addEventListener('click', function(){
+            modeModal.classList.add('hidden');
+            const text = pendingText;
+            let enLines = [];
+            let cnLines = [];
+            text.split('\n').forEach(line=>{
+                const trimLine = line.trim();
+                if(!trimLine) return;
+                if(/[\u4e00-\u9fa5]/.test(trimLine)){
+                    cnLines.push(trimLine);
+                }else{
+                    enLines.push(trimLine);
+                }
+            });
+            const enText = enLines.join('\n');
+            translationTextEl.textContent = cnLines.join('\n');
+            translationAreaEl.classList.remove('hidden');
+            runTyping(enText);
+        });
+
+        // 真正启动打字逻辑抽成独立函数
+        function runTyping(text){
+            targetFullText = text;
             targetChars = targetFullText.split('');
             currentPos = 0;
             totalInput = 0;
@@ -623,10 +688,9 @@
             inputAreaEl.value = '';
             inputAreaEl.focus();
             resetBtnEl.disabled = false;
-            // 启动计时
             if(timerId) clearInterval(timerId);
             timerId = setInterval(updateTimerStat, 1000);
-        });
+        }
 
         // 计时统计更新
         function updateTimerStat(){
