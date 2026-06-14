@@ -126,7 +126,7 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.8</span>
+        <span class="version-info">v1.7.9</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -226,7 +226,7 @@
         };
         let pauseTimer = null;
         let speechUtterance = null;
-        let pendingText = ''; // 暂存待处理文本
+        let pendingText = '';
 
         // 数字转英文
         function numberToEnglish(num) {
@@ -261,130 +261,41 @@
             return text;
         }
 
-        // 朗读分句模块
-        const speechModule = {
-            utterance: null,
-            currentSentenceIndex: -1,
-            sentences: [],
-            isSpeaking: false,
-            isPaused: false,
-            rate: 0.75,
-
-            splitSentences(text) {
-                const sentences = [];
-                const reg = /[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+/g;
-                let match;
-                while ((match = reg.exec(text)) !== null) {
-                    const stext = match[0];
-                    let pauseType = 'newline';
-                    const lastC = stext.trimEnd().slice(-1);
-                    if (lastC === '.') pauseType = 'period';
-                    else if (lastC === '!' || lastC === '?') pauseType = 'mark';
-                    sentences.push({ text: stext, start: match.index, end: match.index + stext.length, pauseType });
-                }
-                if (sentences.length === 0 && text.length > 0) {
-                    sentences.push({ text, start: 0, end: text.length, pauseType: 'newline' });
-                }
-                return sentences;
-            },
-
-            createUtterance(rawText) {
-                const ut = new SpeechSynthesisUtterance();
-                ut.rate = this.rate;
-                ut.pitch = 1.0;
-                const isCN = /[\u4e00-\u9fa5]/.test(rawText);
-                if (isCN) {
-                    ut.lang = 'zh-CN';
-                    ut.text = rawText;
-                } else {
-                    ut.lang = 'en-US';
-                    let t = replaceDigitsToEnglish(rawText);
-                    t = fixArticleAReduction(t);
-                    ut.text = t;
-                }
-                return ut;
-            },
-
-            speak(text) {
-                this.stop();
-                this.sentences = this.splitSentences(text);
-                this.currentSentenceIndex = -1;
-                this.isSpeaking = true;
-                this.isPaused = false;
-                this.playNext();
-                document.getElementById('readAllBtn').classList.add('btn-speaking');
-                document.getElementById('readAllBtn').textContent = '⏹ 停止朗读';
-            },
-
-            playNext() {
-                if (!this.isSpeaking) return;
-                this.currentSentenceIndex++;
-                if (this.currentSentenceIndex >= this.sentences.length) {
-                    this.stop();
-                    return;
-                }
-                const sen = this.sentences[this.currentSentenceIndex];
-                if (!sen.text.trim()) {
-                    this.playNext();
-                    return;
-                }
-                this.utterance = this.createUtterance(sen.text);
-                const self = this;
-                this.utterance.onend = function () {
-                    if (!self.isSpeaking || self.isPaused) return;
-                    const wait = PAUSE_CONFIG[sen.pauseType];
-                    pauseTimer = setTimeout(() => self.playNext(), wait);
-                };
-                this.utterance.onerror = function () {
-                    if (!self.isSpeaking || self.isPaused) return;
-                    const wait = PAUSE_CONFIG[sen.pauseType];
-                    pauseTimer = setTimeout(() => self.playNext(), wait);
-                };
-                window.speechSynthesis.speak(this.utterance);
-            },
-
-            stop() {
-                clearTimeout(pauseTimer);
-                window.speechSynthesis.cancel();
-                this.isSpeaking = false;
-                this.isPaused = false;
-                this.currentSentenceIndex = -1;
-                this.utterance = null;
-                const btn = document.getElementById('readAllBtn');
-                if (btn) {
-                    btn.classList.remove('btn-speaking');
-                    btn.textContent = '🔊 朗读全文';
-                }
-            },
-
-            toggle(text) {
-                if (this.isSpeaking) this.stop();
-                else this.speak(text);
-            },
-
-            updateRate(newRate) {
-                this.rate = parseFloat(newRate);
-                if (this.isSpeaking && !this.isPaused && this.currentSentenceIndex >= 0) {
-                    clearTimeout(pauseTimer);
-                    window.speechSynthesis.cancel();
-                    const sen = this.sentences[this.currentSentenceIndex];
-                    if (!sen) return;
-                    this.utterance = this.createUtterance(sen.text);
-                    const self = this;
-                    this.utterance.onend = function () {
-                        if (!self.isSpeaking || self.isPaused) return;
-                        const wait = PAUSE_CONFIG[sen.pauseType];
-                        pauseTimer = setTimeout(() => self.playNext(), wait);
-                    };
-                    this.utterance.onerror = function () {
-                        if (!self.isSpeaking || self.isPaused) return;
-                        const wait = PAUSE_CONFIG[sen.pauseType];
-                        pauseTimer = setTimeout(() => self.playNext(), wait);
-                    };
-                    window.speechSynthesis.speak(this.utterance);
-                }
+        // 分句
+        function splitSentences(text) {
+            const sentences = [];
+            const reg = /[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+/g;
+            let match;
+            while ((match = reg.exec(text)) !== null) {
+                const stext = match[0];
+                let pauseType = 'newline';
+                const lastC = stext.trimEnd().slice(-1);
+                if (lastC === '.') pauseType = 'period';
+                else if (lastC === '!' || lastC === '?') pauseType = 'mark';
+                sentences.push({ text: stext, pauseType });
             }
-        };
+            if (sentences.length === 0 && text.length > 0) {
+                sentences.push({ text, pauseType: 'newline' });
+            }
+            return sentences;
+        }
+
+        function createUtterance(rawText, rate) {
+            const ut = new SpeechSynthesisUtterance();
+            ut.rate = rate;
+            ut.pitch = 1.0;
+            const isCN = /[\u4e00-\u9fa5]/.test(rawText);
+            if (isCN) {
+                ut.lang = 'zh-CN';
+                ut.text = rawText;
+            } else {
+                ut.lang = 'en-US';
+                let t = replaceDigitsToEnglish(rawText);
+                t = fixArticleAReduction(t);
+                ut.text = t;
+            }
+            return ut;
+        }
 
         // MD5 翻译加密
         function md5(str) {
@@ -538,10 +449,17 @@
         const accuracyEl = document.getElementById('accuracy');
         const timeUsedEl = document.getElementById('timeUsed');
         const progressEl = document.getElementById('progress');
-        // 自定义弹窗DOM
         const modeModal = document.getElementById('modeModal');
         const modalOkBtn = document.getElementById('modalOkBtn');
         const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        // 朗读全局状态
+        let speechState = {
+            sentences: [],
+            idx: 0,
+            running: false,
+            rate: 0.75
+        };
 
         // 打字状态
         let targetFullText = '';
@@ -570,21 +488,76 @@
             reader.readAsText(f);
         });
 
-        // 朗读全文按钮
+        // ============ 【核心修复】朗读按钮点击直接同步发起语音，绕过HTTPS拦截 ============
         readAllBtnEl.addEventListener('click', function(){
-            speechModule.toggle(sourceTextEl.value);
+            const txt = sourceTextEl.value.trim();
+            if(!txt) return;
+            // 停止已有朗读
+            clearTimeout(pauseTimer);
+            window.speechSynthesis.cancel();
+            if(speechState.running){
+                speechState.running = false;
+                this.classList.remove('btn-speaking');
+                this.textContent = '🔊 朗读全文';
+                return;
+            }
+            // 用户点击同步直接创建第一个语音实例，浏览器放行
+            speechState.rate = parseFloat(speechRateEl.value);
+            speechState.sentences = splitSentences(txt);
+            speechState.idx = 0;
+            speechState.running = true;
+            this.classList.add('btn-speaking');
+            this.textContent = '⏹ 停止朗读';
+
+            // 首句直接同步执行，不嵌套函数，安全校验通过
+            const firstSen = speechState.sentences[0];
+            const ut = createUtterance(firstSen.text, speechState.rate);
+            ut.onend = function(){
+                nextSpeak(firstSen.pauseType);
+            };
+            ut.onerror = function(){
+                nextSpeak(firstSen.pauseType);
+            };
+            window.speechSynthesis.speak(ut);
         });
+
+        // 后续分句延时续播
+        function nextSpeak(lastPauseType){
+            if(!speechState.running) return;
+            speechState.idx++;
+            if(speechState.idx >= speechState.sentences.length){
+                speechState.running = false;
+                readAllBtnEl.classList.remove('btn-speaking');
+                readAllBtnEl.textContent = '🔊 朗读全文';
+                return;
+            }
+            const sen = speechState.sentences[speechState.idx];
+            if(!sen.text.trim()){
+                nextSpeak(sen.pauseType);
+                return;
+            }
+            pauseTimer = setTimeout(()=>{
+                const ut = createUtterance(sen.text, speechState.rate);
+                ut.onend = ()=>nextSpeak(sen.pauseType);
+                ut.onerror = ()=>nextSpeak(sen.pauseType);
+                window.speechSynthesis.speak(ut);
+            }, PAUSE_CONFIG[lastPauseType]);
+        }
 
         // 语速切换
         speechRateEl.addEventListener('change', function(){
-            speechModule.updateRate(this.value);
+            speechState.rate = parseFloat(this.value);
         });
 
         // 清空
         clearBtnEl.addEventListener('click', function(){
             sourceTextEl.value = '';
             updateCharCount();
-            speechModule.stop();
+            clearTimeout(pauseTimer);
+            window.speechSynthesis.cancel();
+            speechState.running = false;
+            readAllBtnEl.classList.remove('btn-speaking');
+            readAllBtnEl.textContent = '🔊 朗读全文';
         });
 
         // 隐藏翻译面板
@@ -633,11 +606,9 @@
             }
             const hasChinese = /[\u4e00-\u9fa5]/.test(pendingText);
             if(hasChinese){
-                // 显示页面内置弹窗，不会被浏览器拦截
                 modeModal.classList.remove('hidden');
                 return;
             }
-            // 无中文直接开始
             runTyping(pendingText);
         });
 
@@ -760,7 +731,9 @@
 
         // 页面卸载停止朗读
         window.addEventListener('beforeunload', ()=>{
-            speechModule.stop();
+            clearTimeout(pauseTimer);
+            window.speechSynthesis.cancel();
+            speechState.running = false;
             clearInterval(timerId);
         });
     </script>
