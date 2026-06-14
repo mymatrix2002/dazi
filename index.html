@@ -126,7 +126,7 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.10</span>
+        <span class="version-info">v1.7.11</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -228,65 +228,66 @@
         let speechUtterance = null;
         let pendingText = '';
 
-        // 【新增】英文缩写自动展开，解决 we’ll / I'm 拆分朗读
+        // 【核心修复：缩写直接替换为国际音标，强制连读，彻底杜绝拆字母】
         function expandEnglishContraction(text) {
-            const contractionMap = {
-                "we’ll": "we will",
-                "we'll": "we will",
-                "I’ll": "I will",
-                "I'll": "I will",
-                "you’ll": "you will",
-                "you'll": "you will",
-                "he’ll": "he will",
-                "he'll": "he will",
-                "she’ll": "she will",
-                "she'll": "she will",
-                "it’ll": "it will",
-                "it'll": "it will",
-                "won’t": "will not",
-                "won't": "will not",
-                "don’t": "do not",
-                "don't": "do not",
-                "didn’t": "did not",
-                "didn't": "did not",
-                "isn’t": "is not",
-                "isn't": "is not",
-                "aren’t": "are not",
-                "aren't": "are not",
-                "wasn’t": "was not",
-                "wasn't": "was not",
-                "weren’t": "were not",
-                "weren't": "were not",
-                "I’m": "I am",
-                "I'm": "I am",
-                "you’re": "you are",
-                "you're": "you are",
-                "he’s": "he is",
-                "he's": "he is",
-                "she’s": "she is",
-                "she's": "she is",
-                "it’s": "it is",
-                "it's": "it is",
-                "we’re": "we are",
-                "we're": "we are",
-                "they’re": "they are",
-                "they're": "they are",
-                "can’t": "can not",
-                "can't": "can not",
-                "couldn’t": "could not",
-                "couldn't": "could not",
-                "hasn’t": "has not",
-                "hasn't": "has not",
-                "haven’t": "have not",
-                "haven't": "have not",
-                "hadn’t": "had not",
-                "hadn't": "had not",
-                "wouldn’t": "would not",
-                "wouldn't": "would not"
+            const contractionPhoneticMap = {
+                "we’ll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
+                "we'll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
+                "I’ll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
+                "I'll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
+                "you’ll": "<phoneme ph=\"juːl\">you'll</phoneme>",
+                "you'll": "<phoneme ph=\"juːl\">you'll</phoneme>",
+                "he’ll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
+                "he'll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
+                "she’ll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
+                "she'll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
+                "it’ll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
+                "it'll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
+                "won’t": "<phoneme ph=\"woʊnt\">won't</phoneme>",
+                "won't": "<phoneme ph=\"woʊnt\">won't</phoneme>",
+                "don’t": "<phoneme ph=\"doʊnt\">don't</phoneme>",
+                "don't": "<phoneme ph=\"doʊnt\">don't</phoneme>",
+                "didn’t": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
+                "didn't": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
+                "isn’t": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
+                "isn't": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
+                "aren’t": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
+                "aren't": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
+                "wasn’t": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
+                "wasn't": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
+                "weren’t": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
+                "weren't": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
+                "I’m": "<phoneme ph=\"aɪm\">I'm</phoneme>",
+                "I'm": "<phoneme ph=\"aɪm\">I'm</phoneme>",
+                "you’re": "<phoneme ph=\"juːr\">you're</phoneme>",
+                "you're": "<phoneme ph=\"juːr\">you're</phoneme>",
+                "he’s": "<phoneme ph=\"hiːz\">he's</phoneme>",
+                "he's": "<phoneme ph=\"hiːz\">he's</phoneme>",
+                "she’s": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
+                "she's": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
+                "it’s": "<phoneme ph=\"ɪts\">it's</phoneme>",
+                "it's": "<phoneme ph=\"ɪts\">it's</phoneme>",
+                "we’re": "<phoneme ph=\"wɪr\">we're</phoneme>",
+                "we're": "<phoneme ph=\"wɪr\">we're</phoneme>",
+                "they’re": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
+                "they're": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
+                "can’t": "<phoneme ph=\"kænt\">can't</phoneme>",
+                "can't": "<phoneme ph=\"kænt\">can't</phoneme>",
+                "couldn’t": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
+                "couldn't": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
+                "hasn’t": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
+                "hasn't": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
+                "haven’t": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
+                "haven't": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
+                "hadn’t": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
+                "hadn't": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
+                "wouldn’t": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>",
+                "wouldn't": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>"
             };
-            Object.keys(contractionMap).forEach(short => {
+            // 全局正则批量替换音标标记
+            Object.keys(contractionPhoneticMap).forEach(short => {
                 const reg = new RegExp(short, "g");
-                text = text.replace(reg, contractionMap[short]);
+                text = text.replace(reg, contractionPhoneticMap[short]);
             });
             return text;
         }
@@ -353,7 +354,6 @@
                 ut.text = rawText;
             } else {
                 ut.lang = 'en-US';
-                // 执行缩写展开 → 数字替换 → a弱读
                 let t = expandEnglishContraction(rawText);
                 t = replaceDigitsToEnglish(t);
                 t = fixArticleAReduction(t);
