@@ -126,10 +126,10 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.8.2</span>
+        <span class="version-info">v1.8.3</span>
     </div>
 
-    <!-- 快捷链接区域：已删除GitHub按钮 -->
+    <!-- 快捷链接区域 -->
     <div class="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center">
         <span class="text-slate-700 font-medium">快捷链接：</span>
         <div class="flex flex-wrap gap-2">
@@ -265,7 +265,6 @@
 
         // ========= 已修复：a弱读增加单词边界，不会篡改we'll/I'll等缩写 =========
         function fixArticleAReduction(text) {
-            // 仅匹配独立单词 a，前后有单词边界，不会进入缩写内部
             text = text.replace(/\b a \b([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g, ' uh $1');
             text = text.replace(/^\ba\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm, 'uh $1');
             return text;
@@ -275,7 +274,6 @@
         function splitSentences(text) {
             const tempMap = new Map();
             let tempIdx = 0;
-            // 匹配所有常见英文缩写 'll / 're / 's / 't / 've / 'd
             text = text.replace(/\w+'(ll|re|s|t|ve|d)/g, (match) => {
                 const key = `__ABBR_TMP_${tempIdx}__`;
                 tempMap.set(key, match);
@@ -288,7 +286,6 @@
             let match;
             while ((match = reg.exec(text)) !== null) {
                 let stext = match[0];
-                // 还原缩写占位符
                 for (const [key, val] of tempMap) {
                     stext = stext.replace(key, val);
                 }
@@ -533,10 +530,20 @@
             });
         });
 
-        // 朗读按钮点击直接同步发起语音，绕过HTTPS拦截
+        // ========= 核心修改：朗读从displayArea展示区取文字，不再读取输入框 =========
         readAllBtnEl.addEventListener('click', function(){
-            const txt = sourceTextEl.value.trim();
-            if(!txt) return;
+            // 从展示区提取完整文本
+            const displaySpans = displayAreaEl.querySelectorAll('span');
+            let txt = '';
+            displaySpans.forEach(span=>{
+                txt += span.textContent;
+            });
+            txt = txt.trim();
+
+            if(!txt) {
+                alert('展示区暂无可朗读文本，请先点击【开始练习】生成展示文字');
+                return;
+            }
             // 停止已有朗读
             clearTimeout(pauseTimer);
             window.speechSynthesis.cancel();
@@ -566,7 +573,7 @@
             window.speechSynthesis.speak(ut);
         });
 
-        // 后续分句延时续播
+        // 后续分句延时续播（原有分句逻辑完整保留）
         function nextSpeak(lastPauseType){
             if(!speechState.running) return;
             speechState.idx++;
