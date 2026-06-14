@@ -126,7 +126,7 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.11</span>
+        <span class="version-info">v1.7.12</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -228,66 +228,38 @@
         let speechUtterance = null;
         let pendingText = '';
 
-        // 【核心修复：缩写直接替换为国际音标，强制连读，彻底杜绝拆字母】
+        // 【修复：正则i忽略大小写，We’ll / we’ll 统一匹配音标，原文大小写保留】
         function expandEnglishContraction(text) {
-            const contractionPhoneticMap = {
-                "we’ll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
-                "we'll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
-                "I’ll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "I'll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "you’ll": "<phoneme ph=\"juːl\">you'll</phoneme>",
-                "you'll": "<phoneme ph=\"juːl\">you'll</phoneme>",
-                "he’ll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
-                "he'll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
-                "she’ll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
-                "she'll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
-                "it’ll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
-                "it'll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
-                "won’t": "<phoneme ph=\"woʊnt\">won't</phoneme>",
-                "won't": "<phoneme ph=\"woʊnt\">won't</phoneme>",
-                "don’t": "<phoneme ph=\"doʊnt\">don't</phoneme>",
-                "don't": "<phoneme ph=\"doʊnt\">don't</phoneme>",
-                "didn’t": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
-                "didn't": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
-                "isn’t": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
-                "isn't": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
-                "aren’t": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
-                "aren't": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
-                "wasn’t": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
-                "wasn't": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
-                "weren’t": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
-                "weren't": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
-                "I’m": "<phoneme ph=\"aɪm\">I'm</phoneme>",
-                "I'm": "<phoneme ph=\"aɪm\">I'm</phoneme>",
-                "you’re": "<phoneme ph=\"juːr\">you're</phoneme>",
-                "you're": "<phoneme ph=\"juːr\">you're</phoneme>",
-                "he’s": "<phoneme ph=\"hiːz\">he's</phoneme>",
-                "he's": "<phoneme ph=\"hiːz\">he's</phoneme>",
-                "she’s": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
-                "she's": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
-                "it’s": "<phoneme ph=\"ɪts\">it's</phoneme>",
-                "it's": "<phoneme ph=\"ɪts\">it's</phoneme>",
-                "we’re": "<phoneme ph=\"wɪr\">we're</phoneme>",
-                "we're": "<phoneme ph=\"wɪr\">we're</phoneme>",
-                "they’re": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
-                "they're": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
-                "can’t": "<phoneme ph=\"kænt\">can't</phoneme>",
-                "can't": "<phoneme ph=\"kænt\">can't</phoneme>",
-                "couldn’t": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
-                "couldn't": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
-                "hasn’t": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
-                "hasn't": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
-                "haven’t": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
-                "haven't": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
-                "hadn’t": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
-                "hadn't": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
-                "wouldn’t": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>",
-                "wouldn't": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>"
-            };
-            // 全局正则批量替换音标标记
-            Object.keys(contractionPhoneticMap).forEach(short => {
-                const reg = new RegExp(short, "g");
-                text = text.replace(reg, contractionPhoneticMap[short]);
+            const contractionPhoneticMap = [
+                {reg:/we’ll/gi, phon:'<phoneme ph="wiːl">$&</phoneme>'},
+                {reg:/I’ll/gi, phon:'<phoneme ph="aɪl">$&</phoneme>'},
+                {reg:/you’ll/gi, phon:'<phoneme ph="juːl">$&</phoneme>'},
+                {reg:/he’ll/gi, phon:'<phoneme ph="hiːl">$&</phoneme>'},
+                {reg:/she’ll/gi, phon:'<phoneme ph="ʃiːl">$&</phoneme>'},
+                {reg:/it’ll/gi, phon:'<phoneme ph="ɪtl">$&</phoneme>'},
+                {reg:/won’t/gi, phon:'<phoneme ph="woʊnt">$&</phoneme>'},
+                {reg:/don’t/gi, phon:'<phoneme ph="doʊnt">$&</phoneme>'},
+                {reg:/didn’t/gi, phon:'<phoneme ph="ˈdɪdnt">$&</phoneme>'},
+                {reg:/isn’t/gi, phon:'<phoneme ph="ˈɪznt">$&</phoneme>'},
+                {reg:/aren’t/gi, phon:'<phoneme ph="ɑːrnt">$&</phoneme>'},
+                {reg:/wasn’t/gi, phon:'<phoneme ph="ˈwɑːznt">$&</phoneme>'},
+                {reg:/weren’t/gi, phon:'<phoneme ph="wɜːrnt">$&</phoneme>'},
+                {reg:/I’m/gi, phon:'<phoneme ph="aɪm">$&</phoneme>'},
+                {reg:/you’re/gi, phon:'<phoneme ph="juːr">$&</phoneme>'},
+                {reg:/he’s/gi, phon:'<phoneme ph="hiːz">$&</phoneme>'},
+                {reg:/she’s/gi, phon:'<phoneme ph="ʃiːz">$&</phoneme>'},
+                {reg:/it’s/gi, phon:'<phoneme ph="ɪts">$&</phoneme>'},
+                {reg:/we’re/gi, phon:'<phoneme ph="wɪr">$&</phoneme>'},
+                {reg:/they’re/gi, phon:'<phoneme ph="ðeɪr">$&</phoneme>'},
+                {reg:/can’t/gi, phon:'<phoneme ph="kænt">$&</phoneme>'},
+                {reg:/couldn’t/gi, phon:'<phoneme ph="ˈkʊdnt">$&</phoneme>'},
+                {reg:/hasn’t/gi, phon:'<phoneme ph="ˈhæznt">$&</phoneme>'},
+                {reg:/haven’t/gi, phon:'<phoneme ph="ˈhævnt">$&</phoneme>'},
+                {reg:/hadn’t/gi, phon:'<phoneme ph="ˈhædnt">$&</phoneme>'},
+                {reg:/wouldn’t/gi, phon:'<phoneme ph="ˈwʊdnt">$&</phoneme>'}
+            ];
+            contractionPhoneticMap.forEach(item=>{
+                text = text.replace(item.reg, item.phon);
             });
             return text;
         }
