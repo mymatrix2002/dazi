@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儿童趣味英文打字练习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 全局动画定义 */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes blink {
+            0%, 50% { border-color: #3b82f6; }
+            51%, 100% { border-color: transparent; }
+        }
+        @keyframes comboUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.2); }
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 20px; }
+            15% { opacity: 1; bottom: 30px; }
+            85% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 20px; }
+        }
+
+        /* 字符样式升级 */
+        .char-correct {
+            color: #059669;
+            animation: bounce 0.3s ease;
+            font-weight: 600;
+        }
+        .char-wrong {
+            color: #dc2626;
+            background-color: #fee2e2;
+            border-radius: 4px;
+        }
+        .char-current {
+            border-bottom: 3px solid #3b82f6;
+            animation: blink 1s infinite;
+        }
+        .char-pending {
+            color: #6b7280;
+        }
+        .sentence-read-highlight {
+            background-color: #dbeafe;
+            border-radius: 4px;
+        }
+
+        /* 页面背景柔和纹理 */
+        body {
+            background-color: #f0f9ff;
+            background-image: radial-gradient(#bfdbfe 6%, transparent 6%);
+            background-size: 30px 30px;
+        }
+
+        /* 卡片统一大圆角，卡通风格 */
+        .card-round {
+            border-radius: 16px !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+        }
+
+        /* 按钮美化区分色系 */
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-success:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+        }
+        .btn-warning {
+            background-color: #f97316;
+            color: white;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-warning:hover {
+            background-color: #ea580c;
+            transform: translateY(-2px);
+        }
+        .btn-normal {
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .btn-normal:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* 展示区弹性居中 */
+        #displayArea {
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: normal;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        .header-title h1 {
+            margin: 0;
+        }
+        .version-info {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: normal;
+            user-select: none;
+        }
+
+        .btn-speaking {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+
+        #speechRate {
+            background-color: #f3f4f6;
+            border: none;
+            outline: none;
+            border-radius: 12px;
+            padding: 6px 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #334155;
+        }
+        #speechRate:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* 弹窗样式 */
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 520px;
+            width: 90%;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 28px;
+        }
+
+        /* 漂浮星星样式 */
+        .float-star {
+            position: absolute;
+            font-size: 26px;
+            pointer-events: none;
+            z-index: 99999;
+            transition: all 1s ease-out;
+        }
+        /* 连击气泡弹窗 */
+        .combo-tip {
+            position: fixed;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+            background: #dbeafe;
+            padding: 6px 14px;
+            border-radius: 99px;
+            z-index: 99999;
+            pointer-events: none;
+            animation: comboUp 1.2s ease-out forwards;
+        }
+        /* 错误提示气泡 */
+        .error-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            background: #ffedd5;
+            color: #c2410c;
+            padding: 8px 16px;
+            border-radius: 12px;
+            z-index: 99999;
+            animation: fadeInOut 3s forwards;
+        }
+        /* 贴纸收集面板 */
+        .sticker-box {
+            position: fixed;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            padding: 10px 6px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #00000015;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 99;
+        }
+        .sticker-item {
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+            opacity: 0.25;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+        }
+        .sticker-item.unlock {
+            opacity: 1;
+            border: none;
+            background: #fef9c3;
+        }
+
+        /* 进度条容器 */
+        .progress-wrap {
+            width: 100%;
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 max-w-5xl mx-auto">
+    <!-- 弹窗 -->
+    <div id="modeModal" class="modal-mask hidden">
+        <div class="modal-box">
+            <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
+            <p class="text-slate-600 mb-2">「确定」：以全文作为练习文本</p>
+            <p class="text-slate-600">「取消」：提取英文行作为练习文本，中文行作为对照参考（按换行段落对齐）</p>
+            <div class="modal-buttons">
+                <button id="modalOkBtn" class="btn-primary px-5 py-2">确定</button>
+                <button id="modalCancelBtn" class="btn-normal px-5 py-2">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-title">
+        <h1 class="text-3xl font-bold text-slate-800">⌨️ 儿童趣味英文打字练习</h1>
+        <span class="version-info">v1.9.3</span>
+    </div>
+
+    <!-- 快捷链接 -->
+    <div class="bg-white card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="text-slate-700 font-medium">快捷链接：</span>
+        <div class="flex flex-wrap gap-2">
+            <button data-url="https://www.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度</button>
+            <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州1-6年级英语教材</button>
+        </div>
+    </div>
+
+    <!-- 测速+可视化进度区域 -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="bg-white card-round p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
+            <div class="text-xs text-slate-500 mt-1">打字速度(字/分钟)</div>
+            <div class="progress-wrap mt-2">
+                <div id="speedBar" class="progress-bar bg-blue-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="bg-white card-round p-4 text-center">
+            <div class="text-2xl font-bold text-green-600" id="accuracy">100%</div>
+            <div class="text-xs text-slate-500 mt-1">准确率</div>
+            <div class="progress-wrap mt-2">
+                <div id="accBar" class="progress-bar bg-green-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="bg-white card-round p-4 text-center">
+            <div class="text-2xl font-bold text-amber-600" id="timeUsed">00:00</div>
+            <div class="text-xs text-slate-500 mt-1">用时</div>
+        </div>
+        <div class="bg-white card-round p-4 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="progress">0%</div>
+            <div class="text-xs text-slate-500 mt-1">全文进度</div>
+            <div class="progress-wrap mt-2">
+                <div id="progBar" class="progress-bar bg-purple-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 输入设置区 -->
+    <div class="bg-white card-round p-5 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h2 class="font-semibold text-slate-700">练习内容设置</h2>
+            <div class="flex flex-wrap gap-2 items-center">
+                <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
+                    📁 上传TXT文件
+                    <input type="file" id="fileInput" accept=".txt" class="hidden">
+                </label>
+                <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
+                <select id="speechRate">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75" selected>0.75x</option>
+                    <option value="1.0">1.0x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                </select>
+                <button id="translateToggleBtn" class="btn-normal px-3 py-1.5 text-sm">🌐 英译中对照</button>
+                <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
+            </div>
+        </div>
+        <textarea id="sourceText" class="w-full h-28 p-3 border border-slate-200 rounded-xl text-sm resize-none bg-sky-50" placeholder="粘贴英文课文，或上传TXT文件，自带音标[xxx]会自动删除"></textarea>
+        <div class="flex justify-between items-center mt-3">
+            <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
+            <button id="startBtn" class="btn-primary px-5 py-2 text-sm font-medium">开始练习</button>
+        </div>
+    </div>
+
+    <!-- 横屏左右分栏布局：中文对照 + 英文打字区 字号同步+换行段落对齐 -->
+    <div class="bg-white card-round p-6 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-stretch">
+            <!-- 左侧：中文对照区 字号、行高与英文区完全一致 -->
+            <div id="translationArea" class="bg-slate-50 rounded-xl p-4 hidden h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500">中文对照</span>
+                    <button id="toggleTranslationHideBtn" class="text-xs text-blue-600">收起</button>
+                </div>
+                <p id="translationText" class="text-lg leading-loose text-slate-600 whitespace-pre-wrap"></p>
+            </div>
+            <!-- 右侧：英文展示区 -->
+            <div>
+                <div id="displayArea" class="text-lg leading-loose font-mono min-h-[120px] overflow-y-auto mb-4 select-none flex items-center justify-center" style="letter-spacing:0.5px;">
+                    <span class="text-slate-400">✨ 请先粘贴课文，点击「开始练习」✨</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下方输入框独占整行 -->
+        <textarea id="inputArea" class="w-full p-3 border-2 border-slate-200 focus:border-blue-500 rounded-xl font-mono text-lg resize-none bg-sky-50" rows="3" placeholder="在这里打字..." disabled></textarea>
+    </div>
+
+    <div class="flex justify-center gap-3 mb-6">
+        <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
+    </div>
+
+    <!-- 侧边贴纸收集面板 -->
+    <div class="sticker-box">
+        <div class="sticker-item" data-id="0">🐱</div>
+        <div class="sticker-item" data-id="1">🐶</div>
+        <div class="sticker-item" data-id="2">🚀</div>
+        <div class="sticker-item" data-id="3">📖</div>
+    </div>
+
+    <script>
+        const BAIDU_APPID = '';
+        const BAIDU_SECRET = '';
+
+        const PAUSE_CONFIG = { period:700, mark:400, newline:150 };
+        let pauseTimer = null;
+        let pendingText = '';
+
+        // 正则：全局删除 [任意内容] 音标
+        function removePhoneticSymbols(str) {
+            return str.replace(/\[.*?\]/g, '');
+        }
+
+        // 新增动画全局变量
+        let comboCount = 0;
+        let wrongContinuous = 0;
+        let stickerUnlock = [false,false,false,false];
+
+        function numberToEnglish(num) {
+            const ones = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+            const tens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+            if(num<20) return ones[num];
+            if(num<100){
+                const t=Math.floor(num/10), o=num%10;
+                return o>0 ? `${tens[t]}-${ones[o]}` : tens[t];
+            }
+            const h=Math.floor(num/100), rem=num%100;
+            let res=ones[h]+" hundred";
+            if(rem>0) res+=" "+numberToEnglish(rem);
+            return res;
+        }
+        function replaceDigitsToEnglish(s){
+            return s.replace(/\d+/g,m=>numberToEnglish(+m));
+        }
+        function fixArticleRead(s){
+            return s.replace(/\b a \b([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g," uh $1")
+                    .replace(/^\ba\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm,"uh $1");
+        }
+
+        function splitSentences(text){
+            const map=new Map();
+            let idx=0;
+            text=text.replace(/\w+'(ll|re|s|t|ve|d)/g,m=>{
+                const k=`__TMP${idx}__`; map.set(k,m); idx++; return k;
+            });
+            const reg=/[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+$/g;
+            let match, arr=[];
+            while((match=reg.exec(text))!==null){
+                let seg=match[0];
+                for(let [k,v] of map) seg=seg.replace(k,v);
+                let ptype="newline";
+                const last=seg.trimEnd().slice(-1);
+                if(last===".") ptype="period";
+                else if(last==="!"||last==="?") ptype="mark";
+                arr.push({text:seg, pauseType:ptype});
+            }
+            if(arr.length===0 && text.trim()) arr.push({text, pauseType:"newline"});
+            return arr;
+        }
+
+        function createUtterance(rawTxt, rate){
+            const ut=new SpeechSynthesisUtterance();
+            ut.rate=rate; ut.pitch=1;
+            const isCN=/[\u4e00-\u9fa5]/.test(rawTxt);
+            if(isCN){
+                ut.lang="zh-CN"; ut.text=rawTxt;
+            }else{
+                ut.lang="en-US";
+                let t=replaceDigitsToEnglish(rawTxt);
+                t=fixArticleRead(t);
+                ut.text=t;
+            }
+            return ut;
+        }
+
+        function md5(str){
+            function rotl(v,s){ return (v<<s)|(v>>>(32-s)); }
+            function add32(a,b){ return (a+b)&0xFFFFFFFF; }
+            function F(x,y,z){ return (x&y)|((~x)&z); }
+            function G(x,y,z){ return (x&z)|(y&(~z)); }
+            function H(x,y,z){ return x^y^z; }
+            function I(x,y,z){ return y^(x|(~z)); }
+            function FF(a,b,c,d,x,s,ac){
+                a=add32(a, add32(add32(F(b,c,d),x),ac));
+                return add32(rotl(a,s),b);
+            }
+            function GG(a,b,c,d,x,s,ac){
+                a=add32(a, add32(add32(G(b,c,d),x),ac));
+                return add32(rotl(a,s),b);
+            }
+            function HH(a,b,c,d,x,s,ac){
+                a=add32(a, add32(add32(H(b,c,d),x),ac));
+                return add32(rotl(a,s),b);
+            }
+            function II(a,b,c,d,x,s,ac){
+                a=add32(a, add32(add32(I(b,c,d),x),ac));
+                return add32(rotl(a,s),b);
+            }
+            function strToWordArr(s){
+                let len=s.length, arr=Array(Math.floor((len+8)/16)*16).fill(0);
+                let i=0;
+                for(;i<len;i++) arr[Math.floor(i/4)]|=(s.charCodeAt(i)<<((i%4)*8));
+                arr[Math.floor(len/4)]|=0x80<<((len%4)*8);
+                const lenBit=len*8;
+                arr[arr.length-2]=lenBit&0xFFFFFFFF;
+                arr[arr.length-1]=(lenBit>>>32)&0xFFFFFFFF;
+                return arr;
+            }
+            function wordToHex(v){
+                let h="";
+                for(let i=0;i<4;i++){
+                    let b=(v>>>(i*8))&0xFF;
+                    h+=("0"+b.toString(16)).slice(-2);
+                }
+                return h;
+            }
+            s=unescape(encodeURIComponent(str));
+            let x=strToWordArr(s);
+            let a=0x67452301,b=0xEFCDAB89,c=0x98BADCFE,d=0x10325476;
+            for(let k=0;k<x.length;k+=16){
+                let aa=a,bb=b,cc=c,dd=d;
+                a=FF(a,b,c,d,x[k+0],7,0xD76AA478);
+                d=FF(d,a,b,c,x[k+1],12,0xE8C7B756);
+                c=FF(c,d,a,b,x[k+2],17,0x242070DB);
+                b=FF(b,c,d,a,x[k+3],22,0xC1BDCEEE);
+                a=FF(a,b,c,d,x[k+4],7,0xF57C0FAF);
+                d=FF(d,a,b,c,x[k+5],12,0x4787C62A);
+                c=FF(c,d,a,b,x[k+6],17,0xA8304613);
+                b=FF(b,c,d,a,x[k+7],22,0xFD469501);
+                a=FF(a,b,c,d,x[k+8],7,0x698098D8);
+                d=FF(d,a,b,c,x[k+9],12,0x8B44F7AF);
+                c=FF(c,d,a,b,x[k+10],17,0xFFFF5BB1);
+                b=FF(b,c,d,a,x[k+11],22,0x895CD7BE);
+                a=FF(a,b,c,d,x[k+12],7,0x6B901122);
+                d=FF(d,a,b,c,x[k+13],12,0xFD987193);
+                c=FF(c,d,a,b,x[k+14],17,0xA679438E);
+                b=FF(b,c,d,a,x[k+15],22,0x49B40821);
+                a=GG(a,b,c,d,x[k+1],5,0xF61E2562);
+                d=GG(d,a,b,c,x[k+6],9,0xC040B340);
+                c=GG(c,d,a,b,x[k+11],14,0x265E5A51);
+                b=GG(b,c,d,a,x[k+0],20,0xE9B6C7AA);
+                a=GG(a,b,c,d,x[k+5],5,0xD62F105D);
+                d=GG(d,a,b,c,x[k+10],9,0x02441453);
+                c=GG(c,d,a,b,x[k+15],14,0xD8A1E681);
+                b=GG(b,c,d,a,x[k+4],20,0xE7D3FBC8);
+                a=GG(a,b,c,d,x[k+9],5,0x21E1CDE6);
+                d=GG(d,a,b,c,x[k+14],9,0xC33707D6);
+                c=GG(c,d,a,b,x[k+3],14,0xF4D50D87);
+                b=GG(b,c,d,a,x[k+8],20,0x455A14ED);
+                a=GG(a,b,c,d,x[k+13],5,0xA9E3E905);
+                d=GG(d,a,b,c,x[k+2],9,0xFCEFA3F8);
+                c=GG(c,d,a,b,x[k+7],14,0x676F02D9);
+                b=GG(b,c,d,a,x[k+12],20,0x8D2A4C8A);
+                a=HH(a,b,c,d,x[k+5],4,0xFFFA3942);
+                d=HH(d,a,b,c,x[k+8],11,0x8771F681);
+                c=HH(c,d,a,b,x[k+11],16,0x6D9D6122);
+                b=HH(b,c,d,a,x[k+14],23,0xFDE5380C);
+                a=HH(a,b,c,d,x[k+1],4,0xA4BEEA44);
+                d=HH(d,a,b,c,x[k+4],11,0x4BDECFA9);
+                c=HH(c,d,a,b,x[k+7],16,0xF6BB4B60);
+                b=HH(b,c,d,a,x[k+10],23,0xBEBFBC70);
+                a=HH(a,b,c,d,x[k+13],4,0x289B7EC6);
+                d=HH(d,a,b,c,x[k+0],11,0xEAA127FA);
+                c=HH(c,d,a,b,x[k+3],16,0xD4EF3085);
+                b=HH(b,c,d,a,x[k+6],23,0x04881D05);
+                a=HH(a,b,c,d,x[k+9],4,0xD9D4D039);
+                d=HH(d,a,b,c,x[k+12],11,0xE6DB99E5);
+                c=HH(c,d,a,b,x[k+15],16,0x1FA27CF8);
+                b=HH(b,c,d,a,x[k+2],23,0xC4AC5665);
+                a=II(a,b,c,d,x[k+0],6,0xF4292244);
+                d=II(d,a,b,c,x[k+7],10,0x432AFF97);
+                c=II(c,d,a,b,x[k+14],15,0xAB9423A7);
+                b=II(b,c,d,a,x[k+5],21,0xFC93A039);
+                a=II(a,b,c,d,x[k+12],6,0x655B59C3);
+                d=II(d,a,b,c,x[k+3],10,0x8F0CCC92);
+                c=II(c,d,a,b,x[k+10],15,0xFFEFF47D);
+                b=II(b,c,d,a,x[k+1],21,0x85845DD1);
+                a=II(a,b,c,d,x[k+8],6,0x6FA87E4F);
+                d=II(d,a,b,c,x[k+15],10,0xFE2CE6E0);
+                c=II(c,d,a,b,x[k+6],15,0xA3014314);
+                b=II(b,c,d,a,x[k+13],21,0x4E0811A1);
+                a=II(a,b,c,d,x[k+4],6,0xF7537E82);
+                d=II(d,a,b,c,x[k+11],10,0xBD3AF235);
+                c=II(c,d,a,b,x[k+2],15,0x2AD7D2BB);
+                b=II(b,c,d,a,x[k+9],21,0xEB86D391);
+                a=add32(a,aa); b=add32(b,bb);
+                c=add32(c,cc); d=add32(d,dd);
+            }
+            return wordToHex(a)+wordToHex(b)+wordToHex(c)+wordToHex(d);
+        }
+
+        // DOM元素
+        const sourceTextEl=document.getElementById('sourceText');
+        const charCountEl=document.getElementById('charCount');
+        const fileInputEl=document.getElementById('fileInput');
+        const readAllBtnEl=document.getElementById('readAllBtn');
+        const speechRateEl=document.getElementById('speechRate');
+        const translateToggleBtnEl=document.getElementById('translateToggleBtn');
+        const clearBtnEl=document.getElementById('clearBtn');
+        const startBtnEl=document.getElementById('startBtn');
+        const resetBtnEl=document.getElementById('resetBtn');
+        const inputAreaEl=document.getElementById('inputArea');
+        const displayAreaEl=document.getElementById('displayArea');
+        const translationAreaEl=document.getElementById('translationArea');
+        const translationTextEl=document.getElementById('translationText');
+        const toggleTranslationHideBtnEl=document.getElementById('toggleTranslationHideBtn');
+        const speedEl=document.getElementById('speed');
+        const accuracyEl=document.getElementById('accuracy');
+        const timeUsedEl=document.getElementById('timeUsed');
+        const progressEl=document.getElementById('progress');
+        const speedBar=document.getElementById('speedBar');
+        const accBar=document.getElementById('accBar');
+        const progBar=document.getElementById('progBar');
+        const modeModal=document.getElementById('modeModal');
+        const modalOkBtn=document.getElementById('modalOkBtn');
+        const modalCancelBtn=document.getElementById('modalCancelBtn');
+        const quickLinkBtns=document.querySelectorAll('.quick-link');
+
+        // 朗读状态
+        let speechState={sentences:[],idx:0,running:false,rate:0.75};
+        let targetFullText='', targetChars=[], currentPos=0;
+        let startTime=null, timerId=null, totalInput=0, correctCnt=0, typingRunning=false;
+
+        function updateCharCount(){ charCountEl.textContent=sourceTextEl.value.length; }
+        sourceTextEl.addEventListener('input',updateCharCount);
+
+        // TXT上传
+        fileInputEl.addEventListener('change',e=>{
+            const f=e.target.files[0];
+            if(!f) return;
+            const r=new FileReader();
+            r.onload=evt=>{
+                sourceTextEl.value=evt.target.result;
+                updateCharCount();
+            };
+            r.readAsText(f);
+        });
+
+        // 快捷链接跳转
+        function openUrl(u){
+            let url=u.trim();
+            if(!/^https?:\/\//i.test(url)) url='https://'+url;
+            window.open(url,'_blank');
+        }
+        quickLinkBtns.forEach(btn=>btn.addEventListener('click',()=>openUrl(btn.dataset.url)));
+
+        // 星星生成
+        function createStar(x,y){
+            const star=document.createElement('div');
+            star.className="float-star";
+            star.textContent="⭐";
+            star.style.left=x+"px";
+            star.style.top=y+"px";
+            document.body.appendChild(star);
+            setTimeout(()=>{
+                star.style.opacity="0";
+                star.style.transform="translateY(-90px) scale(1.4)";
+            },10);
+            setTimeout(()=>star.remove(),1000);
+        }
+        // 批量星星
+        function batchStar(x,y,num) {
+            for(let i=0;i<num;i++){
+                setTimeout(()=>createStar(x+(i-2)*18,y-10),i*80);
+            }
+        }
+        // 连击提示
+        function showComboTip(text, x, y) {
+            const tip = document.createElement('div');
+            tip.className = 'combo-tip';
+            tip.textContent = text;
+            tip.style.left = x + 'px';
+            tip.style.top = y + 'px';
+            document.body.appendChild(tip);
+            setTimeout(()=>tip.remove(),1200);
+        }
+        // 错误提示
+        function showErrorHint(text) {
+            const hint = document.createElement('div');
+            hint.className = 'error-hint';
+            hint.textContent = text;
+            document.body.appendChild(hint);
+            setTimeout(()=>hint.remove(),3000);
+        }
+        // 解锁贴纸
+        function unlockSticker(idx) {
+            if(stickerUnlock[idx]) return;
+            stickerUnlock[idx] = true;
+            document.querySelector(`.sticker-item[data-id="${idx}"]`).classList.add('unlock');
+        }
+
+        // 朗读读取展示区文字 + 句高亮
+        readAllBtnEl.addEventListener('click',function(){
+            const spans=displayAreaEl.querySelectorAll('span');
+            let txt='';
+            spans.forEach(s=>txt+=s.textContent);
+            txt=txt.trim();
+            if(!txt){
+                alert('展示区暂无文字，请先点击【开始练习】');
+                return;
+            }
+            clearTimeout(pauseTimer);
+            speechSynthesis.cancel();
+            if(speechState.running){
+                speechState.running=false;
+                this.classList.remove('btn-speaking');
+                this.textContent='🔊 朗读全文';
+                return;
+            }
+            speechState.rate=+speechRateEl.value;
+            speechState.sentences=splitSentences(txt);
+            speechState.idx=0;
+            speechState.running=true;
+            this.classList.add('btn-speaking');
+            this.textContent='⏹ 停止朗读';
+            // 首句高亮
+            const first=speechState.sentences[0];
+            const ut=createUtterance(first.text,speechState.rate);
+            ut.onend=()=>nextSpeak(first.pauseType);
+            ut.onerror=()=>nextSpeak(first.pauseType);
+            speechSynthesis.speak(ut);
+        });
+
+        function nextSpeak(lastPause){
+            if(!speechState.running) return;
+            // 清空上一句高亮
+            displayAreaEl.querySelectorAll('.sentence-read-highlight').forEach(el=>{
+                el.classList.remove('sentence-read-highlight');
+            });
+
+            speechState.idx++;
+            if(speechState.idx>=speechState.sentences.length){
+                speechState.running=false;
+                readAllBtnEl.classList.remove('btn-speaking');
+                readAllBtnEl.textContent='🔊 朗读全文';
+                return;
+            }
+            const sen=speechState.sentences[speechState.idx];
+            if(!sen.text.trim()){ nextSpeak(sen.pauseType); return; }
+
+            // 计算字符偏移，添加高亮
+            let charOffset = 0;
+            const allSent = speechState.sentences.slice(0,speechState.idx);
+            allSent.forEach(s=>charOffset += s.text.length);
+            const endOffset = charOffset + sen.text.length;
+            const spans = displayAreaEl.querySelectorAll('span');
+            for(let i=charOffset;i<endOffset && i<spans.length;i++){
+                spans[i].classList.add('sentence-read-highlight');
+            }
+
+            pauseTimer=setTimeout(()=>{
+                const ut=createUtterance(sen.text,speechState.rate);
+                ut.onend=()=>nextSpeak(sen.pauseType);
+                ut.onerror=()=>nextSpeak(sen.pauseType);
+                speechSynthesis.speak(ut);
+            },PAUSE_CONFIG[lastPause]);
+        }
+
+        speechRateEl.addEventListener('change',()=>speechState.rate=+this.value);
+
+        // 清空
+        clearBtnEl.addEventListener('click',()=>{
+            sourceTextEl.value=''; updateCharCount();
+            clearTimeout(pauseTimer); speechSynthesis.cancel();
+            speechState.running=false;
+            readAllBtnEl.classList.remove('btn-speaking');
+            readAllBtnEl.textContent='🔊 朗读全文';
+        });
+
+        toggleTranslationHideBtnEl.addEventListener('click',()=>translationAreaEl.classList.add('hidden'));
+
+        // 翻译
+        translateToggleBtnEl.addEventListener('click',async ()=>{
+            const txt=sourceTextEl.value.trim();
+            if(!txt){ alert('先粘贴练习文本'); return; }
+            if(!BAIDU_APPID||!BAIDU_SECRET){ alert('未配置翻译密钥'); return; }
+            try{
+                const salt=Date.now().toString();
+                const sign=md5(BAIDU_APPID+txt+salt+BAIDU_SECRET);
+                const res=await fetch(`https://fanyi-api.baidu.com/api/trans/vip/translate?q=${encodeURIComponent(txt)}&from=en&to=zh&appid=${BAIDU_APPID}&salt=${salt}&sign=${sign}`);
+                const data=await res.json();
+                if(data.error_code){ alert(data.error_msg); return; }
+                let out='';
+                data.trans_result.forEach(item=>out+=item.dst+'\n');
+                translationTextEl.textContent=out;
+                translationAreaEl.classList.remove('hidden');
+            }catch(err){
+                alert('翻译请求失败：'+err.message);
+            }
+        });
+
+        // 开始练习：过滤音标再传入渲染
+        startBtnEl.addEventListener('click',()=>{
+            pendingText=sourceTextEl.value.trim();
+            if(!pendingText){ alert('请粘贴课文内容'); return; }
+            let cleanText = removePhoneticSymbols(pendingText);
+            if(/[\u4e00-\u9fa5]/.test(cleanText)){
+                modeModal.classList.remove('hidden');
+                return;
+            }
+            runTyping(cleanText);
+        });
+        modalOkBtn.addEventListener('click',()=>{
+            modeModal.classList.add('hidden');
+            let cleanText = removePhoneticSymbols(pendingText);
+            runTyping(cleanText);
+        });
+        // 重构取消分支：按换行逐行分割，中英文行分别收集，段落行数一一对齐
+        modalCancelBtn.addEventListener('click',()=>{
+            modeModal.classList.add('hidden');
+            let cleanText = removePhoneticSymbols(pendingText);
+            const lines = cleanText.split('\n');
+            const enLines = [];
+            const cnLines = [];
+            lines.forEach(line=>{
+                const t = line.trim();
+                // 保留空行维持段落间距
+                if(t === ''){
+                    enLines.push('');
+                    cnLines.push('');
+                    return;
+                }
+                if(/[\u4e00-\u9fa5]/.test(t)){
+                    cnLines.push(t);
+                    enLines.push('');
+                }else{
+                    enLines.push(t);
+                    cnLines.push('');
+                }
+            });
+            // 左右严格按换行段落对齐
+            translationTextEl.textContent = cnLines.join('\n');
+            translationAreaEl.classList.remove('hidden');
+            runTyping(enLines.join('\n'));
+        });
+
+        // 渲染打字字符
+        function runTyping(text){
+            targetFullText=text;
+            targetChars=text.split('');
+            currentPos=0; totalInput=0; correctCnt=0; typingRunning=true;
+            comboCount=0; wrongContinuous=0;
+            startTime=Date.now();
+            if(timerId) clearInterval(timerId);
+            displayAreaEl.innerHTML='';
+            displayAreaEl.classList.remove('flex','items-center','justify-center');
+            targetChars.forEach((ch,i)=>{
+                const span=document.createElement('span');
+                span.textContent=ch;
+                span.className=i===0 ? 'char-current' : 'char-pending';
+                displayAreaEl.appendChild(span);
+            });
+            inputAreaEl.disabled=false; inputAreaEl.value=''; inputAreaEl.focus();
+            resetBtnEl.disabled=false;
+            timerId=setInterval(updateStat,1000);
+            updateStat();
+        }
+
+        // 更新统计+进度条
+        function updateStat(){
+            if(!typingRunning) return;
+            const now=Date.now();
+            const sec=Math.floor((now-startTime)/1000);
+            const m=String(Math.floor(sec/60)).padStart(2,'0');
+            const s=String(sec%60).padStart(2,'0');
+            timeUsedEl.textContent=`${m}:${s}`;
+
+            let speed=sec===0 ? 0 : Math.round(correctCnt/(sec/60));
+            speedEl.textContent=speed;
+            speedBar.style.width=Math.min(speed/300*100,100)+"%";
+
+            const acc=totalInput===0 ? 100 : Math.round(correctCnt/totalInput*100);
+            accuracyEl.textContent=acc+"%";
+            accBar.style.width=acc+"%";
+
+            const prog=Math.round(currentPos/targetChars.length*100);
+            progressEl.textContent=prog+"%";
+            progBar.style.width=prog+"%";
+
+            if(currentPos>=targetChars.length){
+                typingRunning=false; clearInterval(timerId);
+                inputAreaEl.disabled=true;
+            }
+        }
+
+        // 打字输入监听（连击+贴纸+错误提示完整版）
+        inputAreaEl.addEventListener('input',function(e){
+            if(!typingRunning) return;
+            const val=this.value;
+            const len=val.length;
+            const spans=displayAreaEl.querySelectorAll('span');
+            if(len===0){
+                currentPos=0; totalInput=0; correctCnt=0;
+                comboCount=0; wrongContinuous=0;
+                spans.forEach(sp=>sp.className='char-pending');
+                if(spans[0]) spans[0].className='char-current';
+                updateStat();
+                return;
+            }
+            const lastIdx=len-1;
+            if(lastIdx>=targetChars.length) return;
+            totalInput++;
+            spans.forEach(sp=>sp.className='char-pending');
+            let isAllRight=true;
+            for(let i=0;i<len;i++){
+                if(val[i]===targetChars[i]) spans[i].className='char-correct';
+                else { spans[i].className='char-wrong'; isAllRight=false; }
+            }
+            currentPos=len;
+            if(len<spans.length) spans[len].className='char-current';
+
+            if(val[lastIdx]===targetChars[lastIdx]){
+                correctCnt++;
+                comboCount++;
+                wrongContinuous=0;
+                // 连击奖励
+                if(comboCount===5){
+                    batchStar(e.clientX,e.clientY,3);
+                    showComboTip('5连击！真棒',e.clientX,e.clientY-40);
+                }else if(comboCount===10){
+                    batchStar(e.clientX,e.clientY,5);
+                    showComboTip('10连击超厉害！',e.clientX,e.clientY-40);
+                }else if(comboCount===15){
+                    batchStar(e.clientX,e.clientY,7);
+                    showComboTip('无敌15连击！🎉',e.clientX,e.clientY-40);
+                }else{
+                    createStar(e.clientX,e.clientY);
+                }
+            }else{
+                comboCount=0;
+                wrongContinuous++;
+                if(wrongContinuous>=3){
+                    showErrorHint('放慢速度，再仔细看一下字母哦😊');
+                    wrongContinuous=0;
+                }
+            }
+
+            // 4等分解锁贴纸
+            if(targetChars.length>0){
+                let seg = Math.floor(currentPos / (targetChars.length/4));
+                if(seg<4) unlockSticker(seg);
+            }
+
+            updateStat();
+        });
+
+        // 重置按钮完整重置所有动画、贴纸、高亮
+        resetBtnEl.addEventListener('click',()=>{
+            typingRunning=false; clearInterval(timerId);
+            startTime=null; speedEl.textContent="0"; accuracyEl.textContent="100%";
+            timeUsedEl.textContent="00:00"; progressEl.textContent="0%";
+            speedBar.style.width="0%"; accBar.style.width="100%"; progBar.style.width="0%";
+            inputAreaEl.value=''; inputAreaEl.disabled=true; resetBtnEl.disabled=true;
+            displayAreaEl.classList.add('flex','items-center','justify-center');
+            displayAreaEl.innerHTML='<span class="text-slate-400">✨ 请先粘贴课文，点击「开始练习」✨</span>';
+
+            // 重置连击、错误计数、贴纸
+            comboCount=0;
+            wrongContinuous=0;
+            stickerUnlock=[false,false,false,false];
+            document.querySelectorAll('.sticker-item').forEach(item=>{
+                item.classList.remove('unlock');
+            });
+            // 清空朗读高亮
+            displayAreaEl.querySelectorAll('.sentence-read-highlight').forEach(el=>{
+                el.classList.remove('sentence-read-highlight');
+            });
+        });
+
+        window.addEventListener('beforeunload',()=>{
+            clearTimeout(pauseTimer); speechSynthesis.cancel();
+            speechState.running=false; clearInterval(timerId);
+        });
+    </script>
+</body>
+</html>
