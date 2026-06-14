@@ -126,7 +126,17 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.8.0</span>
+        <span class="version-info">v1.8.2</span>
+    </div>
+
+    <!-- 仅保留预设快捷链接按钮 -->
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="text-slate-700 font-medium">快捷链接：</span>
+        <div class="flex flex-wrap gap-2">
+            <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">广州英语1-6年级教材</button>
+            <button data-url="https://github.com" class="quick-link px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">GitHub</button>
+            <button data-url="https://www.baidu.com" class="quick-link px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">百度</button>
+        </div>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -472,6 +482,9 @@
         const modalOkBtn = document.getElementById('modalOkBtn');
         const modalCancelBtn = document.getElementById('modalCancelBtn');
 
+        // 快捷链接按钮
+        const quickLinkBtns = document.querySelectorAll('.quick-link');
+
         // 朗读全局状态
         let speechState = {
             sentences: [],
@@ -505,6 +518,20 @@
                 updateCharCount();
             };
             reader.readAsText(f);
+        });
+
+        // 快捷链接点击跳转逻辑
+        function openUrl(urlStr) {
+            let url = urlStr.trim();
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            window.open(url, '_blank');
+        }
+        quickLinkBtns.forEach(btn=>{
+            btn.addEventListener('click', ()=>{
+                openUrl(btn.dataset.url);
+            });
         });
 
         // 朗读按钮点击直接同步发起语音，绕过HTTPS拦截
