@@ -126,7 +126,7 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.12</span>
+        <span class="version-info">v1.7.9</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -228,86 +228,6 @@
         let speechUtterance = null;
         let pendingText = '';
 
-        // 【修复：补充大写We’ll条目 + 正则不区分大小写匹配】
-        function expandEnglishContraction(text) {
-            const contractionPhoneticMap = {
-                "we’ll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
-                "we'll": "<phoneme ph=\"wiːl\">we'll</phoneme>",
-                "We’ll": "<phoneme ph=\"wiːl\">We'll</phoneme>",
-                "We'll": "<phoneme ph=\"wiːl\">We'll</phoneme>",
-                "I’ll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "I'll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "I’ll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "I'll": "<phoneme ph=\"aɪl\">I'll</phoneme>",
-                "you’ll": "<phoneme ph=\"juːl\">you'll</phoneme>",
-                "you'll": "<phoneme ph=\"juːl\">you'll</phoneme>",
-                "You’ll": "<phoneme ph=\"juːl\">You'll</phoneme>",
-                "You'll": "<phoneme ph=\"juːl\">You'll</phoneme>",
-                "he’ll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
-                "he'll": "<phoneme ph=\"hiːl\">he'll</phoneme>",
-                "He’ll": "<phoneme ph=\"hiːl\">He'll</phoneme>",
-                "He'll": "<phoneme ph=\"hiːl\">He'll</phoneme>",
-                "she’ll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
-                "she'll": "<phoneme ph=\"ʃiːl\">she'll</phoneme>",
-                "She’ll": "<phoneme ph=\"ʃiːl\">She'll</phoneme>",
-                "She'll": "<phoneme ph=\"ʃiːl\">She'll</phoneme>",
-                "it’ll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
-                "it'll": "<phoneme ph=\"ɪtl\">it'll</phoneme>",
-                "It’ll": "<phoneme ph=\"ɪtl\">It'll</phoneme>",
-                "It'll": "<phoneme ph=\"ɪtl\">It'll</phoneme>",
-                "won’t": "<phoneme ph=\"woʊnt\">won't</phoneme>",
-                "won't": "<phoneme ph=\"woʊnt\">won't</phoneme>",
-                "Won’t": "<phoneme ph=\"woʊnt\">Won't</phoneme>",
-                "Won't": "<phoneme ph=\"woʊnt\">Won't</phoneme>",
-                "don’t": "<phoneme ph=\"doʊnt\">don't</phoneme>",
-                "don't": "<phoneme ph=\"doʊnt\">don't</phoneme>",
-                "Don’t": "<phoneme ph=\"doʊnt\">Don't</phoneme>",
-                "Don't": "<phoneme ph=\"doʊnt\">Don't</phoneme>",
-                "didn’t": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
-                "didn't": "<phoneme ph=\"ˈdɪdnt\">didn't</phoneme>",
-                "isn’t": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
-                "isn't": "<phoneme ph=\"ˈɪznt\">isn't</phoneme>",
-                "aren’t": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
-                "aren't": "<phoneme ph=\"ɑːrnt\">aren't</phoneme>",
-                "wasn’t": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
-                "wasn't": "<phoneme ph=\"ˈwɑːznt\">wasn't</phoneme>",
-                "weren’t": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
-                "weren't": "<phoneme ph=\"wɜːrnt\">weren't</phoneme>",
-                "I’m": "<phoneme ph=\"aɪm\">I'm</phoneme>",
-                "I'm": "<phoneme ph=\"aɪm\">I'm</phoneme>",
-                "you’re": "<phoneme ph=\"juːr\">you're</phoneme>",
-                "you're": "<phoneme ph=\"juːr\">you're</phoneme>",
-                "he’s": "<phoneme ph=\"hiːz\">he's</phoneme>",
-                "he's": "<phoneme ph=\"hiːz\">he's</phoneme>",
-                "she’s": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
-                "she's": "<phoneme ph=\"ʃiːz\">she's</phoneme>",
-                "it’s": "<phoneme ph=\"ɪts\">it's</phoneme>",
-                "it's": "<phoneme ph=\"ɪts\">it's</phoneme>",
-                "we’re": "<phoneme ph=\"wɪr\">we're</phoneme>",
-                "we're": "<phoneme ph=\"wɪr\">we're</phoneme>",
-                "they’re": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
-                "they're": "<phoneme ph=\"ðeɪr\">they're</phoneme>",
-                "can’t": "<phoneme ph=\"kænt\">can't</phoneme>",
-                "can't": "<phoneme ph=\"kænt\">can't</phoneme>",
-                "couldn’t": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
-                "couldn't": "<phoneme ph=\"ˈkʊdnt\">couldn't</phoneme>",
-                "hasn’t": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
-                "hasn't": "<phoneme ph=\"ˈhæznt\">hasn't</phoneme>",
-                "haven’t": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
-                "haven't": "<phoneme ph=\"ˈhævnt\">haven't</phoneme>",
-                "hadn’t": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
-                "hadn't": "<phoneme ph=\"ˈhædnt\">hadn't</phoneme>",
-                "wouldn’t": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>",
-                "wouldn't": "<phoneme ph=\"ˈwʊdnt\">wouldn't</phoneme>"
-            };
-            // 逐个替换，i 忽略大小写
-            Object.keys(contractionPhoneticMap).forEach(short => {
-                const reg = new RegExp(short, "gi");
-                text = text.replace(reg, contractionPhoneticMap[short]);
-            });
-            return text;
-        }
-
         // 数字转英文
         function numberToEnglish(num) {
             const ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
@@ -370,8 +290,7 @@
                 ut.text = rawText;
             } else {
                 ut.lang = 'en-US';
-                let t = expandEnglishContraction(rawText);
-                t = replaceDigitsToEnglish(t);
+                let t = replaceDigitsToEnglish(rawText);
                 t = fixArticleAReduction(t);
                 ut.text = t;
             }
