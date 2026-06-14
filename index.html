@@ -74,7 +74,7 @@
 <body class="bg-slate-50 min-h-screen p-4 max-w-5xl mx-auto">
     <div class="header-title">
         <h1 class="text-3xl font-bold text-slate-800">⌨️ 自定义打字练习</h1>
-        <span class="version-info">v1.7.6</span>
+        <span class="version-info">v1.7.7</span>
     </div>
     
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -569,16 +569,44 @@
             }
         });
 
-        // 开始练习按钮【核心修复：DOM已加载完毕再绑定，线上不会失效】
+        // 【恢复弹窗逻辑】判断是否包含中文，弹出选择模式
         startBtnEl.addEventListener('click', function(){
-            const text = sourceTextEl.value.trim();
+            let text = sourceTextEl.value.trim();
             if(!text){
                 alert('请先填写练习文本');
                 return;
             }
+            // 检测中文
+            const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+            if(hasChinese){
+                const confirmRes = confirm('检测到文本包含中文，请选择练习模式:\n\n「确定」: 以全文作为练习文本\n「取消」: 提取英文行作为练习文本，中文行作为对照参考');
+                if(!confirmRes){
+                    // 取消：分离中英文
+                    let enLines = [];
+                    let cnLines = [];
+                    text.split('\n').forEach(line=>{
+                        const trimLine = line.trim();
+                        if(!trimLine) return;
+                        if(/[\u4e00-\u9fa5]/.test(trimLine)){
+                            cnLines.push(trimLine);
+                        }else{
+                            enLines.push(trimLine);
+                        }
+                    });
+                    targetFullText = enLines.join('\n');
+                    translationTextEl.textContent = cnLines.join('\n');
+                    translationAreaEl.classList.remove('hidden');
+                }else{
+                    // 确定：全文直接练习
+                    targetFullText = text;
+                }
+            }else{
+                // 无中文，直接使用全文
+                targetFullText = text;
+            }
+
             // 重置打字状态
-            targetFullText = text;
-            targetChars = text.split('');
+            targetChars = targetFullText.split('');
             currentPos = 0;
             totalInput = 0;
             correctCnt = 0;
