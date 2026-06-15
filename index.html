@@ -275,7 +275,7 @@
             width: 100%;
             line-height: 1.8;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 1.125rem;
+            font-size: 1.25rem;
             color: var(--text-sub);
             white-space: pre-wrap;
             overflow-wrap: break-word;
@@ -290,7 +290,7 @@
             min-width: 0;
             line-height: 1.8;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             color: var(--text-main);
             white-space: pre-wrap;
             overflow-wrap: break-word;
@@ -518,9 +518,9 @@
 
     <div class="header-title">
         <h1 class="text-3xl font-bold">📓儿童趣味打字练习</h1>
-        <span class="version-info">v1.9.51</span>
+        <span class="version-info">v2.0.1</span>
         <!-- 日间/暗色切换按钮 -->
-        <button id="themeToggle" class="btn-normal text-sm">切换暗色/日间</button>
+        <button id="themeToggle" class="btn-normal text-sm">切换日间模式</button>
     </div>
 
     <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
@@ -577,6 +577,7 @@
                     <option value="1.25">1.25x</option>
                     <option value="1.5">1.5x</option>
                 </select>
+                <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
@@ -640,10 +641,38 @@ function updateThemeButtonText() {
     }
 }
 
+// ========== 单词空格朗读配置 持久化存储 ==========
+const wordSpeakToggleBtn = document.getElementById('wordSpeakToggle');
+// 本地存储，默认开启
+let wordSpeakEnable = localStorage.getItem('wordSpeakEnable') ?? 'true';
+updateWordSpeakBtnText();
+
+// 切换开关点击事件
+wordSpeakToggleBtn.addEventListener('click', () => {
+    wordSpeakEnable = wordSpeakEnable === 'true' ? 'false' : 'true';
+    localStorage.setItem('wordSpeakEnable', wordSpeakEnable);
+    updateWordSpeakBtnText();
+});
+
+// 更新按钮文字
+function updateWordSpeakBtnText() {
+    if(wordSpeakEnable === 'true') {
+        wordSpeakToggleBtn.textContent = '单词朗读：已开启';
+        wordSpeakToggleBtn.classList.add('btn-success');
+    } else {
+        wordSpeakToggleBtn.textContent = '单词朗读：已关闭';
+        wordSpeakToggleBtn.classList.remove('btn-success');
+    }
+}
+
 // ===================== 下方粘贴第二部分JS业务代码 =====================
 const PAUSE_CONFIG = { period:700, mark:400, newline:150 };
 let pauseTimer = null;
 let pendingText = '';
+// 单词朗读临时缓存
+let lastWordText = '';
+// 修复：记录上一次输入内容，用于检测空格输入
+let prevInputValue = '';
 
 let currentEntryIndex = 0;
 let entryCharsList = [];
@@ -676,16 +705,21 @@ function isChineseDominant(line) {
     return total > 0 && cnCount / total > 0.2;
 }
 
-// 提取全文内容：仅移除音标，完整保留所有中英文字、标点、空格
+// 提取全文内容：统一弯引号为直引号，完整保留中英文字、标点、空格
 function extractFullText(str) {
-    return removePhoneticSymbols(str).trim();
+    let clean = removePhoneticSymbols(str).trim();
+    // 引号归一化：所有智能弯引号统一转为英文半角直引号
+    clean = clean.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+    return clean;
 }
 
-// 提取纯英文内容：白名单包含半角标点+弯引号+撇号，完整保留英文缩写和对话引号
+// 提取纯英文内容：统一弯引号为直引号，白名单保留半角标点
 function extractEnglishText(str) {
     let clean = removePhoneticSymbols(str);
-    // 白名单：半角标点 + 弯单引号‘’ + 弯双引号“” + 字母数字空格
-    clean = clean.replace(/[^'"“”‘’a-zA-Z0-9\s\.,!?;:\-()\/]/g, '');
+    // 引号归一化：所有智能弯引号统一转为英文半角直引号
+    clean = clean.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+    // 白名单：半角标点 + 字母数字空格
+    clean = clean.replace(/[^"'a-zA-Z0-9\s\.,!?;:\-()\/]/g, '');
     // 合并多余空格
     clean = clean.replace(/\s+/g, ' ').trim();
     return clean;
@@ -1093,6 +1127,8 @@ function runTypingFullMode(text){
     entryCharsList = [];
     currentEntryIndex = 0;
     finishedWordSet.clear();
+    // 重置输入缓存
+    prevInputValue = '';
 
     fullLines.forEach((lineText, idx) => {
         const lineCol = document.createElement('div');
@@ -1149,6 +1185,8 @@ function runTypingBilingualMode(text){
     entryCharsList = [];
     currentEntryIndex = 0;
     finishedWordSet.clear();
+    // 重置输入缓存
+    prevInputValue = '';
 
     pairs.forEach((pair, idx) => {
         const cnCol = document.createElement('div');
@@ -1215,7 +1253,7 @@ function updateStat(){
     accuracyEl.textContent = acc + "%";
     accBar.style.width = acc + "%";
 
-    // 进度计算分母保护，彻底解决NaN
+    // 进度计算分母保护，解决NaN
     let prog = 0;
     if(targetChars.length > 0){
         prog = Math.round(currentPos / targetChars.length * 100);
@@ -1248,13 +1286,13 @@ function showFinishModal(){
 
     let tipText = '';
     if(finalAcc === 100){
-        tipText = '太棒啦！全部正确，打字基本功超扎实🎉';
+        tipText = '太棒啦！全部正确，打字基本功非常扎实🎉';
     }else if(finalAcc >= 80){
-        tipText = '表现不错！少量失误，再多练习就能满分✨';
+        tipText = '表现不错！少量失误，多加练习就能满分✨';
     }else if(finalAcc >= 60){
-        tipText = '及格啦，注意区分相似字符，减少粗心错误';
+        tipText = '刚好及格，注意区分易混淆字母，放慢速度减少错误';
     }else{
-        tipText = '正确率偏低，放慢速度，看清内容再输入';
+        tipText = '正确率偏低，建议放慢输入速度，看清单词再敲击';
     }
 
     const mask = document.createElement('div');
@@ -1269,7 +1307,7 @@ function showFinishModal(){
                 <span class="data-value">${timeStr}</span>
             </div>
             <div class="data-row">
-                <span class="data-label">完成行数</span>
+                <span class="data-label">完成单词行数</span>
                 <span class="data-value">${wordCount} 行</span>
             </div>
             <div class="data-row">
@@ -1281,7 +1319,7 @@ function showFinishModal(){
                 <span class="data-value good">${correctCnt}</span>
             </div>
             <div class="data-row">
-                <span class="data-label">最终准确率</span>
+                <span class="data-label">最终正确率</span>
                 <span class="data-value good">${finalAcc}%</span>
             </div>
             <div class="btn-wrap">
@@ -1305,20 +1343,44 @@ function showFinishModal(){
     };
 }
 
-// ========== 输入框事件：禁止粘贴 + 打字校验 ==========
-// 禁止打字输入框粘贴（快捷键、右键菜单、拖拽粘贴全部拦截）
+// ========== 输入框事件：禁止粘贴 + 空格朗读单词 + 打字校验 ==========
+// 拦截粘贴，禁止输入框粘贴内容
 inputAreaEl.addEventListener('paste', function(e) {
     e.preventDefault();
 });
 
-// 输入事件处理（兼容中英混合字符对比）
+// 输入核心逻辑（修复版：内容对比检测空格，全浏览器兼容）
 inputAreaEl.addEventListener('input',function(e){
     if(!typingRunning) return;
     const val = this.value;
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
 
-    if(e.inputType === 'insertLineBreak'){
+    // ===== 修复：空格触发单词朗读（内容对比法，兼容所有输入法） =====
+    // 检测本次输入是否新增了空格
+    const valLen = val.length;
+    const prevLen = prevInputValue.length;
+    if(wordSpeakEnable === 'true' && valLen > prevLen) {
+        const lastChar = val.slice(-1);
+        // 最后一个字符是空格（半角/全角空格都识别）
+        if(lastChar === ' ' || lastChar === '　') {
+            const currentInput = val.trim();
+            const wordList = currentInput.split(/\s+/);
+            const targetWord = wordList[wordList.length - 1];
+            // 仅纯英文单词（含缩写'、连字符-）才朗读，过滤数字、符号、中文
+            if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
+                // 打断当前正在播放的语音，避免堆积
+                speechSynthesis.cancel();
+                const utter = createUtterance(targetWord, speechState.rate);
+                speechSynthesis.speak(utter);
+            }
+        }
+    }
+    // 更新上一次输入值
+    prevInputValue = val;
+
+    // 换行进入下一行
+    if(e.inputType === 'insertLineBreak' || val.includes('\n')){
         if(!finishedWordSet.has(currentEntryIndex)){
             finishedWordSet.add(currentEntryIndex);
             const userInput = val.replace(/[\n\r]/g, '');
@@ -1346,15 +1408,17 @@ inputAreaEl.addEventListener('input',function(e){
         if(currentEntryIndex < entryCharsList.length -1){
             currentEntryIndex++;
             this.value = '';
-            const newEntrySpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-            if(newEntrySpans[0]) newEntrySpans[0].className='char-current';
+            // 换行后重置输入缓存
+            prevInputValue = '';
+            const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
+            if(newSpans[0]) newSpans[0].className='char-current';
             const container = paragraphContainerEl;
-            const firstSpan = newEntrySpans[0];
+            const firstSpan = newSpans[0];
             if(firstSpan){
                 const containerRect = container.getBoundingClientRect();
                 const spanRect = firstSpan.getBoundingClientRect();
-                const targetScrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height/2;
-                container.scrollTo({top: targetScrollTop, behavior: 'smooth'});
+                const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
+                container.scrollTo({top: scrollTop, behavior: 'smooth'});
             }
         }else{
             showFinishModal();
@@ -1366,67 +1430,67 @@ inputAreaEl.addEventListener('input',function(e){
         return;
     }
 
+    // 限制输入长度不超过当前单词字符数
     if(val.length > entryLen){
         this.value = val.slice(0, entryLen);
+        prevInputValue = this.value;
         return;
     }
 
-    const activeSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-    activeSpans.forEach(s=>s.className='char-pending');
+    const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
+    allSpans.forEach(s=>s.className='char-pending');
 
-    let isErrorChar = false;
+    let hasError = false;
     for(let i=0;i<val.length;i++){
+        const span = allSpans[i];
         if(val[i] === activeChars[i]){
-            activeSpans[i].className = 'char-correct';
+            span.className = 'char-correct';
         }else{
-            activeSpans[i].className = 'char-wrong';
-            isErrorChar = true;
+            span.className = 'char-wrong';
+            hasError = true;
         }
     }
     if(val.length < entryLen){
-        activeSpans[val.length].className = 'char-current';
+        allSpans[val.length].className = 'char-current';
     }
 
-    // 输入错误字符：清零连击 + 回收最后解锁贴纸
-    if(isErrorChar){
+    // 错误连击处理
+    if(hasError){
         comboCount = 0;
         revokeLastSticker();
         wrongContinuous++;
         if(wrongContinuous>=3){
-            showErrorHint('放慢速度，再仔细看一下字符哦😊');
+            showErrorHint('放慢速度，仔细看清字符再输入😊');
             wrongContinuous=0;
         }
     }else{
-        // 全部正确，累加连击、解锁贴纸
-        const lastCharRight = val.length>0;
-        if(lastCharRight){
-            comboCount++;
-            wrongContinuous=0;
-            if(comboCount===5){
-                unlockSticker(0);
-                batchStar(e.clientX,e.clientY,3);
-                showComboTip('5连击！真棒',e.clientX,e.clientY-40);
-            }else if(comboCount===10){
-                unlockSticker(1);
-                batchStar(e.clientX,e.clientY,5);
-                showComboTip('10连击超厉害！',e.clientX,e.clientY-40);
-            }else if(comboCount===15){
-                unlockSticker(2);
-                batchStar(e.clientX,e.clientY,7);
-                showComboTip('无敌15连击！🎉',e.clientX,e.clientY-40);
-            }else{
-                createStar(e.clientX,e.clientY);
-            }
+        wrongContinuous=0;
+        comboCount++;
+        // 连击解锁贴纸动画
+        if(comboCount===5){
+            unlockSticker(0);
+            batchStar(e.clientX,e.clientY,3);
+            showComboTip('5连击！很棒',e.clientX,e.clientY-40);
+        }else if(comboCount===10){
+            unlockSticker(1);
+            batchStar(e.clientX,e.clientY,5);
+            showComboTip('10连击太厉害了！',e.clientX,e.clientY-40);
+        }else if(comboCount===15){
+            unlockSticker(2);
+            batchStar(e.clientX,e.clientY,7);
+            showComboTip('完美15连击🎉',e.clientX,e.clientY-40);
+        }else if(comboCount>15){
+            createStar(e.clientX,e.clientY);
         }
     }
 
     const container = paragraphContainerEl;
-    const firstSpan = activeSpans[0];
+    const firstSpan = allSpans[0];
     if(firstSpan){
         const containerRect = container.getBoundingClientRect();
         const spanRect = firstSpan.getBoundingClientRect();
-        const targetScrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height/2;
-        container.scrollTo({top: targetScrollTop, behavior: 'smooth'});
+        const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
+        container.scrollTo({top: scrollTop, behavior: 'smooth'});
     }
     updateStat();
 });
@@ -1437,6 +1501,8 @@ resetBtnEl.addEventListener('click',()=>{
     timeUsedEl.textContent="00:00"; progressEl.textContent="0%";
     speedBar.style.width="0%"; accBar.style.width="0%"; progBar.style.width="0%";
     inputAreaEl.value=''; inputAreaEl.disabled=true; resetBtnEl.disabled=true;
+    // 重置输入缓存
+    prevInputValue = '';
     
     displayAreaEl.innerHTML='<span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>';
     displayAreaEl.style.display = 'flex';
