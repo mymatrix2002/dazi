@@ -1,17 +1,74 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>儿童趣味打字练习</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* ========== 全局主题变量 日间/暗色切换 ========== */
+        :root[data-theme="light"] {
+            --bg-page: #f0f9ff;
+            --bg-page-pattern: #bfdbfe;
+            --bg-card: #ffffff;
+            --bg-input: #f0f9ff;
+            --bg-gray: #f3f4f6;
+            --bg-gray-deep: #f8fafc;
+            --text-main: #1e293b;
+            --text-sub: #475569;
+            --text-light: #64748b;
+            --text-placeholder: #94a3b8;
+            --border-normal: #e2e8f0;
+            --border-focus: #3b82f6;
+            --shadow-card: 0 4px 12px rgba(59, 130, 246, 0.12);
+            --shadow-modal: 0 8px 30px rgba(0,0,0,0.18);
+            --color-correct: #059669;
+            --color-wrong: #dc2626;
+            --color-primary: #3b82f6;
+            --color-primary-dark: #2563eb;
+            --color-success: #10b981;
+            --color-success-dark: #059669;
+            --color-warning: #f97316;
+            --color-warning-dark: #ea580c;
+            --scrollbar-bg: #f1f5f9;
+            --scrollbar-thumb: #cbd5e1;
+        }
+
+        :root[data-theme="dark"] {
+            /* 暗色护眼长时间观看配色，低蓝光、柔和灰度 */
+            --bg-page: #0f172a;
+            --bg-page-pattern: #1e293b;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --bg-gray: #334155;
+            --bg-gray-deep: #273449;
+            --text-main: #e2e8f0;
+            --text-sub: #cbd5e1;
+            --text-light: #94a3b8;
+            --text-placeholder: #64748b;
+            --border-normal: #334155;
+            --border-focus: #60a5fa;
+            --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.35);
+            --shadow-modal: 0 8px 30px rgba(0,0,0,0.55);
+            --color-correct: #34d399;
+            --color-wrong: #f87171;
+            --color-primary: #3b82f6;
+            --color-primary-dark: #60a5fa;
+            --color-success: #10b981;
+            --color-success-dark: #34d399;
+            --color-warning: #fb923c;
+            --color-warning-dark: #fdba74;
+            --scrollbar-bg: #1e293b;
+            --scrollbar-thumb: #475569;
+        }
+
+        /* 全局样式绑定主题变量 */
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
         }
         @keyframes blink {
-            0%, 50% { border-color: #3b82f6; }
+            0%, 50% { border-color: var(--border-focus); }
             51%, 100% { border-color: transparent; }
         }
         @keyframes comboUp {
@@ -24,6 +81,7 @@
             85% { opacity: 1; bottom: 30px; }
             100% { opacity: 0; bottom: 20px; }
         }
+
         /* 练习完成弹窗样式 */
         .modal-mask-finish {
             position: fixed;
@@ -36,22 +94,22 @@
         }
         .modal-card-finish {
             width: min(90%, 440px);
-            background: #ffffff;
+            background: var(--bg-card);
             border-radius: 20px;
             padding: 32px 28px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            box-shadow: var(--shadow-modal);
         }
         .finish-title {
             font-size: 24px;
             font-weight: 700;
             text-align: center;
-            color: #1e293b;
+            color: var(--text-main);
             margin-bottom: 16px;
         }
         .finish-desc {
             text-align: center;
             font-size: 15px;
-            color: #64748b;
+            color: var(--text-light);
             margin-bottom: 24px;
             line-height: 1.6;
         }
@@ -60,19 +118,19 @@
             justify-content: space-between;
             padding: 10px 12px;
             border-radius: 12px;
-            background-color: #f8fafc;
+            background-color: var(--bg-gray-deep);
             margin-bottom: 10px;
             font-size: 15px;
         }
         .data-label {
-            color: #475569;
+            color: var(--text-sub);
         }
         .data-value {
             font-weight: 600;
-            color: #2563eb;
+            color: var(--color-primary-dark);
         }
         .data-value.good {
-            color: #059669;
+            color: var(--color-success-dark);
         }
         .btn-wrap {
             display: flex;
@@ -90,93 +148,98 @@
             transition: all 0.2s;
         }
         .btn-primary-finish {
-            background-color: #3b82f6;
+            background-color: var(--color-primary);
             color: white;
         }
         .btn-primary-finish:hover {
-            background-color: #2563eb;
+            background-color: var(--color-primary-dark);
         }
         .btn-secondary-finish {
-            background-color: #f1f5f9;
-            color: #334155;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
         }
         .btn-secondary-finish:hover {
-            background-color: #e2e8f0;
+            filter: brightness(1.15);
         }
 
         .char-correct {
-            color: #059669;
+            color: var(--color-correct);
             animation: bounce 0.3s ease;
             font-weight: 600;
         }
         .char-wrong {
-            color: #dc2626;
-            background-color: #fee2e2;
+            color: var(--color-wrong);
+            background-color: rgba(248, 113, 113, 0.15);
             border-radius: 4px;
         }
         .char-current {
-            border-bottom: 3px solid #3b82f6;
+            border-bottom: 3px solid var(--border-focus);
             animation: blink 1s infinite;
         }
         .char-pending {
-            color: #6b7280;
+            color: var(--text-light);
         }
         .char-done {
             opacity: 0.7;
         }
         .sentence-read-highlight {
-            background-color: #dbeafe;
+            background-color: rgba(96, 165, 250, 0.18);
             border-radius: 4px;
         }
 
         body {
-            background-color: #f0f9ff;
-            background-image: radial-gradient(#bfdbfe 6%, transparent 6%);
+            background-color: var(--bg-page);
+            background-image: radial-gradient(var(--bg-page-pattern) 6%, transparent 6%);
             background-size: 30px 30px;
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .card-round {
             border-radius: 16px !important;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+            box-shadow: var(--shadow-card);
+            background-color: var(--bg-card);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .btn-primary {
-            background-color: #3b82f6;
+            background-color: var(--color-primary);
             color: white;
             border-radius: 12px;
             transition: all 0.2s;
         }
         .btn-primary:hover {
-            background-color: #2563eb;
+            background-color: var(--color-primary-dark);
             transform: translateY(-2px);
         }
         .btn-success {
-            background-color: #10b981;
+            background-color: var(--color-success);
             color: white;
             border-radius: 12px;
             transition: all 0.2s;
         }
         .btn-success:hover {
-            background-color: #059669;
+            background-color: var(--color-success-dark);
             transform: translateY(-2px);
         }
         .btn-warning {
-            background-color: #f97316;
+            background-color: var(--color-warning);
             color: white;
             border-radius: 12px;
             transition: all 0.2s;
         }
         .btn-warning:hover {
-            background-color: #ea580c;
+            background-color: var(--color-warning-dark);
             transform: translateY(-2px);
         }
         .btn-normal {
-            background-color: #f3f4f6;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
             border-radius: 12px;
             transition: background-color 0.2s;
         }
         .btn-normal:hover {
-            background-color: #e5e7eb;
+            filter: brightness(1.15);
         }
 
         /* 双语对照区基础样式 */
@@ -202,19 +265,22 @@
             width: 6px;
         }
         .paragraph-container::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
+            background-color: var(--scrollbar-thumb);
             border-radius: 3px;
+        }
+        .paragraph-container::-webkit-scrollbar-track {
+            background: var(--scrollbar-bg);
         }
         .paragraph-cn {
             width: 100%;
             line-height: 1.8;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 1.125rem;
-            color: #475569;
+            color: var(--text-sub);
             white-space: pre-wrap;
             overflow-wrap: break-word;
             word-break: normal;
-            background-color: #f8fafc;
+            background-color: var(--bg-gray-deep);
             border-radius: 0.5rem;
             padding: 0.75rem;
             box-sizing: border-box;
@@ -225,7 +291,7 @@
             line-height: 1.8;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 1.125rem;
-            color: #334155;
+            color: var(--text-main);
             white-space: pre-wrap;
             overflow-wrap: break-word;
             word-break: normal;
@@ -238,7 +304,7 @@
             line-height: 1.8;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 1.125rem;
-            color: #334155;
+            color: var(--text-main);
             white-space: pre-wrap;
             overflow-wrap: break-word;
             word-break: normal;
@@ -264,21 +330,22 @@
         }
         .header-title h1 {
             margin: 0;
+            color: var(--text-main);
         }
         .version-info {
-            color: #94a3b8;
+            color: var(--text-light);
             font-size: 14px;
             font-weight: normal;
             user-select: none;
         }
 
         .btn-speaking {
-            background-color: #3b82f6 !important;
+            background-color: var(--color-primary) !important;
             color: white !important;
         }
 
         #speechRate {
-            background-color: #f3f4f6;
+            background-color: var(--bg-gray);
             border: none;
             outline: none;
             border-radius: 12px;
@@ -286,10 +353,10 @@
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.2s;
-            color: #334155;
+            color: var(--text-main);
         }
         #speechRate:hover {
-            background-color: #e5e7eb;
+            filter: brightness(1.15);
         }
 
         .modal-mask {
@@ -302,11 +369,18 @@
             z-index: 9999;
         }
         .modal-box {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 32px;
             max-width: 520px;
             width: 90%;
+            box-shadow: var(--shadow-modal);
+        }
+        .modal-box h3 {
+            color: var(--text-main);
+        }
+        .modal-box p {
+            color: var(--text-sub);
         }
         .modal-buttons {
             display: flex;
@@ -326,8 +400,8 @@
             position: fixed;
             font-size: 20px;
             font-weight: bold;
-            color: #2563eb;
-            background: #dbeafe;
+            color: var(--color-primary-dark);
+            background: rgba(96, 165, 250, 0.18);
             padding: 6px 14px;
             border-radius: 999px;
             z-index: 99999;
@@ -339,8 +413,8 @@
             left: 50%;
             bottom: 30px;
             transform: translateX(-50%);
-            background: #ffedd5;
-            color: #c2410c;
+            background: rgba(251, 146, 60, 0.18);
+            color: var(--color-warning-dark);
             padding: 8px 16px;
             border-radius: 12px;
             z-index: 99999;
@@ -351,10 +425,10 @@
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: white;
+            background: var(--bg-card);
             padding: 10px 6px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px #00000026;
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -367,19 +441,19 @@
             place-items: center;
             font-size: 22px;
             opacity: 0.25;
-            border: 1px dashed #ccc;
+            border: 1px dashed var(--border-normal);
             border-radius: 8px;
         }
         .sticker-item.unlock {
             opacity: 1;
             border: none;
-            background: #fef9c3;
+            background: rgba(254, 249, 195, 0.15);
         }
 
         .progress-wrap {
             width: 100%;
             height: 12px;
-            background: #e5e7eb;
+            background: var(--bg-gray);
             border-radius: 999px;
             overflow: hidden;
             margin-top: 4px;
@@ -399,15 +473,33 @@
         .translation-title {
             font-size: 12px;
             font-weight: 500;
-            color: #64748b;
+            color: var(--text-light);
         }
         .toggle-btn {
             font-size: 12px;
-            color: #2563eb;
+            color: var(--color-primary-dark);
             background: none;
             border: none;
             cursor: pointer;
             padding: 0;
+        }
+
+        /* 输入框通用样式 */
+        textarea {
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-normal);
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+        }
+        textarea::placeholder {
+            color: var(--text-placeholder);
+        }
+        /* 主题切换按钮 */
+        #themeToggle {
+            padding: 6px 12px;
         }
     </style>
 </head>
@@ -425,12 +517,14 @@
     </div>
 
     <div class="header-title">
-        <h1 class="text-3xl font-bold text-slate-800">📓儿童趣味打字练习</h1>
-        <span class="version-info">v1.9.50</span>
+        <h1 class="text-3xl font-bold">📓儿童趣味打字练习</h1>
+        <span class="version-info">v1.9.51</span>
+        <!-- 日间/暗色切换按钮 -->
+        <button id="themeToggle" class="btn-normal text-sm">切换暗色/日间</button>
     </div>
 
-    <div class="bg-white card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
-        <span class="text-slate-700 font-medium">快捷链接：</span>
+    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="font-medium">快捷链接：</span>
         <div class="flex flex-wrap gap-2">
             <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
             <button data-url="https://fanyi.youdao.com" class="quick-link btn-normal px-3 py-1.5 text-sm">有道翻译</button>
@@ -439,36 +533,36 @@
     </div>
 
     <div class="grid grid-cols-4 gap-4 mb-6">
-        <div class="bg-white card-round p-4 text-center">
+        <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
-            <div class="text-xs text-slate-500 mt-1">打字速度(字/分钟)</div>
+            <div class="text-xs mt-1">打字速度(字/分钟)</div>
             <div class="progress-wrap mt-2">
                 <div id="speedBar" class="progress-bar bg-blue-500" style="width: 0%"></div>
             </div>
         </div>
-        <div class="bg-white card-round p-4 text-center">
+        <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-green-600" id="accuracy">0%</div>
-            <div class="text-xs text-slate-500 mt-1">准确率</div>
+            <div class="text-xs mt-1">准确率</div>
             <div class="progress-wrap mt-2">
                 <div id="accBar" class="progress-bar bg-green-500" style="width: 0%"></div>
             </div>
         </div>
-        <div class="bg-white card-round p-4 text-center">
+        <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-amber-600" id="timeUsed">00:00</div>
-            <div class="text-xs text-slate-500 mt-1">用时</div>
+            <div class="text-xs mt-1">用时</div>
         </div>
-        <div class="bg-white card-round p-4 text-center">
+        <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-purple-600" id="progress">0%</div>
-            <div class="text-xs text-slate-500 mt-1">全文进度</div>
+            <div class="text-xs mt-1">全文进度</div>
             <div class="progress-wrap mt-2">
                 <div id="progBar" class="progress-bar bg-purple-500" style="width: 0%"></div>
             </div>
         </div>
     </div>
 
-    <div class="bg-white card-round p-5 mb-6">
+    <div class="card-round p-5 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 class="font-semibold text-slate-700">练习内容设置</h2>
+            <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
                 <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
                     📁 上传TXT文件
@@ -486,14 +580,14 @@
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
-        <textarea id="sourceText" class="w-full h-28 p-3 border border-slate-200 rounded-xl text-sm resize-none bg-sky-50" placeholder="粘贴练习内容，或上传TXT文件，自带音标[xxx]会自动删除"></textarea>
+        <textarea id="sourceText" class="w-full h-28 p-3 border rounded-xl text-sm resize-none" placeholder="粘贴练习内容，或上传TXT文件，自带音标[xxx]会自动删除"></textarea>
         <div class="flex justify-between items-center mt-3">
             <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
             <button id="startBtn" class="btn-primary px-5 py-2 text-sm font-medium">开始练习</button>
         </div>
     </div>
 
-    <div class="bg-white card-round p-6 mb-4">
+    <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
             <div class="translation-header">
                 <span class="translation-title" id="areaTitle">中文对照</span>
@@ -502,11 +596,11 @@
             <div id="paragraphContainer" class="paragraph-container"></div>
         </div>
 
-        <div id="displayArea" class="en-text text-slate-700 select-none" style="letter-spacing:0.5px;">
+        <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
 
-        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 border-slate-200 focus:border-blue-500 rounded-xl font-mono text-lg resize-none bg-sky-50 mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
+        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
     </div>
 
     <div class="flex justify-center gap-3 mb-6">
@@ -521,6 +615,32 @@
     </div>
 
 <script>
+// ========== 日间/暗色主题切换核心逻辑（持久化存储） ==========
+const htmlRoot = document.documentElement;
+const themeToggleBtn = document.getElementById('themeToggle');
+// 读取本地存储主题，无则默认暗色dark
+let currentTheme = localStorage.getItem('pageTheme') || 'dark';
+htmlRoot.setAttribute('data-theme', currentTheme);
+updateThemeButtonText();
+
+// 切换按钮点击事件
+themeToggleBtn.addEventListener('click', () => {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    htmlRoot.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('pageTheme', currentTheme);
+    updateThemeButtonText();
+});
+
+// 更新按钮文字
+function updateThemeButtonText() {
+    if(currentTheme === 'light') {
+        themeToggleBtn.textContent = '切换暗色模式';
+    } else {
+        themeToggleBtn.textContent = '切换日间模式';
+    }
+}
+
+// ===================== 下方粘贴第二部分JS业务代码 =====================
 const PAUSE_CONFIG = { period:700, mark:400, newline:150 };
 let pauseTimer = null;
 let pendingText = '';
@@ -530,7 +650,7 @@ let entryCharsList = [];
 let finishedWordSet = new Set();
 let isFullTextMode = false; // 标记是否为全文练习模式
 
-// ========== v1.9.50 新增：统一文本预处理函数 ==========
+// ========== 统一文本预处理函数 ==========
 // 核心规则：连续3个及以上空格/制表符 → 替换为单个换行符，适配多空格分隔的单词表
 function preprocessText(text) {
     // 匹配连续3个及以上的半角空格或制表符，替换为单个换行
@@ -1184,6 +1304,12 @@ function showFinishModal(){
         clearBtnEl.click();
     };
 }
+
+// ========== 输入框事件：禁止粘贴 + 打字校验 ==========
+// 禁止打字输入框粘贴（快捷键、右键菜单、拖拽粘贴全部拦截）
+inputAreaEl.addEventListener('paste', function(e) {
+    e.preventDefault();
+});
 
 // 输入事件处理（兼容中英混合字符对比）
 inputAreaEl.addEventListener('input',function(e){
