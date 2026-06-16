@@ -80,6 +80,13 @@ htmlRoot.setAttribute('data-theme', currentTheme);
 let wordSpeakEnable = localStorage.getItem('wordSpeakEnable') || 'true';
 
 // ========== 工具方法 ==========
+function updateThemeButtonText() {
+    if(currentTheme === 'light') {
+        themeToggleBtn.textContent = '切换暗色模式';
+    } else {
+        themeToggleBtn.textContent = '切换日间模式';
+    }
+}
 function updateWordSpeakBtnText() {
     if(wordSpeakEnable === 'true') {
         wordSpeakToggleBtn.textContent = '单词朗读：已开启';

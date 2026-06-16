@@ -312,9 +312,6 @@ function bindBaseEvents() {
             helpModal.classList.add('hidden');
         }
     });
-    
-    // 页面初始化同步滑块勾选状态
-    themeToggleBtn.checked = currentTheme === 'dark';
 }
 
 // ========== 字号初始化【移至函数外部，解决刷新字体闪烁 + 统一文案】 ==========
@@ -327,11 +324,3 @@ else if (fontScale <= 1.2) initTip = "偏大";
 else if (fontScale <= 1.4) initTip = "很大";
 else initTip = "超大";
 fontSizeText.textContent = initTip;
-
-themeToggleBtn.addEventListener('change', () => {
-    // 复选框勾选 → 暗色；未勾选 → 日间
-    const targetTheme = themeToggleBtn.checked ? 'dark' : 'light';
-    currentTheme = targetTheme;
-    localStorage.setItem('pageTheme', currentTheme);
-    htmlRoot.setAttribute('data-theme', currentTheme);
-});
