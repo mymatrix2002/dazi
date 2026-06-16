@@ -171,30 +171,19 @@ function bindBaseEvents() {
     // 语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+this.value);
 
-    // 音量切换
-    const volumeText = document.getElementById('volumeText');
+    // 音量切换（已删除volumeText相关逻辑）
     speechVolumeEl.addEventListener('input', function(){
         speechState.volume = parseFloat(this.value);
         localStorage.setItem('speechVolume', this.value);
-        volumeText.textContent = Math.round(this.value * 100) + '%';
     });
-    volumeText.textContent = Math.round(speechState.volume * 100) + '%';
     
-    // ========== 字号调节事件 ==========
+    // ========== 字号调节事件（移除fontSizeText文字更新逻辑） ==========
     fontSizeSlider.addEventListener('input', function () {
         fontScale = parseFloat(this.value);
         // 写入本地存储
         localStorage.setItem('fontScale', fontScale);
         // 设置CSS根变量，实时生效
         document.documentElement.style.setProperty('--practice-font-scale', fontScale);
-        // 切换文字提示（统一档位）
-        let tip = "标准";
-        if (fontScale <= 0.8) tip = "偏小";
-        else if (fontScale <= 1.0) tip = "标准";
-        else if (fontScale <= 1.2) tip = "偏大";
-        else if (fontScale <= 1.4) tip = "很大";
-        else tip = "超大";
-        fontSizeText.textContent = tip;
     });
 
     // 清空按钮
@@ -314,13 +303,19 @@ function bindBaseEvents() {
     });
 }
 
-// ========== 字号初始化【移至函数外部，解决刷新字体闪烁 + 统一文案】 ==========
+// ========== 字号初始化【移至函数外部，解决刷新字体闪烁】 ==========
 document.documentElement.style.setProperty('--practice-font-scale', fontScale);
 fontSizeSlider.value = fontScale;
-let initTip = "标准";
-if (fontScale <= 0.8) initTip = "偏小";
-else if (fontScale <= 1.0) initTip = "标准";
-else if (fontScale <= 1.2) initTip = "偏大";
-else if (fontScale <= 1.4) initTip = "很大";
-else initTip = "超大";
-fontSizeText.textContent = initTip;
+
+// ========== 单词朗读按钮文字&样式更新（已改为统一蓝色主按钮色系，移除btn-success绿色） ==========
+function updateWordSpeakBtnText() {
+    if(wordSpeakEnable === 'true') {
+        wordSpeakToggleBtn.textContent = '单词朗读：已开启';
+        wordSpeakToggleBtn.classList.remove('btn-normal');
+        wordSpeakToggleBtn.classList.add('btn-primary');
+    } else {
+        wordSpeakToggleBtn.textContent = '单词朗读：已关闭';
+        wordSpeakToggleBtn.classList.remove('btn-primary');
+        wordSpeakToggleBtn.classList.add('btn-normal');
+    }
+}

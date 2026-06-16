@@ -93,18 +93,16 @@
                     <option value="1.25">1.25x</option>
                     <option value="1.5">1.5x</option>
                 </select>
-                <!-- 音量调节滑块 -->
+                <!-- 音量调节滑块：移除右侧百分比span -->
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>
                     <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" style="width: 80px;">
-                    <span id="volumeText" style="font-size: 12px;color: var(--text-sub);">100%</span>
                 </div>
 
-                <!-- 字号调节滑块 -->
+                <!-- 字号调节滑块：移除右侧文字span -->
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">字号</span>
                     <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
-                    <span id="fontSizeText" style="font-size: 12px;color: var(--text-sub);">标准</span>
                 </div>
 
                 <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>

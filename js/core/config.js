@@ -44,6 +44,7 @@ const readAllBtnEl=document.getElementById('readAllBtn');
 const speechRateEl=document.getElementById('speechRate');
 const speechVolumeEl=document.getElementById('speechVolume');
 const fontSizeSlider = document.getElementById('fontSizeSlider');
+// 页面已移除 <span id="fontSizeText">，保留变量并做空值兼容，防止未定义报错
 const fontSizeText = document.getElementById('fontSizeText');
 const helpBtn = document.getElementById('helpBtn');
 const helpModal = document.getElementById('helpModal');
