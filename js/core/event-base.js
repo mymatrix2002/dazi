@@ -238,4 +238,22 @@ fontSizeText.textContent = initTip;
         clearTimeout(pauseTimer); speechSynthesis.cancel();
         speechState.running=false; clearInterval(timerId);
     });
+    
+    // ========== 使用提醒弹窗事件 ==========
+    // 打开提醒弹窗
+    helpBtn.addEventListener('click', () => {
+        helpModal.classList.remove('hidden');
+    });
+
+    // 关闭按钮关闭弹窗
+    helpCloseBtn.addEventListener('click', () => {
+        helpModal.classList.add('hidden');
+    });
+
+    // 点击弹窗遮罩空白处关闭
+    helpModal.addEventListener('click', (e) => {
+        if(e.target === helpModal){
+            helpModal.classList.add('hidden');
+        }
+    });
 }

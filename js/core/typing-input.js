@@ -44,15 +44,13 @@ function bindInputEvent() {
 
         // 换行切换行
         if(e.inputType === 'insertLineBreak' || val.includes('\n')){
-            // 仅最后一行第一次回车执行朗读，第二次跳过
+            // 仅最后一行第一次回车执行朗读，第二次跳过（移除延迟，适配手机浏览器）
             if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
                 const currentLineText = entryCharsList[currentEntryIndex].join('');
                 if(/[a-zA-Z]/.test(currentLineText)) {
-                    setTimeout(() => {
-                        speechSynthesis.cancel();
-                        const utter = createUtterance(currentLineText, speechState.rate);
-                        speechSynthesis.speak(utter);
-                    }, 200);
+                    speechSynthesis.cancel();
+                    const utter = createUtterance(currentLineText, speechState.rate);
+                    speechSynthesis.speak(utter);
                 }
             }
 

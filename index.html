@@ -31,6 +31,8 @@
         <h1 class="text-3xl font-bold">⌨️儿童趣味打字练习</h1>
         <span class="version-info">v2.0.2</span>
         <button id="themeToggle" class="btn-normal text-sm">切换日间模式</button>
+        <!-- 新增：使用提醒图标按钮（无文字，问号图标） -->
+        <button id="helpBtn" class="btn-normal text-sm" style="width: 32px; height: 32px; padding: 0; font-size: 18px;">❓</button>
     </div>
 
     <!-- 快捷链接栏 -->
@@ -141,6 +143,22 @@
         <div class="sticker-item" data-id="1">🐶</div>
         <div class="sticker-item" data-id="2">🚀</div>
         <div class="sticker-item" data-id="3">📖</div>
+    </div>
+
+        <!-- 使用提醒弹窗 -->
+    <div id="helpModal" class="modal-mask hidden">
+        <div class="modal-box" style="max-width: 480px;">
+            <h3 class="text-xl font-semibold mb-4">📌 使用提醒</h3>
+            <div style="color: var(--text-sub); line-height: 1.8; font-size: 15px;">
+                <p>1. 朗读功能<strong>请勿使用微信/QQ内置浏览器</strong>打开；</p>
+                <p>2. 优先使用手机系统自带浏览器、Chrome谷歌浏览器；</p>
+                <p>3. 支持手机/平板触屏打字，可调节音量、字体大小；</p>
+                <p>4. 练习最后一行，需要按<strong>两次回车键</strong>结束。</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="helpCloseBtn" class="btn-primary px-5 py-2">我知道了</button>
+            </div>
+        </div>
     </div>
 
     <!-- JS 引入：按依赖顺序加载 -->

@@ -41,9 +41,11 @@ const fileInputEl=document.getElementById('fileInput');
 const readAllBtnEl=document.getElementById('readAllBtn');
 const speechRateEl=document.getElementById('speechRate');
 const speechVolumeEl=document.getElementById('speechVolume');
-// 新增字号DOM
 const fontSizeSlider = document.getElementById('fontSizeSlider');
 const fontSizeText = document.getElementById('fontSizeText');
+const helpBtn = document.getElementById('helpBtn');
+const helpModal = document.getElementById('helpModal');
+const helpCloseBtn = document.getElementById('helpCloseBtn');
 const clearBtnEl=document.getElementById('clearBtn');
 const startBtnEl=document.getElementById('startBtn');
 const resetBtnEl=document.getElementById('resetBtn');
