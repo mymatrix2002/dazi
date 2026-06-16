@@ -2,6 +2,8 @@
 function runTypingFullMode(text){
     isFullTextMode = true;
     isBilingualMode = true;
+
+    // 统一布局显隐（抽离重复逻辑）
     displayAreaEl.innerHTML = '';
     displayAreaEl.classList.add('hidden');
     displayAreaEl.style.display = 'none';
@@ -21,6 +23,10 @@ function runTypingFullMode(text){
     isLastLineEnter = false;
     waitFinalEnter = false;
 
+    // 重构：收集节点 + 构建朗读映射表
+    speechSentenceMap = [];
+    const allCharSpans = [];
+
     fullLines.forEach((lineText, idx) => {
         const lineCol = document.createElement('div');
         lineCol.className = 'paragraph-full';
@@ -30,23 +36,54 @@ function runTypingFullMode(text){
         chars.forEach((ch, chIdx) => {
             const span = document.createElement('span');
             span.textContent = ch;
+            // 光标样式兜底
             span.className = (idx === currentEntryIndex && chIdx === 0) ? 'char-current' : 'char-pending';
             lineCol.appendChild(span);
+            allCharSpans.push(span);
         });
         paragraphContainerEl.appendChild(lineCol);
     });
 
-    targetFullText = fullLines.join(' ').trim();
+    // 缓存拼接结果，避免重复计算
+    const combinedText = fullLines.join(' ').trim();
+    targetFullText = combinedText;
     targetChars = targetFullText.split('');
-    currentPos=0; typingRunning=true;
-    comboCount=0; wrongContinuous=0;
-    startTime=Date.now();
+
+    // 仅非空文本才构建句子映射
+    if (combinedText && allCharSpans.length > 0) {
+        const sentences = splitSentences(combinedText);
+        let currentNodeIndex = 0;
+        sentences.forEach(sent => {
+            const sentenceText = sent.text;
+            const nodeCount = sentenceText.length;
+            const start = currentNodeIndex;
+            const end = currentNodeIndex + nodeCount - 1;
+            const realEnd = Math.min(end, allCharSpans.length - 1);
+
+            speechSentenceMap.push({
+                text: sent.text,
+                pauseType: sent.pauseType,
+                startNode: start,
+                endNode: realEnd
+            });
+            currentNodeIndex = realEnd + 1;
+        });
+    }
+
+    // 初始化运行状态
+    currentPos = 0;
+    typingRunning = true;
+    comboCount = 0;
+    wrongContinuous = 0;
+    startTime = Date.now();
     if(timerId) clearInterval(timerId);
-    inputAreaEl.disabled=false;
-    inputAreaEl.value='';
+
+    inputAreaEl.disabled = false;
+    inputAreaEl.value = '';
     inputAreaEl.focus();
-    resetBtnEl.disabled=false;
-    timerId=setInterval(updateStat,1000);
+    resetBtnEl.disabled = false;
+
+    timerId = setInterval(updateStat, 1000);
     accuracyEl.textContent = "100%";
     accBar.style.width = "100%";
     updateStat();
@@ -57,6 +94,8 @@ function runTypingFullMode(text){
 function runTypingBilingualMode(text){
     isFullTextMode = false;
     isBilingualMode = true;
+
+    // 统一布局显隐
     displayAreaEl.innerHTML = '';
     displayAreaEl.classList.add('hidden');
     displayAreaEl.style.display = 'none';
@@ -77,6 +116,10 @@ function runTypingBilingualMode(text){
     isLastLineEnter = false;
     waitFinalEnter = false;
 
+    // 重构：收集节点 + 构建朗读映射表
+    speechSentenceMap = [];
+    const allCharSpans = [];
+
     pairs.forEach((pair, idx) => {
         const cnCol = document.createElement('div');
         cnCol.className = 'paragraph-cn';
@@ -91,22 +134,52 @@ function runTypingBilingualMode(text){
             span.textContent = ch;
             span.className = (idx === currentEntryIndex && chIdx === 0) ? 'char-current' : 'char-pending';
             enCol.appendChild(span);
+            allCharSpans.push(span);
         });
         paragraphContainerEl.appendChild(cnCol);
         paragraphContainerEl.appendChild(enCol);
     });
 
-    targetFullText = pairs.map(p=>p.en).join(' ').trim();
+    // 缓存拼接文本，去重计算
+    const enCombinedText = pairs.map(p=>p.en).join(' ').trim();
+    targetFullText = enCombinedText;
     targetChars = targetFullText.split('');
-    currentPos=0; typingRunning=true;
-    comboCount=0; wrongContinuous=0;
-    startTime=Date.now();
+
+    // 非空才构建句子映射，防无效数据
+    if (enCombinedText && allCharSpans.length > 0) {
+        const sentences = splitSentences(enCombinedText);
+        let currentNodeIndex = 0;
+        sentences.forEach(sent => {
+            const sentenceText = sent.text;
+            const nodeCount = sentenceText.length;
+            const start = currentNodeIndex;
+            const end = currentNodeIndex + nodeCount - 1;
+            const realEnd = Math.min(end, allCharSpans.length - 1);
+
+            speechSentenceMap.push({
+                text: sent.text,
+                pauseType: sent.pauseType,
+                startNode: start,
+                endNode: realEnd
+            });
+            currentNodeIndex = realEnd + 1;
+        });
+    }
+
+    // 初始化运行状态
+    currentPos = 0;
+    typingRunning = true;
+    comboCount = 0;
+    wrongContinuous = 0;
+    startTime = Date.now();
     if(timerId) clearInterval(timerId);
-    inputAreaEl.disabled=false;
-    inputAreaEl.value='';
+
+    inputAreaEl.disabled = false;
+    inputAreaEl.value = '';
     inputAreaEl.focus();
-    resetBtnEl.disabled=false;
-    timerId=setInterval(updateStat,1000);
+    resetBtnEl.disabled = false;
+
+    timerId = setInterval(updateStat, 1000);
     accuracyEl.textContent = "100%";
     accBar.style.width = "100%";
     updateStat();

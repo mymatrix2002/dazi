@@ -43,6 +43,75 @@ function parseFullTextLines(text) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(l => l);
     return lines;
 }
+
+// ========== 内置系统波形音效：按键音 / 错误音 / 完成音 ==========
+/**
+ * 正常按键清脆音效
+ */
+function playKeySound() {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(680, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.06);
+    gain.gain.setValueAtTime(speechState.volume * 0.22, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+}
+
+/**
+ * 输入错误警示音效
+ */
+function playErrorSound() {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(160, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(speechState.volume * 0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+}
+
+/**
+ * 练习完成欢庆提示音（两段音阶）
+ */
+function playFinishSound() {
+    const ctx = getAudioCtx();
+    const vol = speechState.volume * 0.3;
+    // 第一段
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.value = 580;
+    gain1.gain.setValueAtTime(vol, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start();
+    osc1.stop(ctx.currentTime + 0.18);
+    // 第二段延时高音
+    setTimeout(()=>{
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.value = 820;
+        gain2.gain.setValueAtTime(vol, ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start();
+        osc2.stop(ctx.currentTime + 0.22);
+    }, 180);
+}
 function parseBilingualPairs(text) {
     const processed = preprocessText(text);
     const cleanText = cleanMultiBlankLines(processed);
@@ -101,14 +170,17 @@ function parseBilingualPairs(text) {
 function numberToEnglish(num) {
     const ones = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
     const tens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
-    if(num<20) return ones[num];
-    if(num<100){
-        const t=Math.floor(num/10), o=num%10;
-        return o>0 ? `${tens[t]}-${ones[o]}` : tens[t];
+    // 超大数字兜底
+    if (isNaN(num) || num < 0) return String(num);
+    if(num < 20) return ones[num];
+    if(num < 100){
+        const t = Math.floor(num / 10), o = num % 10;
+        return o > 0 ? `${tens[t]}-${ones[o]}` : tens[t];
     }
-    const h=Math.floor(num/100), rem=num%100;
-    let res=ones[h]+" hundred";
-    if(rem>0) res+=" "+numberToEnglish(rem);
+    // 百位以上统一简化处理
+    const h = Math.floor(num / 100), rem = num % 100;
+    let res = ones[h] + " hundred";
+    if(rem > 0) res += " " + numberToEnglish(rem);
     return res;
 }
 function replaceDigitsToEnglish(s){
@@ -118,68 +190,92 @@ function fixArticleRead(s){
     return s.replace(/\b a \b([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g," uh $1")
             .replace(/^\ba\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm,"uh $1");
 }
+// 优化分句：限制占位符、过滤空句子
 function splitSentences(text){
-    const map=new Map();
-    let idx=0;
-    text=text.replace(/\w+'(ll|re|s|t|ve|d)/g,m=>{
-        const k=`__TMP${idx}__`; map.set(k,m); idx++; return k;
+    const map = new Map();
+    let idx = 0;
+    // 限制占位符长度，避免冲突
+    const tempPrefix = '__SENT_TMP_';
+    text = text.replace(/\w+'(ll|re|s|t|ve|d)/g,m=>{
+        const k = `${tempPrefix}${idx}__`;
+        map.set(k, m);
+        idx++;
+        return k;
     });
-    const reg=/[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+$/g;
-    let match, arr=[];
-    while((match=reg.exec(text))!==null){
-        let seg=match[0];
-        for(let [k,v] of map) seg=seg.replace(k,v);
-        let ptype="newline";
-        const last=seg.trimEnd().slice(-1);
-        if(last===".") ptype="period";
-        else if(last==="!"||last==="?") ptype="mark";
-        arr.push({text:seg, pauseType:ptype});
+    const reg = /[^.!?\n]+[.!?]+(?=\s|$|\n)|[^.!?\n]+\n|.+$/g;
+    let match, arr = [];
+    while((match = reg.exec(text)) !== null){
+        let seg = match[0];
+        // 还原缩写
+        for(let [k,v] of map) seg = seg.replace(k, v);
+        const trimSeg = seg.trim();
+        // 过滤空句子
+        if(!trimSeg) continue;
+
+        let ptype = "newline";
+        const last = trimSeg.slice(-1);
+        if(last === ".") ptype = "period";
+        else if(last === "!" || last === "?") ptype = "mark";
+        arr.push({text: trimSeg, pauseType: ptype});
     }
-    if(arr.length===0 && text.trim()) arr.push({text, pauseType:"newline"});
+    if(arr.length === 0 && text.trim()){
+        arr.push({text: text.trim(), pauseType:"newline"});
+    }
     return arr;
 }
 function createUtterance(rawTxt, rate){
-    const ut=new SpeechSynthesisUtterance();
-    ut.rate=rate;
-    ut.pitch=1;
+    const ut = new SpeechSynthesisUtterance();
+    ut.rate = rate;
+    ut.pitch = 1;
     ut.volume = speechState.volume;
-    const isCN=hasChinese(rawTxt);
+    const isCN = hasChinese(rawTxt);
     if(isCN){
-        ut.lang="zh-CN"; ut.text=rawTxt;
+        ut.lang = "zh-CN";
+        ut.text = rawTxt;
     }else{
-        ut.lang="en-US";
-        let t=replaceDigitsToEnglish(rawTxt);
-        t=fixArticleRead(t);
-        ut.text=t;
+        ut.lang = "en-US";
+        let t = replaceDigitsToEnglish(rawTxt);
+        t = fixArticleRead(t);
+        ut.text = t;
     }
     return ut;
 }
 
-// ========== 动画、提示、贴纸 ==========
-function createStar(x,y){
-    const star=document.createElement('div');
-    star.className="float-star";
-    star.textContent="⭐";
-    star.style.left=x+"px";
-    star.style.top=y+"px";
+// ========== 动画、提示、贴纸（增强触屏坐标兼容 + 缓存DOM） ==========
+// 缓存贴纸DOM，避免重复查询
+const stickerItems = document.querySelectorAll('.sticker-item');
+
+function createStar(x = 0, y = 0){
+    // 触屏兜底：无坐标默认屏幕中心
+    const posX = x || window.innerWidth / 2;
+    const posY = y || window.innerHeight / 2;
+    const star = document.createElement('div');
+    star.className = "float-star";
+    star.textContent = "⭐";
+    star.style.left = posX + "px";
+    star.style.top = posY + "px";
     document.body.appendChild(star);
     setTimeout(()=>{
-        star.style.opacity="0";
-        star.style.transform="translateY(-90px) scale(1.4)";
+        star.style.opacity = "0";
+        star.style.transform = "translateY(-90px) scale(1.4)";
     },10);
     setTimeout(()=>star.remove(),1000);
 }
-function batchStar(x,y,num) {
-    for(let i=0;i<num;i++){
-        setTimeout(()=>createStar(x+(i-2)*18,y-10),i*80);
+function batchStar(x = 0, y = 0, num) {
+    const posX = x || window.innerWidth / 2;
+    const posY = y || window.innerHeight / 2;
+    for(let i = 0; i < num; i++){
+        setTimeout(()=>createStar(posX + (i - 2) * 18, posY - 10), i * 80);
     }
 }
-function showComboTip(text, x, y) {
+function showComboTip(text, x = 0, y = 0) {
+    const posX = x || window.innerWidth / 2;
+    const posY = y || window.innerHeight / 2;
     const tip = document.createElement('div');
     tip.className = 'combo-tip';
     tip.textContent = text;
-    tip.style.left = x + 'px';
-    tip.style.top = y + 'px';
+    tip.style.left = posX + "px";
+    tip.style.top = posY + "px";
     document.body.appendChild(tip);
     setTimeout(()=>tip.remove(),1200);
 }
@@ -193,11 +289,11 @@ function showErrorHint(text) {
 function unlockSticker(idx) {
     if(stickerUnlock[idx]) return;
     stickerUnlock[idx] = true;
-    document.querySelector(`.sticker-item[data-id="${idx}"]`).classList.add('unlock');
+    if(stickerItems[idx]) stickerItems[idx].classList.add('unlock');
 }
 function revokeLastSticker() {
     let lastIdx = -1;
-    for(let i=2;i>=0;i--){
+    for(let i = 2; i >= 0; i--){
         if(stickerUnlock[i]){
             lastIdx = i;
             break;
@@ -205,24 +301,24 @@ function revokeLastSticker() {
     }
     if(lastIdx === -1) return;
     stickerUnlock[lastIdx] = false;
-    document.querySelector(`.sticker-item[data-id="${lastIdx}"]`).classList.remove('unlock');
+    if(stickerItems[lastIdx]) stickerItems[lastIdx].classList.remove('unlock');
 }
 
 // ========== 统计 & 完成弹窗 ==========
 function updateStat(){
     if(!typingRunning) return;
-    const now=Date.now();
-    const sec=Math.floor((now-startTime)/1000);
-    const m=String(Math.floor(sec/60)).padStart(2,'0');
-    const s=String(sec%60).padStart(2,'0');
-    timeUsedEl.textContent=`${m}:${s}`;
+    const now = Date.now();
+    const sec = Math.floor((now - startTime) / 1000);
+    const m = String(Math.floor(sec / 60)).padStart(2,'0');
+    const s = String(sec % 60).padStart(2,'0');
+    timeUsedEl.textContent = `${m}:${s}`;
 
     let speed = 0;
     if(sec > 0){
-        speed = Math.round((correctCnt/5) / (sec/60));
+        speed = Math.round((correctCnt / 5) / (sec / 60));
     }
-    speedEl.textContent=speed;
-    speedBar.style.width=Math.min(speed/300*100,100)+"%";
+    speedEl.textContent = speed;
+    speedBar.style.width = Math.min(speed / 300 * 100, 100) + "%";
 
     let acc = 100;
     if (totalInput > 0) {
@@ -236,17 +332,22 @@ function updateStat(){
     if(targetChars.length > 0){
         prog = Math.round(currentPos / targetChars.length * 100);
     }
-    progressEl.textContent=prog+"%";
-    progBar.style.width=prog+"%";
+    progressEl.textContent = prog + "%";
+    progBar.style.width = prog + "%";
 
-    // 增加等待二次回车拦截
-    if(targetChars.length > 0 && currentPos >= targetChars.length && !waitFinalEnter){
-        typingRunning=false; clearInterval(timerId);
-        inputAreaEl.disabled=true;
-        showFinishModal();
+    // 增强判断：兼容收尾回车逻辑，双重兜底
+    if(targetChars.length > 0 && currentPos >= targetChars.length) {
+        // 无需等待二次回车也可兜底结束，保留原有waitFinalEnter交互
+        if(!waitFinalEnter){
+            typingRunning = false;
+            clearInterval(timerId);
+            inputAreaEl.disabled = true;
+            showFinishModal();
+        }
     }
 }
 function showFinishModal(){
+    playFinishSound(); // 练习完成欢庆音效
     unlockSticker(3);
     const totalSec = Math.floor((Date.now() - startTime) / 1000);
     const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
