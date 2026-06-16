@@ -1,0 +1,22 @@
+/* 全局字号变量 - 控制打字练习文本 */
+:root {
+  --practice-font-scale: 1.0;
+}
+
+/* 双语/全文练习文本 统一应用字号缩放 */
+.paragraph-cn {
+  font-size: calc(1.25rem * var(--practice-font-scale)) !important;
+}
+
+.paragraph-en {
+  font-size: calc(1.125rem * var(--practice-font-scale)) !important;
+}
+
+.paragraph-full {
+  font-size: calc(1.25rem * var(--practice-font-scale)) !important;
+}
+
+/* 输入框文字同步缩放 */
+#inputArea {
+  font-size: calc(1.125rem * var(--practice-font-scale)) !important;
+}

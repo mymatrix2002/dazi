@@ -1,0 +1,92 @@
+/* 移动端、平板 全局触屏适配 */
+/* 消除移动端点击延迟 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 小屏幕：宽度 ≤ 768px (手机/竖屏平板) */
+@media (max-width: 768px) {
+  body {
+    padding: 12px !important;
+  }
+
+  /* 顶部统计卡片 4列 → 2列 */
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* 按钮放大，提升触屏点击区域 */
+  .btn-primary, .btn-success, .btn-warning, .btn-normal {
+    padding: 10px 16px !important;
+    font-size: 16px !important;
+  }
+
+  /* 文本输入框加高，触屏好操作 */
+  #sourceText {
+    height: 120px !important;
+    font-size: 16px !important;
+  }
+
+  #inputArea {
+    font-size: 18px !important;
+  }
+
+  /* 双语双栏 → 强制单栏，提升阅读体验 */
+  .paragraph-container.two-col {
+    grid-template-columns: 100% !important;
+  }
+
+  .paragraph-cn, .paragraph-en, .paragraph-full {
+    font-size: 1.1rem !important;
+  }
+
+  /* 侧边贴纸 移动端改底部居中 */
+  .sticker-box {
+    position: fixed !important;
+    right: auto !important;
+    left: 50% !important;
+    top: auto !important;
+    bottom: 16px !important;
+    transform: translateX(-50%) !important;
+    flex-direction: row !important;
+    padding: 8px 12px !important;
+  }
+
+  .sticker-item {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 26px !important;
+  }
+
+  /* 弹窗适配 */
+  .modal-card-finish, .modal-box {
+    padding: 20px !important;
+  }
+
+  .data-row {
+    font-size: 16px !important;
+  }
+
+  /* 标题字号缩小 */
+  .header-title h1 {
+    font-size: 24px !important;
+  }
+
+  /* 控件行自动换行 */
+  .flex.flex-wrap {
+    row-gap: 8px !important;
+  }
+}
+
+/* 超小屏：宽度 ≤ 480px (迷你手机) */
+@media (max-width: 480px) {
+  .header-title {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+  }
+}
