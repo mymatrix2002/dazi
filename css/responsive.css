@@ -1,4 +1,4 @@
-/* css/responsive.css完整代码 v2.0.5 修复移动端布局间距问题 */
+/* css/responsive.css完整代码 v2.0.5 */
 * {
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
@@ -6,11 +6,10 @@
 @media (max-width: 768px) {
   body {
     padding: 12px;
-    /* 消除页面底部多余空白 */
     padding-bottom: 60px;
     margin-bottom: 0;
   }
-  /* 头部强制同行，缩小字体防止换行 */
+  /* 头部左右布局，强制同行，缩小字体防止溢出换行 */
   .header-title {
     flex-wrap: nowrap !important;
     gap: 6px !important;
@@ -26,15 +25,17 @@
   #themeToggle {
     font-size: 12px;
     padding: 4px 8px !important;
+    flex-shrink: 0;
+  }
+  #helpBtn {
+    flex-shrink: 0;
   }
   .grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    /* 缩小统计卡片上下外边距，减少空白 */
     margin-bottom: 16px !important;
   }
   .card-round {
-    /* 统一缩小卡片上下内边距，消除内部多余空白 */
     padding-top: 16px !important;
     padding-bottom: 16px !important;
     margin-bottom: 16px !important;
@@ -47,7 +48,6 @@
     height: 120px;
     font-size: 16px;
   }
-  /* 移动端输入框单行高度限制 */
   #inputArea {
     font-size: 18px;
     height: 48px !important;
@@ -60,7 +60,6 @@
   .paragraph-cn, .paragraph-en, .paragraph-full {
     font-size: 1.1rem;
   }
-  /* 快捷链接按钮均匀排版 */
   .quick-link {
     flex: 1;
     min-width: 110px;
@@ -113,14 +112,12 @@
   .flex.flex-wrap.items-center {
     justify-content: center;
   }
-  /* 超小手机进一步压缩输入框高度 */
   #inputArea {
     height: 44px !important;
   }
   .paragraph-container.two-col {
     max-height: 180px;
   }
-  /* 超小屏快捷按钮均分 */
   .quick-link {
     min-width: 90px;
   }
