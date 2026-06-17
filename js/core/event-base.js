@@ -309,7 +309,7 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【本次新增修复】兼容手机软键盘输入（空格、字母实时触发打字逻辑，解决手机空格对照区无响应） =========
+    // =========【本次核心修复】兼容手机软键盘所有输入（空格、字母实时执行打字校验，解决手机空格对照区无响应问题） =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         handleTypingInput(this.value);
