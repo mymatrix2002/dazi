@@ -237,15 +237,17 @@
             }, 100);
         });
 
-        // 2. 兜底修复手机软键盘空格输入后对照区无刷新
+        // 2. 兜底修复手机软键盘空格输入后对照区无刷新（DOM强制重绘）
         inputArea.addEventListener('input', () => {
             if (!typingRunning) return;
             const lastChar = inputArea.value.slice(-1);
             if(lastChar === ' '){
                 const container = document.getElementById('paragraphContainer');
                 if(container){
+                    // 强制浏览器重绘DOM
                     container.style.opacity = 0.99;
                     setTimeout(()=> container.style.opacity = 1, 30);
+                    // 滚动到当前单词区域，保证可见
                     container.scrollIntoView({block:'nearest', behavior:'smooth'});
                 }
             }
