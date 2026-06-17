@@ -197,11 +197,12 @@
     </div>
 
     <!-- JS 引入：严格按依赖顺序加载 -->
+    <!-- 先加载所有core业务JS，最后加载入口main.js -->
     <script src="js/core/config.js"></script>
     <script src="js/core/utils.js"></script>
-    <script src="js/core/typing-mode.js"></script>
-    <script src="js/core/typing-input.js"></script>
     <script src="js/core/event-base.js"></script>
+    <script src="js/core/typing-input.js"></script>
+    <!-- 入口文件最后引入，此时所有依赖函数已全部定义 -->
     <script src="js/main.js"></script>
 
     <!-- 新增：设置面板展开收起切换逻辑 -->
