@@ -17,7 +17,7 @@ function nextSpeak(lastPause){
     }
 
     // 容错：防止映射表数据异常
-    const currentItem = speechSentenceMap[speechState.idx];
+    const currentItem = speechSentenceMap[speechSentenceMap.idx];
     if(!currentItem) return;
 
     const senText = currentItem.text;
@@ -309,10 +309,17 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【修复1】软键盘全部字符输入兼容，空格后自动滚动至下一个待输入字符 =========
+    // =========【修复1】软键盘全部字符输入兼容，空格后自动滚动至下一个待输入字符 + 识别换行符兜底执行回车逻辑 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
-        handleTypingInput(this.value);
+        const val = this.value;
+        handleTypingInput(val);
+        // 兜底：检测输入末尾存在换行符，直接执行回车切换下一组
+        if(val.endsWith('\n')){
+            handleTypingEnter();
+            this.value = val.replace(/\n$/, '');
+            return;
+        }
         // 延时确保DOM高亮更新完成，强制滚动到下一个待输入字符
         setTimeout(() => {
             let targetDom = null;
@@ -327,11 +334,11 @@ function bindBaseEvents() {
         }, 60);
     });
 
-    // =========【修复2】手机软键盘回车Enter单独监听，实现换行切换下一组单词 =========
+    // =========【修复2】手机软键盘回车Enter多兼容判断，捕获各类输入法回车按键 =========
     inputAreaEl.addEventListener('keydown', function(e) {
         if (!typingRunning) return;
-        // 捕获回车按键，执行原有换行逻辑
-        if(e.key === 'Enter'){
+        // 兼容多种移动端回车key值：Enter / NumpadEnter
+        if(e.key === 'Enter' || e.key === 'NumpadEnter'){
             e.preventDefault();
             handleTypingEnter();
         }
