@@ -1,6 +1,5 @@
 // js/core/typing-input.js完整代码
-
-// ===================== 全局错误日志工具（写入localStorage持久保存，刷新不丢失） =====================
+// 全局错误日志工具（写入localStorage持久保存，刷新不丢失）
 const LogTool = {
     STORAGE_KEY: "typing_error_logs",
     MAX_LOG_COUNT: 200,
@@ -59,7 +58,7 @@ const Log = LogTool;
 window.addEventListener('error', e => Log.error("全局同步运行异常", e.error));
 window.addEventListener('unhandledrejection', e => Log.error("异步Promise未捕获异常", e.reason));
 
-// ========== 统一回车切换行核心函数（手机blur失焦 / PC Enter共用） ==========
+// 统一回车切换行核心函数（手机blur失焦 / PC Enter共用）
 function handleEnterComplete() {
     try {
         const val = inputAreaEl.value.trim();
@@ -156,7 +155,7 @@ inputAreaEl.addEventListener('paste', function (e) {
     }
 });
 
-// ========== 输入实时校验、字符上色、单词朗读主逻辑 ==========
+// 输入实时校验、字符上色、单词朗读主逻辑
 inputAreaEl.addEventListener('input', function (e) {
     try {
         if (!typingRunning) return;
@@ -267,3 +266,7 @@ inputAreaEl.addEventListener('input', function (e) {
         Log.error("输入主input事件执行异常", err);
     }
 });
+
+// 将绑定函数挂载至window全局，修复加载时序、作用域丢失问题
+window.bindInputEvent = bindInputEvent;
+window.bindBaseEvents = bindBaseEvents;
