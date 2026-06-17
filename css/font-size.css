@@ -36,7 +36,7 @@
   background: var(--color-primary);
   cursor: pointer;
   /* 扩大触摸点击范围 */
-  margin-top: -5px;
+  margin-top: 0px;
 }
 
 /* Firefox 兼容滑块样式 */
