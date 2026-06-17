@@ -1,4 +1,4 @@
-<!-- index.html完整代码 -->
+<!-- index.html完整代码 v2.0.5 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
@@ -28,18 +28,20 @@
         </div>
     </div>
 
-    <!-- 头部标题 & 主题切换 + 帮助按钮 移动端同行修复 -->
-    <div class="header-title flex flex-wrap items-center gap-2 md:gap-3">
-        <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
-        <span class="version-info">v2.0.5</span>
-        <button id="themeToggle" class="btn-normal text-sm px-2 py-1">切换日间模式</button>
-        <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg">❓</button>
+    <!-- 头部标题 & 版本、主题切换、帮助按钮 同行布局【修改点】 -->
+    <div class="header-title flex items-center flex-nowrap justify-center gap-2 md:gap-3 flex-row flex-nowrap flex-shrink-0">
+        <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
+        <span class="version-info whitespace-nowrap">v2.0.5</span>
+        <div class="flex items-center gap-2 flex-nowrap">
+            <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
+            <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg flex-shrink-0">❓</button>
+        </div>
     </div>
 
     <!-- 快捷链接栏 -->
     <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
-        <span class="font-medium">快捷链接：</span>
-        <div class="flex flex-wrap gap-2">
+        <span class="font-medium whitespace-nowrap">快捷链接：</span>
+        <div class="flex flex-wrap gap-2 items-center w-full justify-start">
             <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
             <button data-url="https://fanyi.youdao.com" class="quick-link btn-normal px-3 py-1.5 text-sm">有道翻译</button>
             <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州1-6年级英语教材</button>
@@ -140,7 +142,6 @@
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
-        <!-- 修改点：rows="3" 改为 rows="1" -->
         <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="1" placeholder="在这里打字..." disabled></textarea>
         <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
