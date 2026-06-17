@@ -17,7 +17,7 @@ function nextSpeak(lastPause){
     }
 
     // 容错：防止映射表数据异常
-    const currentItem = speechSentenceMap[speechSentenceMap.idx];
+    const currentItem = speechSentenceMap[speechState.idx];
     if(!currentItem) return;
 
     const senText = currentItem.text;
@@ -309,36 +309,26 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【最终无Bug滚动+回车兼容逻辑】 =========
+    // =========【修复1】软键盘全部字符输入兼容（字母、空格实时刷新高亮】 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
-        const val = this.value;
-        handleTypingInput(val);
-        // 兜底：检测输入末尾存在换行符，直接执行回车切换下一组
-        if(val.endsWith('\n')){
-            handleTypingEnter();
-            this.value = val.replace(/\n$/, '');
-            return;
-        }
-        // 延长延时至80ms，保证错误字符DOM渲染完成，错字优先查找
+        handleTypingInput(this.value);
+        // 自动滚动当前单词
         setTimeout(() => {
-            let targetDom = null;
             if(isBilingualMode){
-                // 优先级：错误标红字符 > 待输入光标 > 未输入字符
-                targetDom = paragraphContainerEl.querySelector('.wrong-char') || paragraphContainerEl.querySelector('.cursor-mark') || paragraphContainerEl.querySelector('.untype-char');
+                const container = document.getElementById('paragraphContainer');
+                if(container) container.scrollIntoView({block:'nearest', behavior:'smooth'});
             }else{
-                targetDom = displayAreaEl.querySelector('.wrong-char') || displayAreaEl.querySelector('.cursor-mark') || displayAreaEl.querySelector('.untype-char');
+                displayAreaEl.scrollIntoView({block:'nearest', behavior:'smooth'});
             }
-            if(targetDom){
-                targetDom.scrollIntoView({block:'nearest', behavior:'smooth'});
-            }
-        }, 80);
+        }, 50);
     });
 
-    // 兼容全类型软键盘回车按键
+    // =========【修复2】手机软键盘回车Enter单独监听，实现换行切换下一组单词 =========
     inputAreaEl.addEventListener('keydown', function(e) {
         if (!typingRunning) return;
-        if(e.key === 'Enter' || e.key === 'NumpadEnter'){
+        // 捕获回车按键，执行原有换行逻辑
+        if(e.key === 'Enter'){
             e.preventDefault();
             handleTypingEnter();
         }
