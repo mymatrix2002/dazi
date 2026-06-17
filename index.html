@@ -2,8 +2,8 @@
 <html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- 移动端视口：锁定缩放，解决输入法弹窗缩放问题 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <!-- 移动端视口优化，修复输入法布局偏移 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>儿童趣味打字练习</title>
     <!-- 外部框架 -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,6 +12,25 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
+    <style>
+        /* 内联补充输入法防上移样式，无需修改外部css临时生效 */
+        @media (max-width:768px) {
+            html, body {
+                height: 100%;
+                overflow-y: auto;
+                position: relative;
+            }
+            #inputArea {
+                scroll-margin-top: 140px;
+            }
+            #displayArea, #bilingualArea {
+                scroll-behavior: auto !important;
+            }
+            .card-round {
+                padding-bottom: 120px !important;
+            }
+        }
+    </style>
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
     <!-- 模式选择弹窗 -->
@@ -139,7 +158,7 @@
         </div>
     </div>
 
-    <!-- 打字展示区域 -->
+    <!-- 打字展示区域（增加底部预留空间，防止输入法遮挡+上移） -->
     <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
             <div class="translation-header">
@@ -152,7 +171,7 @@
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
         <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
-        <!-- 新增底部常驻提示 -->
+        <!-- 底部常驻提示 -->
         <div class="finish-tip-text text-xs mt-2 text-slate-400" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
@@ -182,7 +201,6 @@
                 <p>4. 练习最后一行，需要按<strong>两次回车键</strong>结束。</p>
             </div>
             <div class="modal-buttons">
-                <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
                 <button id="helpCloseBtn" class="btn-primary px-5 py-2">我知道了</button>
             </div>
         </div>
@@ -196,13 +214,25 @@
     <script src="js/core/event-base.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- 新增：设置面板展开收起切换逻辑 -->
+    <!-- 设置面板展开收起切换逻辑 -->
     <script>
         const settingToggleBtn = document.getElementById('settingToggleBtn');
         const settingPanel = document.getElementById('settingPanel');
         settingToggleBtn.addEventListener('click', () => {
             settingPanel.classList.toggle('hidden');
             settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
+        });
+
+        // 新增：输入法弹出防页面上移遮挡双语对照
+        const inputArea = document.getElementById('inputArea');
+        inputArea.addEventListener('focus', function(e){
+            e.preventDefault();
+            setTimeout(()=>{
+                window.scrollTo({
+                    top: 180,
+                    behavior: 'smooth'
+                });
+            }, 100);
         });
     </script>
 </body>
