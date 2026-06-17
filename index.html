@@ -5,13 +5,18 @@
     <!-- vConsole移动端调试面板：手机右下角生成悬浮日志按钮 -->
     <script src="https://cdn.jsdelivr.net/npm/vconsole@3.11.0/dist/vconsole.min.js"></script>
     <script>
-    // 初始化移动端日志面板，所有console日志、localStorage均可查看
+    // 初始化移动端日志面板
     new VConsole();
 
-    // 前置兜底：提前定义语音全局变量，提前规避 speechSynthesis 未定义报错
-    window.speechSynthesis = window.speechSynthesis || null;
-    window.speechState = window.speechState || { rate: 1 };
-    window.createUtterance = window.createUtterance || function(){};
+    // 强化语音API兜底：无原生语音时生成模拟对象，自带空cancel/speak，杜绝null调用报错
+    window.speechSynthesis = window.speechSynthesis || {
+        cancel: function(){},
+        speak: function(){}
+    };
+    window.speechState = window.speechState || { rate: 1, running: false };
+    window.createUtterance = window.createUtterance || function(word, rate) {
+        return { text: word, rate: rate };
+    };
     </script>
     
     <meta charset="UTF-8">
