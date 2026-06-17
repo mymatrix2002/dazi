@@ -1,4 +1,4 @@
-<!-- index.html完整代码 v2.0.5 -->
+<!-- index.html完整代码 v2.0.7 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
@@ -32,7 +32,7 @@
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
             <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
-            <span class="version-info whitespace-nowrap">v2.0.5</span>
+            <span class="version-info whitespace-nowrap">v2.0.7</span>
         </div>
         <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
             <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
@@ -134,7 +134,8 @@
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
-        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="1" placeholder="在这里打字..." disabled></textarea>
+        <!-- 修改点：rows="1" 改为 rows="2" -->
+        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="2" placeholder="在这里打字..." disabled></textarea>
         <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
@@ -151,7 +152,6 @@
         <div class="flex flex-wrap gap-2 items-center w-full justify-start">
             <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
             <button data-url="https://fanyi.youdao.com" class="quick-link btn-normal px-3 py-1.5 text-sm">有道翻译</button>
-            <!-- 修改点：文字替换为 广州英语1-6年级 -->
             <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州英语1-6年级</button>
         </div>
     </div>
