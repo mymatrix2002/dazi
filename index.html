@@ -30,7 +30,7 @@
     <!-- 头部标题 & 主题切换 -->
     <div class="header-title">
         <h1 class="text-3xl font-bold">⌨️儿童趣味打字练习</h1>
-        <span class="version-info">v2.0.2</span>
+        <span class="version-info">v2.0.3</span>
         <button id="themeToggle" class="btn-normal text-sm">切换日间模式</button>
         <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
         <button id="helpBtn" class="btn-normal text-sm" style="width: 32px; height: 32px; padding: 0; font-size: 18px;">❓</button>
@@ -80,35 +80,53 @@
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
+                <!-- 最高频操作前置：上传TXT → 朗读全文 -->
                 <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
                     📁 上传TXT文件
                     <input type="file" id="fileInput" accept=".txt" class="hidden">
                 </label>
                 <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
-                <select id="speechRate">
-                    <option value="0.25">0.25x</option>
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75" selected>0.75x</option>
-                    <option value="1.0">1.0x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                </select>
-                <!-- 音量调节滑块：移除右侧百分比span -->
+
+                <!-- 仅保留音量滑块在首页 -->
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>
                     <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" style="width: 80px;">
                 </div>
 
-                <!-- 字号调节滑块：移除右侧文字span -->
-                <div style="display: flex;align-items: center;gap: 4px;">
-                    <span style="font-size: 12px;color: var(--text-sub);">字号</span>
-                    <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
-                </div>
-
-                <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
+                <!-- 设置面板展开按钮 + 清空按钮放在右侧 -->
+                <button id="settingToggleBtn" class="btn-normal px-3 py-1.5 text-sm">⚙️ 更多设置</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
+
+        <!-- 折叠式设置面板：语速、字号、单词朗读开关 -->
+        <div id="settingPanel" class="hidden mb-4 p-4 rounded-xl" style="background: var(--bg-gray-deep);">
+            <div class="flex flex-wrap gap-4 items-center">
+                <!-- 语速选择下拉 -->
+                <div style="display: flex;align-items: center;gap: 6px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">朗读语速</span>
+                    <select id="speechRate">
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75" selected>0.75x</option>
+                        <option value="1.0">1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                    </select>
+                </div>
+
+                <!-- 字号调节滑块 -->
+                <div style="display: flex;align-items: center;gap: 4px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">字号</span>
+                    <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
+                    <span id="fontSizeText" style="font-size: 12px;color: var(--text-sub);">标准</span>
+                </div>
+
+                <!-- 单词朗读开关 -->
+                <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
+            </div>
+        </div>
+
         <textarea id="sourceText" class="w-full h-28 p-3 border rounded-xl text-sm resize-none" placeholder="粘贴练习内容，或上传TXT文件，自带音标[xxx]会自动删除"></textarea>
         <div class="flex justify-between items-center mt-3">
             <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
@@ -172,5 +190,15 @@
     <script src="js/core/typing-input.js"></script>
     <script src="js/core/event-base.js"></script>
     <script src="js/main.js"></script>
+
+    <!-- 新增：设置面板展开收起切换逻辑 -->
+    <script>
+        const settingToggleBtn = document.getElementById('settingToggleBtn');
+        const settingPanel = document.getElementById('settingPanel');
+        settingToggleBtn.addEventListener('click', () => {
+            settingPanel.classList.toggle('hidden');
+            settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
+        });
+    </script>
 </body>
 </html>

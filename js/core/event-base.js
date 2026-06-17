@@ -176,16 +176,23 @@ function bindBaseEvents() {
         speechState.volume = parseFloat(this.value);
         localStorage.setItem('speechVolume', this.value);
     });
-    
-    // ========== 字号调节事件（移除fontSizeText文字更新逻辑） ==========
+
+    // ========== 字号调节事件 ==========
     fontSizeSlider.addEventListener('input', function () {
         fontScale = parseFloat(this.value);
         // 写入本地存储
         localStorage.setItem('fontScale', fontScale);
         // 设置CSS根变量，实时生效
         document.documentElement.style.setProperty('--practice-font-scale', fontScale);
+        // 切换文字提示（统一档位）
+        let tip = "标准";
+        if (fontScale <= 0.8) tip = "偏小";
+        else if (fontScale <= 1.0) tip = "标准";
+        else if (fontScale <= 1.2) tip = "偏大";
+        else if (fontScale <= 1.4) tip = "很大";
+        else tip = "超大";
+        fontSizeText.textContent = tip;
     });
-
     // 清空按钮
     clearBtnEl.addEventListener('click',()=>{
         sourceTextEl.value=''; updateCharCount();
@@ -303,9 +310,16 @@ function bindBaseEvents() {
     });
 }
 
-// ========== 字号初始化【移至函数外部，解决刷新字体闪烁】 ==========
+// ========== 字号初始化【移至函数外部，解决刷新字体闪烁 + 统一文案】 ==========
 document.documentElement.style.setProperty('--practice-font-scale', fontScale);
 fontSizeSlider.value = fontScale;
+let initTip = "标准";
+if (fontScale <= 0.8) initTip = "偏小";
+else if (fontScale <= 1.0) initTip = "标准";
+else if (fontScale <= 1.2) initTip = "偏大";
+else if (fontScale <= 1.4) initTip = "很大";
+else initTip = "超大";
+fontSizeText.textContent = initTip;
 
 // ========== 单词朗读按钮文字&样式更新（已改为统一蓝色主按钮色系，移除btn-success绿色） ==========
 function updateWordSpeakBtnText() {
