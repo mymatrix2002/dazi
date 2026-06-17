@@ -13,10 +13,10 @@
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
     <style>
-        /* 内联补充输入法防上移样式，无需修改外部css临时生效 */
+        /* 修复多余空白：缩减卡片底部预留空间，去除超大padding-bottom */
         @media (max-width:768px) {
             html, body {
-                height: 100%;
+                height: auto;
                 overflow-y: auto;
                 position: relative;
             }
@@ -26,8 +26,13 @@
             #displayArea, #bilingualArea {
                 scroll-behavior: auto !important;
             }
+            /* 原120px改为40px，消除大片多余空白 */
             .card-round {
-                padding-bottom: 120px !important;
+                padding-bottom: 40px !important;
+            }
+            /* 底部贴纸增加底部外边距，不遮挡卡片内容 */
+            .sticker-box {
+                margin-bottom: 20px;
             }
         }
     </style>
@@ -47,9 +52,9 @@
     </div>
 
     <!-- 头部【强制分离两行，按钮单独一行，永不分行】 -->
-    <div class="mb-6">
+    <div class="mb-4">
         <!-- 第一行：标题+版本 -->
-        <div class="flex justify-center items-center gap-2 mb-4">
+        <div class="flex justify-center items-center gap-2 mb-3">
             <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
             <span class="version-info">v2.0.3</span>
         </div>
@@ -61,7 +66,7 @@
     </div>
 
     <!-- 快捷链接栏 -->
-    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
+    <div class="card-round p-4 mb-4 flex flex-wrap gap-3 items-center">
         <span class="font-medium">快捷链接：</span>
         <div class="flex flex-wrap gap-2">
             <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
@@ -71,7 +76,7 @@
     </div>
 
     <!-- 数据统计卡片 -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-4 gap-3 mb-4">
         <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
             <div class="text-xs mt-1">打字速度(字/分钟)</div>
@@ -100,7 +105,7 @@
     </div>
 
     <!-- 练习内容设置区 -->
-    <div class="card-round p-5 mb-6">
+    <div class="card-round p-5 mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
@@ -158,7 +163,7 @@
         </div>
     </div>
 
-    <!-- 打字展示区域（增加底部预留空间，防止输入法遮挡+上移） -->
+    <!-- 打字展示区域 -->
     <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
             <div class="translation-header">
@@ -178,12 +183,12 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div class="flex justify-center gap-3 mb-6">
+    <div class="flex justify-center gap-3 mb-4">
         <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
     </div>
 
-    <!-- 侧边贴纸成就 -->
-    <div class="sticker-box">
+    <!-- 侧边贴纸成就，增加底部外边距避免遮挡卡片 -->
+    <div class="sticker-box mb-5">
         <div class="sticker-item" data-id="0">🐱</div>
         <div class="sticker-item" data-id="1">🐶</div>
         <div class="sticker-item" data-id="2">🚀</div>
