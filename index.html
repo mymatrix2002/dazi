@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- 移动端视口优化，修复输入法布局偏移，禁用双击缩放消除点击延迟 -->
+    <!-- 移动端视口优化，修复输入法布局偏移 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>儿童趣味打字练习</title>
     <!-- 外部框架 -->
@@ -13,10 +13,10 @@
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
     <style>
-        /* 修复多余空白：缩减卡片底部预留空间，去除超大padding-bottom */
+        /* 内联补充输入法防上移样式，无需修改外部css临时生效 */
         @media (max-width:768px) {
             html, body {
-                height: auto;
+                height: 100%;
                 overflow-y: auto;
                 position: relative;
             }
@@ -26,18 +26,8 @@
             #displayArea, #bilingualArea {
                 scroll-behavior: auto !important;
             }
-            /* 原120px改为40px，消除大片多余空白 */
             .card-round {
-                padding-bottom: 40px !important;
-            }
-            /* 底部贴纸增加底部外边距，不遮挡卡片内容，开启点击穿透下层 */
-            .sticker-box {
-                margin-bottom: 20px;
-                pointer-events: none !important;
-            }
-            /* 贴纸内图标恢复可点击 */
-            .sticker-box .sticker-item {
-                pointer-events: auto !important;
+                padding-bottom: 120px !important;
             }
         }
     </style>
@@ -57,9 +47,9 @@
     </div>
 
     <!-- 头部【强制分离两行，按钮单独一行，永不分行】 -->
-    <div class="mb-4">
+    <div class="mb-6">
         <!-- 第一行：标题+版本 -->
-        <div class="flex justify-center items-center gap-2 mb-3">
+        <div class="flex justify-center items-center gap-2 mb-4">
             <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
             <span class="version-info">v2.0.3</span>
         </div>
@@ -71,7 +61,7 @@
     </div>
 
     <!-- 快捷链接栏 -->
-    <div class="card-round p-4 mb-4 flex flex-wrap gap-3 items-center">
+    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
         <span class="font-medium">快捷链接：</span>
         <div class="flex flex-wrap gap-2">
             <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
@@ -81,7 +71,7 @@
     </div>
 
     <!-- 数据统计卡片 -->
-    <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="grid grid-cols-4 gap-4 mb-6">
         <div class="card-round p-4 text-center">
             <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
             <div class="text-xs mt-1">打字速度(字/分钟)</div>
@@ -110,7 +100,7 @@
     </div>
 
     <!-- 练习内容设置区 -->
-    <div class="card-round p-5 mb-4">
+    <div class="card-round p-5 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
@@ -168,7 +158,7 @@
         </div>
     </div>
 
-    <!-- 打字展示区域 -->
+    <!-- 打字展示区域（增加底部预留空间，防止输入法遮挡+上移） -->
     <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
             <div class="translation-header">
@@ -182,18 +172,18 @@
         </div>
         <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
         <!-- 底部常驻提示 -->
-        <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
+        <div class="finish-tip-text text-xs mt-2 text-slate-400" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
     </div>
 
     <!-- 操作按钮 -->
-    <div class="flex justify-center gap-3 mb-4">
+    <div class="flex justify-center gap-3 mb-6">
         <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
     </div>
 
-    <!-- 侧边贴纸成就，开启容器点击穿透，仅图标可点击 -->
-    <div class="sticker-box mb-5">
+    <!-- 侧边贴纸成就 -->
+    <div class="sticker-box">
         <div class="sticker-item" data-id="0">🐱</div>
         <div class="sticker-item" data-id="1">🐶</div>
         <div class="sticker-item" data-id="2">🚀</div>
