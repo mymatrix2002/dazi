@@ -27,13 +27,13 @@
         </div>
     </div>
 
-    <!-- 头部标题 & 主题切换 + 帮助按钮 移动端同行修复 -->
-    <div class="header-title flex flex-wrap items-center gap-2 md:gap-3">
-        <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
-        <span class="version-info">v2.0.3</span>
-        <button id="themeToggle" class="btn-normal text-sm px-2 py-1">切换日间模式</button>
-        <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
-        <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg">❓</button>
+    <!-- 头部标题区域【手机强制单行修复】 -->
+    <div class="header-title flex flex-nowrap items-center gap-x-1 md:gap-x-3">
+        <h1 class="text-xl md:text-3xl font-bold min-w-0 flex-shrink">⌨️儿童趣味打字练习</h1>
+        <span class="version-info text-xs flex-shrink-0">v2.0.3</span>
+        <button id="themeToggle" class="btn-normal text-xs px-1.5 py-0.5 whitespace-nowrap flex-shrink-0">切换日间</button>
+        <!-- 帮助图标按钮，最小尺寸不占宽度 -->
+        <button id="helpBtn" class="btn-normal w-7 h-7 flex items-center justify-center p-0 text-base flex-shrink-0">❓</button>
     </div>
 
     <!-- 快捷链接栏 -->
