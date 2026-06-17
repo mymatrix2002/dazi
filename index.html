@@ -31,9 +31,8 @@
     <!-- 头部标题 & 主题切换 + 帮助按钮 移动端同行修复 -->
     <div class="header-title flex flex-wrap items-center gap-2 md:gap-3">
         <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
-        <span class="version-info">v2.0.3</span>
+        <span class="version-info">v2.0.5</span>
         <button id="themeToggle" class="btn-normal text-sm px-2 py-1">切换日间模式</button>
-        <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
         <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg">❓</button>
     </div>
 
@@ -81,20 +80,17 @@
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
-                <!-- 最高频操作前置：上传TXT → 朗读全文 -->
                 <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
                     📁 上传TXT文件
                     <input type="file" id="fileInput" accept=".txt" class="hidden">
                 </label>
                 <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
 
-                <!-- 仅保留音量滑块在首页 -->
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>
                     <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" style="width: 80px;">
                 </div>
 
-                <!-- 设置面板展开按钮 + 清空按钮放在右侧 -->
                 <button id="settingToggleBtn" class="btn-normal px-3 py-1.5 text-sm">⚙️ 更多设置</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
@@ -103,7 +99,6 @@
         <!-- 折叠式设置面板：语速、字号、单词朗读开关 -->
         <div id="settingPanel" class="hidden mb-4 p-4 rounded-xl" style="background: var(--bg-gray-deep);">
             <div class="flex flex-wrap gap-4 items-center">
-                <!-- 语速选择下拉 -->
                 <div style="display: flex;align-items: center;gap: 6px;">
                     <span style="font-size: 12px;color: var(--text-sub);">朗读语速</span>
                     <select id="speechRate">
@@ -116,14 +111,12 @@
                     </select>
                 </div>
 
-                <!-- 字号调节滑块 -->
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">字号</span>
                     <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
                     <span id="fontSizeText" style="font-size: 12px;color: var(--text-sub);">标准</span>
                 </div>
 
-                <!-- 单词朗读开关 -->
                 <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
             </div>
         </div>
@@ -147,8 +140,8 @@
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
-        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
-        <!-- 新增底部常驻提示 -->
+        <!-- 修改点：rows="3" 改为 rows="1" -->
+        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="1" placeholder="在这里打字..." disabled></textarea>
         <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
@@ -178,7 +171,6 @@
                 <p>4. 练习最后一行，需要按<strong>两次回车键</strong>结束。</p>
             </div>
             <div class="modal-buttons">
-                <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
                 <button id="helpCloseBtn" class="btn-primary px-5 py-2">我知道了</button>
             </div>
         </div>
