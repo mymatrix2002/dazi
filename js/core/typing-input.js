@@ -1,3 +1,11 @@
+// 手机软键盘Done键专用监听（核心修复）
+const typingForm = document.getElementById('typingForm');
+typingForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!typingRunning) return;
+    handleEnterComplete();
+});
+
 // ========== 输入框事件：禁止粘贴 + 实时逐键准确率 ==========
 // 拦截粘贴，禁止输入框粘贴
 inputAreaEl.addEventListener('paste', function(e) {
