@@ -1,3 +1,4 @@
+/* css/responsive.css完整代码 */
 /* 移动端、平板 全局触屏适配 */
 /* 消除移动端点击灰色高亮，统一全平台 */
 * {
@@ -42,7 +43,7 @@
     font-size: 1.1rem;
   }
 
-  /* 侧边贴纸移至页面底部横向排列，避免遮挡文字 */
+  /* 侧边贴纸移至页面底部横向排列，开启点击穿透不遮挡上层按钮 */
   .sticker-box {
     position: fixed;
     right: auto;
@@ -52,8 +53,12 @@
     transform: translateX(-50%);
     flex-direction: row;
     padding: 8px 12px;
+    /* 核心修复1：容器穿透点击，不拦截上方按钮 */
+    pointer-events: none;
   }
-  .sticker-item {
+  /* 核心修复2：贴纸图标恢复可点击解锁 */
+  .sticker-box .sticker-item {
+    pointer-events: auto;
     width: 42px;
     height: 42px;
     font-size: 26px;
@@ -81,6 +86,11 @@
   #fontSizeSlider, #speechVolumeEl, #speechRate {
     padding: 10px 4px;
     min-width: 90px;
+  }
+
+  /* 核心修复3：缩减卡片底部冗余内边距，消除大片空白 */
+  .card-round {
+    padding-bottom: 36px !important;
   }
 }
 

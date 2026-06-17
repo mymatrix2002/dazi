@@ -1,9 +1,10 @@
+<!-- index.html完整代码 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- 移动端视口优化，修复输入法布局偏移 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 移动端视口：锁定缩放，解决输入法弹窗缩放问题 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>儿童趣味打字练习</title>
     <!-- 外部框架 -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,33 +13,14 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
-    <style>
-        /* 内联补充输入法防上移样式，无需修改外部css临时生效 */
-        @media (max-width:768px) {
-            html, body {
-                height: 100%;
-                overflow-y: auto;
-                position: relative;
-            }
-            #inputArea {
-                scroll-margin-top: 140px;
-            }
-            #displayArea, #bilingualArea {
-                scroll-behavior: auto !important;
-            }
-            .card-round {
-                padding-bottom: 120px !important;
-            }
-        }
-    </style>
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
     <!-- 模式选择弹窗 -->
     <div id="modeModal" class="modal-mask hidden">
         <div class="modal-box">
             <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
-            <p class="text-slate-600 mb-2">「确定」：全文练习模式（单栏全屏，完整保留中英内容，全文打字）</p>
-            <p class="text-slate-600">「取消」：双语对照模式（左右分栏，中文对照，仅练习英文）</p>
+            <p class="text-slate-400 mb-2">「确定」：全文练习模式（单栏全屏，完整保留中英内容，全文打字）</p>
+            <p class="text-slate-400">「取消」：双语对照模式（左右分栏，中文对照，仅练习英文）</p>
             <div class="modal-buttons">
                 <button id="modalOkBtn" class="btn-primary px-5 py-2">确定</button>
                 <button id="modalCancelBtn" class="btn-normal px-5 py-2">取消</button>
@@ -46,18 +28,13 @@
         </div>
     </div>
 
-    <!-- 头部【强制分离两行，按钮单独一行，永不分行】 -->
-    <div class="mb-6">
-        <!-- 第一行：标题+版本 -->
-        <div class="flex justify-center items-center gap-2 mb-4">
-            <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
-            <span class="version-info">v2.0.3</span>
-        </div>
-        <!-- 第二行：仅两个按钮，固定同行居中 -->
-        <div class="flex justify-center items-center gap-4">
-            <button id="themeToggle" class="btn-normal text-sm px-4 py-1.5 whitespace-nowrap">切换日间模式</button>
-            <button id="helpBtn" class="btn-normal w-9 h-9 flex items-center justify-center p-0 text-xl">❓</button>
-        </div>
+    <!-- 头部标题 & 主题切换 + 帮助按钮 移动端同行修复 -->
+    <div class="header-title flex flex-wrap items-center gap-2 md:gap-3">
+        <h1 class="text-2xl md:text-3xl font-bold">⌨️儿童趣味打字练习</h1>
+        <span class="version-info">v2.0.3</span>
+        <button id="themeToggle" class="btn-normal text-sm px-2 py-1">切换日间模式</button>
+        <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
+        <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg">❓</button>
     </div>
 
     <!-- 快捷链接栏 -->
@@ -158,21 +135,21 @@
         </div>
     </div>
 
-    <!-- 打字展示区域（增加底部预留空间，防止输入法遮挡+上移） -->
+    <!-- 打字展示区域 -->
     <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
             <div class="translation-header">
                 <span class="translation-title" id="areaTitle">中文对照</span>
                 <button id="toggleTranslationBtn" class="toggle-btn">收起</button>
             </div>
-            <div id="paragraphContainer" class="paragraph-container"></div>
+            <div id="paragraphContainer" class="paragraph-container two-col"></div>
         </div>
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
         <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
-        <!-- 底部常驻提示 -->
-        <div class="finish-tip-text text-xs mt-2 text-slate-400" style="color: var(--text-placeholder);">
+        <!-- 新增底部常驻提示 -->
+        <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
     </div>
@@ -201,6 +178,7 @@
                 <p>4. 练习最后一行，需要按<strong>两次回车键</strong>结束。</p>
             </div>
             <div class="modal-buttons">
+                <!-- 已移除内联onclick，统一由event-base.js绑定事件 -->
                 <button id="helpCloseBtn" class="btn-primary px-5 py-2">我知道了</button>
             </div>
         </div>
@@ -214,54 +192,13 @@
     <script src="js/core/event-base.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- 设置面板展开收起切换逻辑 + 手机空格兼容 + 输入法防上移 -->
+    <!-- 新增：设置面板展开收起切换逻辑 -->
     <script>
         const settingToggleBtn = document.getElementById('settingToggleBtn');
         const settingPanel = document.getElementById('settingPanel');
-        const inputArea = document.getElementById('inputArea');
-
-        // 设置面板切换
         settingToggleBtn.addEventListener('click', () => {
             settingPanel.classList.toggle('hidden');
             settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
-        });
-
-        // 1. 防止输入法弹出页面整体上移遮挡双语对照
-        inputArea.addEventListener('focus', function(e){
-            e.preventDefault();
-            setTimeout(()=>{
-                window.scrollTo({
-                    top: 180,
-                    behavior: 'smooth'
-                });
-            }, 100);
-        });
-
-        // 2. 兜底修复手机软键盘空格输入后对照区无刷新（DOM强制重绘）
-        inputArea.addEventListener('input', () => {
-            if (!typingRunning) return;
-            const lastChar = inputArea.value.slice(-1);
-            if(lastChar === ' '){
-                const container = document.getElementById('paragraphContainer');
-                if(container){
-                    // 强制浏览器重绘DOM
-                    container.style.opacity = 0.99;
-                    setTimeout(()=> container.style.opacity = 1, 30);
-                    // 滚动到当前单词区域，保证可见
-                    container.scrollIntoView({block:'nearest', behavior:'smooth'});
-                }
-            }
-        });
-
-        // 3. 输入法弹出/收起窗口重绘，刷新对照视图
-        window.addEventListener('resize', ()=>{
-            if(isBilingualMode){
-                const container = document.getElementById('paragraphContainer');
-                if(container){
-                    container.style.opacity = 0.99;
-                    setTimeout(()=> container.style.opacity = 1, 40);
-                }
-            }
         });
     </script>
 </body>
