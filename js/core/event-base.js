@@ -309,7 +309,7 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【修复1】优化滚动逻辑：错误字符优先定位，延长渲染延时，兼容错字/待输入光标 =========
+    // =========【最终无Bug滚动+回车兼容逻辑】 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         const val = this.value;
@@ -320,11 +320,11 @@ function bindBaseEvents() {
             this.value = val.replace(/\n$/, '');
             return;
         }
-        // 延长延时至80ms，保证错误字符DOM渲染完成
+        // 延长延时至80ms，保证错误字符DOM渲染完成，错字优先查找
         setTimeout(() => {
             let targetDom = null;
             if(isBilingualMode){
-                // 优先级：错误字符 > 待输入光标 > 未输入字符
+                // 优先级：错误标红字符 > 待输入光标 > 未输入字符
                 targetDom = paragraphContainerEl.querySelector('.wrong-char') || paragraphContainerEl.querySelector('.cursor-mark') || paragraphContainerEl.querySelector('.untype-char');
             }else{
                 targetDom = displayAreaEl.querySelector('.wrong-char') || displayAreaEl.querySelector('.cursor-mark') || displayAreaEl.querySelector('.untype-char');
@@ -335,10 +335,9 @@ function bindBaseEvents() {
         }, 80);
     });
 
-    // =========【修复2】手机软键盘回车Enter多兼容判断，捕获各类输入法回车按键 =========
+    // 兼容全类型软键盘回车按键
     inputAreaEl.addEventListener('keydown', function(e) {
         if (!typingRunning) return;
-        // 兼容多种移动端回车key值：Enter / NumpadEnter
         if(e.key === 'Enter' || e.key === 'NumpadEnter'){
             e.preventDefault();
             handleTypingEnter();
