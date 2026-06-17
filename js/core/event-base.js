@@ -309,12 +309,11 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【强化修复】兼容手机软键盘所有输入，包含空格、删除、多单词分隔场景 =========
+    // =========【修复1】软键盘全部字符输入兼容（字母、空格实时刷新高亮】 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
-        // 执行核心打字校验逻辑，同步更新高亮、进度、对照视图
         handleTypingInput(this.value);
-        // 强制滚动到当前打字区域，解决长句子、多单词不滚动问题
+        // 自动滚动当前单词
         setTimeout(() => {
             if(isBilingualMode){
                 const container = document.getElementById('paragraphContainer');
@@ -323,6 +322,16 @@ function bindBaseEvents() {
                 displayAreaEl.scrollIntoView({block:'nearest', behavior:'smooth'});
             }
         }, 50);
+    });
+
+    // =========【修复2】手机软键盘回车Enter单独监听，实现换行切换下一组单词 =========
+    inputAreaEl.addEventListener('keydown', function(e) {
+        if (!typingRunning) return;
+        // 捕获回车按键，执行原有换行逻辑
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            handleTypingEnter();
+        }
     });
 }
 
