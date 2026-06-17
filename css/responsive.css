@@ -1,4 +1,4 @@
-/* css/responsive.css完整代码 */
+/* css/responsive.css完整代码 v2.0.5 修复移动端布局间距问题 */
 * {
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
@@ -6,10 +6,38 @@
 @media (max-width: 768px) {
   body {
     padding: 12px;
+    /* 消除页面底部多余空白 */
+    padding-bottom: 60px;
+    margin-bottom: 0;
+  }
+  /* 头部强制同行，缩小字体防止换行 */
+  .header-title {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .header-title h1 {
+    font-size: 20px !important;
+  }
+  .version-info {
+    font-size: 12px;
+  }
+  #themeToggle {
+    font-size: 12px;
+    padding: 4px 8px !important;
   }
   .grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    /* 缩小统计卡片上下外边距，减少空白 */
+    margin-bottom: 16px !important;
+  }
+  .card-round {
+    /* 统一缩小卡片上下内边距，消除内部多余空白 */
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+    margin-bottom: 16px !important;
   }
   .btn-primary, .btn-success, .btn-warning, .btn-normal {
     padding: 10px 16px;
@@ -31,6 +59,12 @@
   }
   .paragraph-cn, .paragraph-en, .paragraph-full {
     font-size: 1.1rem;
+  }
+  /* 快捷链接按钮均匀排版 */
+  .quick-link {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
   }
   .sticker-box {
     position: fixed;
@@ -55,9 +89,6 @@
   .data-row {
     font-size: 16px;
   }
-  .header-title h1 {
-    font-size: 24px;
-  }
   .flex.flex-wrap {
     row-gap: 8px;
   }
@@ -65,15 +96,16 @@
     padding: 10px 4px;
     min-width: 90px;
   }
-  .card-round {
-    padding-bottom: 36px !important;
-  }
 }
 @media (max-width: 480px) {
   .header-title {
-    flex-direction: column;
-    gap: 6px;
-    text-align: center;
+    gap: 4px !important;
+  }
+  .header-title h1 {
+    font-size: 17px !important;
+  }
+  .header-title > div {
+    gap: 4px !important;
   }
   .modal-buttons {
     flex-direction: column;
@@ -87,6 +119,10 @@
   }
   .paragraph-container.two-col {
     max-height: 180px;
+  }
+  /* 超小屏快捷按钮均分 */
+  .quick-link {
+    min-width: 90px;
   }
 }
 @media (min-width: 769px) and (max-width: 1024px) {
