@@ -309,7 +309,7 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【修复1】软键盘全部字符输入兼容，空格后自动滚动至下一个待输入字符 + 识别换行符兜底执行回车逻辑 =========
+    // =========【修复1】优化滚动逻辑：错误字符优先定位，延长渲染延时，兼容错字/待输入光标 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         const val = this.value;
@@ -320,18 +320,19 @@ function bindBaseEvents() {
             this.value = val.replace(/\n$/, '');
             return;
         }
-        // 延时确保DOM高亮更新完成，强制滚动到下一个待输入字符
+        // 延长延时至80ms，保证错误字符DOM渲染完成
         setTimeout(() => {
             let targetDom = null;
             if(isBilingualMode){
-                targetDom = paragraphContainerEl.querySelector('.cursor-mark') || paragraphContainerEl.querySelector('.wrong-char') || paragraphContainerEl.querySelector('.untype-char');
+                // 优先级：错误字符 > 待输入光标 > 未输入字符
+                targetDom = paragraphContainerEl.querySelector('.wrong-char') || paragraphContainerEl.querySelector('.cursor-mark') || paragraphContainerEl.querySelector('.untype-char');
             }else{
-                targetDom = displayAreaEl.querySelector('.cursor-mark') || displayAreaEl.querySelector('.wrong-char') || displayAreaEl.querySelector('.untype-char');
+                targetDom = displayAreaEl.querySelector('.wrong-char') || displayAreaEl.querySelector('.cursor-mark') || displayAreaEl.querySelector('.untype-char');
             }
             if(targetDom){
                 targetDom.scrollIntoView({block:'nearest', behavior:'smooth'});
             }
-        }, 60);
+        }, 80);
     });
 
     // =========【修复2】手机软键盘回车Enter多兼容判断，捕获各类输入法回车按键 =========
