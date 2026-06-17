@@ -288,17 +288,27 @@ function bindBaseEvents() {
         }
     });
 
-    // 输入框聚焦自动滚动文本区域
+    // 【修改1】输入框聚焦自动滚动文本区域，延时延长至350ms适配手机输入法弹出
     inputAreaEl.addEventListener('focus', function() {
         if (!typingRunning) return;
         setTimeout(() => {
             if(isBilingualMode && paragraphContainerEl){
                 paragraphContainerEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
             }
-        }, 120);
+        }, 350);
     });
 
-    // 【修复】仅滚动视图，不再拦截换行逻辑，移除原val.endsWith('\n')重复执行enter代码
+    // 【新增】监听窗口resize（手机软键盘弹出/收起触发）自动滚动对照区
+    window.addEventListener('resize', () => {
+        if (!typingRunning || !inputAreaEl.matches(':focus')) return;
+        setTimeout(() => {
+            if(isBilingualMode && paragraphContainerEl){
+                paragraphContainerEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+            }
+        }, 200);
+    });
+
+    // 输入实时滚动至当前字符
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         setTimeout(() => {
@@ -314,7 +324,7 @@ function bindBaseEvents() {
         }, 80);
     });
 
-    // 【修复】标准回车+数字小键盘回车，统一调用封装好的handleTypingEnter
+    // 键盘回车统一处理
     inputAreaEl.addEventListener('keydown', function(e) {
         if (!typingRunning) return;
         if(e.key === 'Enter' || e.key === 'NumpadEnter'){
@@ -346,4 +356,10 @@ function updateWordSpeakBtnText() {
         wordSpeakToggleBtn.classList.remove('btn-success');
         wordSpeakToggleBtn.classList.add('btn-normal');
     }
+}
+
+// 统一回车处理函数
+function handleTypingEnter() {
+    const event = new InputEvent('input', { inputType: 'insertLineBreak' });
+    inputAreaEl.dispatchEvent(event);
 }
