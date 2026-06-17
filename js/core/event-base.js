@@ -308,6 +308,12 @@ function bindBaseEvents() {
             helpModal.classList.add('hidden');
         }
     });
+
+    // =========【本次新增修复】兼容手机软键盘输入（空格、字母实时触发打字逻辑，解决手机空格对照区无响应） =========
+    inputAreaEl.addEventListener('input', function() {
+        if (!typingRunning) return;
+        handleTypingInput(this.value);
+    });
 }
 
 // ========== 字号初始化【移至函数外部，解决刷新字体闪烁 + 统一文案】 ==========
