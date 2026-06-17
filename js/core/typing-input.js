@@ -1,9 +1,11 @@
-// 统一回车执行逻辑（电脑/手机共用）
+// 统一回车/切换下一行逻辑
 function handleEnterComplete() {
     if (!typingRunning) return;
-    const val = inputAreaEl.value;
+    const val = inputAreaEl.value.trim();
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
+    // 空白不执行切换
+    if(val === '') return;
 
     if(!finishedWordSet.has(currentEntryIndex)){
         finishedWordSet.add(currentEntryIndex);
@@ -35,6 +37,8 @@ function handleEnterComplete() {
             const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - offset;
             container.scrollTo({top: scrollTop, behavior: 'smooth'});
         }
+        // 切换后自动重新聚焦输入框，不用重复点
+        setTimeout(()=>inputAreaEl.focus(),100);
     }else{
         showFinishModal();
         typingRunning = false;
@@ -44,29 +48,32 @@ function handleEnterComplete() {
     updateStat();
 }
 
-// ========== 手机核心：表单submit监听（软键盘Done键专用） ==========
-const typingForm = document.getElementById('typingForm');
-typingForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    handleEnterComplete();
-});
-
-// 电脑实体键盘回车兜底
+// PC电脑实体回车监听
 inputAreaEl.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 108) {
+    if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
         handleEnterComplete();
     }
 });
 
-// 输入主逻辑
+// 【手机端核心修复】软键盘点完成 → 失去焦点触发切换
+inputAreaEl.addEventListener('blur', function() {
+    handleEnterComplete();
+});
+
+// 禁止粘贴
+inputAreaEl.addEventListener('paste', function(e) {
+    e.preventDefault();
+});
+
+// 输入主逻辑不变，只保留原input内文字校验、单词朗读、滚动逻辑
 inputAreaEl.addEventListener('input',function(e){
     if(!typingRunning) return;
     const val = this.value;
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
 
-    // 逐键统计正确率
+    // ===== 实时逐键准确率统计 =====
     if(val.length > prevInputValue.length) {
         const startIdx = prevInputValue.length;
         const endIdx = val.length;
@@ -79,7 +86,7 @@ inputAreaEl.addEventListener('input',function(e){
         }
     }
 
-    // 空格朗读单词
+    // ===== 空格触发单词朗读 =====
     const valLen = val.length;
     const prevLen = prevInputValue.length;
     if(wordSpeakEnable === 'true' && valLen > prevLen) {
@@ -96,17 +103,10 @@ inputAreaEl.addEventListener('input',function(e){
         }
     }
 
+    // 更新上一次输入值
     prevInputValue = val;
 
-    // 备用：检测手动输入的换行符
-    if(val.includes('\n')){
-        this.value = val.replace(/\n/g,'');
-        prevInputValue = this.value;
-        handleEnterComplete();
-        return;
-    }
-
-    // 限制输入长度
+    // 限制输入长度不超过当前本行字符总数
     if(val.length > entryLen){
         this.value = val.slice(0, entryLen);
         prevInputValue = this.value;
@@ -128,7 +128,7 @@ inputAreaEl.addEventListener('input',function(e){
         allSpans[val.length].className = 'char-current';
     }
 
-    // 连击/错误逻辑
+    // 错误连击处理
     if(hasError){
         comboCount = 0;
         revokeLastSticker();
@@ -151,13 +151,13 @@ inputAreaEl.addEventListener('input',function(e){
         }else if(comboCount===15){
             unlockSticker(2);
             batchStar(e.clientX,e.clientY,7);
-            showComboTip('完美15连击🎉',e.clientX,e.clientY-40);
+            showComboTip('完美15连击🎉',e.clientY-40);
         }else if(comboCount>15){
             createStar(e.clientX,e.clientY);
         }
     }
 
-    // 滚动适配手机置顶防遮挡
+    // 滚动到当前输入字符（手机自动置顶防遮挡）
     const container = paragraphContainerEl;
     const firstSpan = allSpans[0];
     if(firstSpan){
@@ -172,9 +172,4 @@ inputAreaEl.addEventListener('input',function(e){
     }
 
     updateStat();
-});
-
-// 禁止粘贴
-inputAreaEl.addEventListener('paste', function(e) {
-    e.preventDefault();
 });
