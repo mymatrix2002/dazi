@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- 移动端视口优化，修复输入法布局偏移 -->
+    <!-- 移动端视口优化，修复输入法布局偏移，禁用双击缩放消除点击延迟 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>儿童趣味打字练习</title>
     <!-- 外部框架 -->
@@ -30,9 +30,14 @@
             .card-round {
                 padding-bottom: 40px !important;
             }
-            /* 底部贴纸增加底部外边距，不遮挡卡片内容 */
+            /* 底部贴纸增加底部外边距，不遮挡卡片内容，开启点击穿透下层 */
             .sticker-box {
                 margin-bottom: 20px;
+                pointer-events: none !important;
+            }
+            /* 贴纸内图标恢复可点击 */
+            .sticker-box .sticker-item {
+                pointer-events: auto !important;
             }
         }
     </style>
@@ -177,7 +182,7 @@
         </div>
         <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="3" placeholder="在这里打字..." disabled></textarea>
         <!-- 底部常驻提示 -->
-        <div class="finish-tip-text text-xs mt-2 text-slate-400" style="color: var(--text-placeholder);">
+        <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
     </div>
@@ -187,7 +192,7 @@
         <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
     </div>
 
-    <!-- 侧边贴纸成就，增加底部外边距避免遮挡卡片 -->
+    <!-- 侧边贴纸成就，开启容器点击穿透，仅图标可点击 -->
     <div class="sticker-box mb-5">
         <div class="sticker-item" data-id="0">🐱</div>
         <div class="sticker-item" data-id="1">🐶</div>
