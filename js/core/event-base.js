@@ -309,10 +309,20 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【本次核心修复】兼容手机软键盘所有输入（空格、字母实时执行打字校验，解决手机空格对照区无响应问题） =========
+    // =========【强化修复】兼容手机软键盘所有输入，包含空格、删除、多单词分隔场景 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
+        // 执行核心打字校验逻辑，同步更新高亮、进度、对照视图
         handleTypingInput(this.value);
+        // 强制滚动到当前打字区域，解决长句子、多单词不滚动问题
+        setTimeout(() => {
+            if(isBilingualMode){
+                const container = document.getElementById('paragraphContainer');
+                if(container) container.scrollIntoView({block:'nearest', behavior:'smooth'});
+            }else{
+                displayAreaEl.scrollIntoView({block:'nearest', behavior:'smooth'});
+            }
+        }, 50);
     });
 }
 
