@@ -6,7 +6,7 @@
 @media (max-width: 768px) {
   body {
     padding: 12px;
-    padding-bottom: 60px;
+    padding-bottom: 180px !important;
     margin-bottom: 0;
   }
   /* 头部左右布局，强制同行，缩小字体防止溢出换行 */
@@ -55,7 +55,8 @@
   }
   .paragraph-container.two-col {
     grid-template-columns: 100%;
-    max-height: 220px;
+    max-height: 180px;
+    padding-bottom: 140px;
   }
   .quick-link {
     flex: 1;
@@ -114,6 +115,7 @@
   }
   .paragraph-container.two-col {
     max-height: 180px;
+    padding-bottom: 140px;
   }
   .quick-link {
     min-width: 90px;
