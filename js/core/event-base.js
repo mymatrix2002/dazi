@@ -309,19 +309,22 @@ function bindBaseEvents() {
         }
     });
 
-    // =========【修复1】软键盘全部字符输入兼容（字母、空格实时刷新高亮】 =========
+    // =========【修复1】软键盘全部字符输入兼容，空格后自动滚动至下一个待输入字符 =========
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         handleTypingInput(this.value);
-        // 自动滚动当前单词
+        // 延时确保DOM高亮更新完成，强制滚动到下一个待输入字符
         setTimeout(() => {
+            let targetDom = null;
             if(isBilingualMode){
-                const container = document.getElementById('paragraphContainer');
-                if(container) container.scrollIntoView({block:'nearest', behavior:'smooth'});
+                targetDom = paragraphContainerEl.querySelector('.cursor-mark') || paragraphContainerEl.querySelector('.wrong-char') || paragraphContainerEl.querySelector('.untype-char');
             }else{
-                displayAreaEl.scrollIntoView({block:'nearest', behavior:'smooth'});
+                targetDom = displayAreaEl.querySelector('.cursor-mark') || displayAreaEl.querySelector('.wrong-char') || displayAreaEl.querySelector('.untype-char');
             }
-        }, 50);
+            if(targetDom){
+                targetDom.scrollIntoView({block:'nearest', behavior:'smooth'});
+            }
+        }, 60);
     });
 
     // =========【修复2】手机软键盘回车Enter单独监听，实现换行切换下一组单词 =========
