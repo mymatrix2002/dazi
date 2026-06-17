@@ -2,6 +2,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
+    <!-- vConsole移动端调试面板：手机右下角生成悬浮日志按钮 -->
+    <script src="https://cdn.jsdelivr.net/npm/vconsole@3.11.0/dist/vconsole.min.js"></script>
+    <script>
+    // 初始化移动端日志面板，所有console日志、localStorage均可查看
+    new VConsole();
+
+    // 前置兜底：提前定义语音全局变量，提前规避 speechSynthesis 未定义报错
+    window.speechSynthesis = window.speechSynthesis || null;
+    window.speechState = window.speechState || { rate: 1 };
+    window.createUtterance = window.createUtterance || function(){};
+    </script>
+    
     <meta charset="UTF-8">
     <!-- 移动端视口：锁定缩放，解决输入法弹窗缩放问题 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
@@ -13,11 +25,6 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
-    <script src="https://cdn.jsdelivr.net/npm/vconsole@3.11.0/dist/vconsole.min.js"></script>
-<script>
-// 仅开发调试时开启，上线可注释
-new VConsole();
-</script>
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
     <!-- 模式选择弹窗 -->
@@ -139,7 +146,7 @@ new VConsole();
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
-        <textarea id="inputArea" rows="2" enterkeyhint="done" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" placeholder="在这里打字..." disabled></textarea>
+        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="2" placeholder="在这里打字..." disabled></textarea>
         <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>

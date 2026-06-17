@@ -486,9 +486,3 @@ textarea::placeholder {
 .hidden {
     display: none !important;
 }
-#inputArea {
-    min-height: 80px !important;
-    max-height: 80px !important;
-    overflow-y: auto;
-    white-space: pre-wrap;
-}
