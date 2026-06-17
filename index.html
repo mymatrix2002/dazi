@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <!-- 【核心修复：全部元素放入同一个flex容器，强制同行】 -->
+    <!-- 头部标题、版本、切换按钮同行布局 -->
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
             <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
@@ -37,16 +37,6 @@
         <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
             <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
             <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg flex-shrink-0">❓</button>
-        </div>
-    </div>
-
-    <!-- 快捷链接栏 -->
-    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
-        <span class="font-medium whitespace-nowrap">快捷链接：</span>
-        <div class="flex flex-wrap gap-2 items-center w-full justify-start">
-            <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
-            <button data-url="https://fanyi.youdao.com" class="quick-link btn-normal px-3 py-1.5 text-sm">有道翻译</button>
-            <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州1-6年级英语教材</button>
         </div>
     </div>
 
@@ -150,9 +140,19 @@
         </div>
     </div>
 
-    <!-- 操作按钮 -->
+    <!-- 操作按钮：重新开始 -->
     <div class="flex justify-center gap-3 mb-6">
         <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
+    </div>
+
+    <!-- 【移动至此：快捷链接模块，放在重新开始按钮下方】 -->
+    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="font-medium whitespace-nowrap">快捷链接：</span>
+        <div class="flex flex-wrap gap-2 items-center w-full justify-start">
+            <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
+            <button data-url="https://fanyi.youdao.com" class="quick-link btn-normal px-3 py-1.5 text-sm">有道翻译</button>
+            <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州1-6年级英语教材</button>
+        </div>
     </div>
 
     <!-- 侧边贴纸成就 -->
