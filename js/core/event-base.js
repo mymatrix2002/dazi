@@ -1,4 +1,4 @@
-// js/core/event-base.js完整代码
+// js/core/event-base.js 完整代码
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
     if(!speechState.running) return;
@@ -98,7 +98,7 @@ function bindBaseEvents() {
         if(!/^https?:\/\//i.test(url)) url='https://'+url;
         window.open(url,'_blank');
     }
-    quickLinkBtns.forEach(btn=>btn.addEventListener('click',()=>openUrl(btn.dataset.url)));
+    quickLinkBtns.forEach(btn=>btn.addEventListener('click',()=>openUrl(btn.dataset)));
 
     // 全文朗读/停止按钮
     readAllBtnEl.addEventListener('click',function(){
@@ -288,7 +288,7 @@ function bindBaseEvents() {
         }
     });
 
-    // 【修改1】输入框聚焦自动滚动文本区域，延时延长至350ms适配手机输入法弹出
+    // 输入框聚焦自动滚动文本区域，延时延长至350ms适配手机输入法加载
     inputAreaEl.addEventListener('focus', function() {
         if (!typingRunning) return;
         setTimeout(() => {
@@ -298,7 +298,7 @@ function bindBaseEvents() {
         }, 350);
     });
 
-    // 【新增】监听窗口resize（手机软键盘弹出/收起触发）自动滚动对照区
+    // 监听窗口resize（手机软键盘弹出/收起触发）自动滚动对照区
     window.addEventListener('resize', () => {
         if (!typingRunning || !inputAreaEl.matches(':focus')) return;
         setTimeout(() => {
@@ -324,12 +324,19 @@ function bindBaseEvents() {
         }, 80);
     });
 
-    // 键盘回车统一处理
+    // ========== 仅保留keydown单套回车监听，删除keyup避免重复执行 ==========
+    function runEnterLogic() {
+        console.log('=== 回车触发执行 handleTypingEnter ===');
+        console.log('当前练习状态 typingRunning:', typingRunning);
+        console.log('当前行下标 currentEntryIndex:', currentEntryIndex);
+        console.log('总行数 entryCharsList.length:', entryCharsList.length);
+        window.doHandleTypingEnter();
+    }
     inputAreaEl.addEventListener('keydown', function(e) {
         if (!typingRunning) return;
-        if(e.key === 'Enter' || e.key === 'NumpadEnter'){
+        if(e.key === 'Enter' || e.keyCode === 13 || e.code === 'Enter'){
             e.preventDefault();
-            handleTypingEnter();
+            runEnterLogic();
         }
     });
 }
@@ -345,6 +352,15 @@ else if (fontScale <= 1.4) initTip = "很大";
 else initTip = "超大";
 if(fontSizeText) fontSizeText.textContent = initTip;
 
+// 更新主题按钮文字
+function updateThemeButtonText(){
+    if(currentTheme === 'dark'){
+        themeToggleBtn.textContent = '切换日间模式';
+    }else{
+        themeToggleBtn.textContent = '切换夜间模式';
+    }
+}
+
 // 更新单词朗读按钮文字样式
 function updateWordSpeakBtnText() {
     if(wordSpeakEnable === 'true') {
@@ -358,8 +374,7 @@ function updateWordSpeakBtnText() {
     }
 }
 
-// 统一回车处理函数
+// 统一回车处理函数（仅保留调用入口，核心逻辑移至typing-input.js）
 function handleTypingEnter() {
-    const event = new InputEvent('input', { inputType: 'insertLineBreak' });
-    inputAreaEl.dispatchEvent(event);
+    window.doHandleTypingEnter();
 }

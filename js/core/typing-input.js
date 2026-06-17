@@ -121,12 +121,18 @@ function bindInputEvent() {
     });
 }
 
-// 【修复核心】统一回车处理函数，独立封装换行逻辑，修复回车失效
-function handleTypingEnter() {
-    if (!typingRunning) return;
+// 【核心修复】挂载到window全局，event-base.js可跨文件调用，增加完整调试日志
+window.doHandleTypingEnter = function() {
+    console.log("进入全局回车处理函数 doHandleTypingEnter");
+    console.log("typingRunning:", typingRunning, "currentEntryIndex:", currentEntryIndex);
+    if (!typingRunning) {
+        console.log("未开始练习，直接返回");
+        return;
+    }
     const val = inputAreaEl.value;
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
+    console.log("当前行字符长度", entryLen, "输入框内容：", val);
 
     // 朗读当前行文本
     if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
@@ -144,6 +150,7 @@ function handleTypingEnter() {
     if(!finishedWordSet.has(currentEntryIndex)){
         finishedWordSet.add(currentEntryIndex);
         currentPos += entryLen;
+        console.log("标记本行完成，总进度字符：", currentPos);
     }
     
     // 渲染本行所有字符为已完成样式
@@ -171,6 +178,7 @@ function handleTypingEnter() {
             const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
             container.scrollTo({top: scrollTop, behavior: 'smooth'});
         }
+        console.log("切换至下一行，新下标：", currentEntryIndex);
     } else {
         // 最后一行逻辑
         if(!isLastLineEnter){
@@ -183,6 +191,7 @@ function handleTypingEnter() {
             clearInterval(timerId);
             inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
             updateStat();
+            console.log("最后一行首次回车，等待二次确认");
         } else {
             // 第二次回车：结束练习，重置所有状态
             speechSynthesis.cancel();
@@ -192,7 +201,9 @@ function handleTypingEnter() {
             typingRunning = false;
             inputAreaEl.disabled = true;
             resetBtnEl.disabled = false;
+            console.log("二次回车，练习结束，弹出成绩弹窗");
         }
     }
     updateStat();
+    console.log("回车逻辑执行完毕\n");
 }
