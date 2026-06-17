@@ -1,18 +1,4 @@
-// 手机软键盘Done键专用监听（核心修复）
-const typingForm = document.getElementById('typingForm');
-typingForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (!typingRunning) return;
-    handleEnterComplete();
-});
-
-// ========== 输入框事件：禁止粘贴 + 实时逐键准确率 ==========
-// 拦截粘贴，禁止输入框粘贴
-inputAreaEl.addEventListener('paste', function(e) {
-    e.preventDefault();
-});
-
-// 统一回车/换行执行逻辑（电脑/手机共用）
+// 统一回车执行逻辑（电脑/手机共用）
 function handleEnterComplete() {
     if (!typingRunning) return;
     const val = inputAreaEl.value;
@@ -58,28 +44,29 @@ function handleEnterComplete() {
     updateStat();
 }
 
-// 电脑键盘回车兜底监听
+// ========== 手机核心：表单submit监听（软键盘Done键专用） ==========
+const typingForm = document.getElementById('typingForm');
+typingForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    handleEnterComplete();
+});
+
+// 电脑实体键盘回车兜底
 inputAreaEl.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 108) {
         e.preventDefault();
-        e.stopPropagation();
-        handleEnterComplete();
-    }
-});
-inputAreaEl.addEventListener('keyup', function(e) {
-    if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 108) {
         handleEnterComplete();
     }
 });
 
-// 输入核心逻辑（实时逐键准确率 + 全兼容空格朗读 + 手机换行核心检测恢复）
+// 输入主逻辑
 inputAreaEl.addEventListener('input',function(e){
     if(!typingRunning) return;
     const val = this.value;
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
 
-    // ===== 实时逐键准确率统计 =====
+    // 逐键统计正确率
     if(val.length > prevInputValue.length) {
         const startIdx = prevInputValue.length;
         const endIdx = val.length;
@@ -92,7 +79,7 @@ inputAreaEl.addEventListener('input',function(e){
         }
     }
 
-    // ===== 空格触发单词朗读 =====
+    // 空格朗读单词
     const valLen = val.length;
     const prevLen = prevInputValue.length;
     if(wordSpeakEnable === 'true' && valLen > prevLen) {
@@ -109,19 +96,17 @@ inputAreaEl.addEventListener('input',function(e){
         }
     }
 
-    // 更新上一次输入值
     prevInputValue = val;
 
-    // ========== 恢复手机软键盘核心判断：检测换行符\n（历史成功方案关键） ==========
+    // 备用：检测手动输入的换行符
     if(val.includes('\n')){
-        // 清空换行符，避免残留
         this.value = val.replace(/\n/g,'');
         prevInputValue = this.value;
         handleEnterComplete();
         return;
     }
 
-    // 限制输入长度不超过当前本行字符总数
+    // 限制输入长度
     if(val.length > entryLen){
         this.value = val.slice(0, entryLen);
         prevInputValue = this.value;
@@ -143,7 +128,7 @@ inputAreaEl.addEventListener('input',function(e){
         allSpans[val.length].className = 'char-current';
     }
 
-    // 错误连击处理
+    // 连击/错误逻辑
     if(hasError){
         comboCount = 0;
         revokeLastSticker();
@@ -172,7 +157,7 @@ inputAreaEl.addEventListener('input',function(e){
         }
     }
 
-    // 滚动到当前输入字符（手机自动置顶防遮挡，沿用之前成功逻辑）
+    // 滚动适配手机置顶防遮挡
     const container = paragraphContainerEl;
     const firstSpan = allSpans[0];
     if(firstSpan){
@@ -187,4 +172,9 @@ inputAreaEl.addEventListener('input',function(e){
     }
 
     updateStat();
+});
+
+// 禁止粘贴
+inputAreaEl.addEventListener('paste', function(e) {
+    e.preventDefault();
 });
