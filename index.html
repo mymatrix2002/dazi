@@ -214,17 +214,19 @@
     <script src="js/core/event-base.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- 设置面板展开收起切换逻辑 -->
+    <!-- 设置面板展开收起切换逻辑 + 手机空格兼容 + 输入法防上移 -->
     <script>
         const settingToggleBtn = document.getElementById('settingToggleBtn');
         const settingPanel = document.getElementById('settingPanel');
+        const inputArea = document.getElementById('inputArea');
+
+        // 设置面板切换
         settingToggleBtn.addEventListener('click', () => {
             settingPanel.classList.toggle('hidden');
             settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
         });
 
-        // 新增：输入法弹出防页面上移遮挡双语对照
-        const inputArea = document.getElementById('inputArea');
+        // 1. 防止输入法弹出页面整体上移遮挡双语对照
         inputArea.addEventListener('focus', function(e){
             e.preventDefault();
             setTimeout(()=>{
@@ -233,6 +235,31 @@
                     behavior: 'smooth'
                 });
             }, 100);
+        });
+
+        // 2. 兜底修复手机软键盘空格输入后对照区无刷新
+        inputArea.addEventListener('input', () => {
+            if (!typingRunning) return;
+            const lastChar = inputArea.value.slice(-1);
+            if(lastChar === ' '){
+                const container = document.getElementById('paragraphContainer');
+                if(container){
+                    container.style.opacity = 0.99;
+                    setTimeout(()=> container.style.opacity = 1, 30);
+                    container.scrollIntoView({block:'nearest', behavior:'smooth'});
+                }
+            }
+        });
+
+        // 3. 输入法弹出/收起窗口重绘，刷新对照视图
+        window.addEventListener('resize', ()=>{
+            if(isBilingualMode){
+                const container = document.getElementById('paragraphContainer');
+                if(container){
+                    container.style.opacity = 0.99;
+                    setTimeout(()=> container.style.opacity = 1, 40);
+                }
+            }
         });
     </script>
 </body>
