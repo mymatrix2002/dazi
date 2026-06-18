@@ -325,7 +325,7 @@ function updateStat(){
     speedEl.textContent = speed;
     speedBar.style.width = Math.min(speed / 300 * 100, 100) + "%";
 
-    let acc = 100;
+    let acc = 0;
     if (totalInput > 0) {
         acc = Math.round((correctCnt / totalInput) * 100);
         if(acc > 100) acc = 100;
@@ -352,6 +352,12 @@ function updateStat(){
     }
 }
 function showFinishModal(){
+    // 空输入直接返回，不弹出成绩
+    if(totalInput === 0) {
+        alert('还没有输入任何内容哦～');
+        return;
+    }
+
     playFinishSound(); // 练习完成欢庆音效
     unlockSticker(3);
     const totalSec = Math.floor((Date.now() - startTime) / 1000);
@@ -359,7 +365,7 @@ function showFinishModal(){
     const sec = String(totalSec % 60).padStart(2, '0');
     const timeStr = `${min}:${sec}`;
 
-    let finalAcc = 100;
+    let finalAcc = 0;
     if (totalInput > 0) {
         finalAcc = Math.round((correctCnt / totalInput) * 100);
         if(finalAcc > 100) finalAcc = 100;
