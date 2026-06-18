@@ -341,16 +341,6 @@ function bindBaseEvents() {
             runEnterLogic();
         }
     });
-    
-        // 设置面板展开/收起（从index.html移到这里，确保DOM就绪）
-    const settingToggleBtn = document.getElementById('settingToggleBtn');
-    const settingPanel = document.getElementById('settingPanel');
-    if(settingToggleBtn && settingPanel) {
-        settingToggleBtn.addEventListener('click', () => {
-            settingPanel.classList.toggle('hidden');
-            settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
-        });
-    }
 }
 
 // 页面加载初始化字号样式
