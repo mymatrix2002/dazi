@@ -9,6 +9,12 @@
     padding-bottom: 180px !important;
     margin-bottom: 0;
   }
+
+  /* 标题底部间距缩小，统计栏整体上移 */
+  .header-title {
+    margin-bottom: 16px !important;
+  }
+
   /* 头部左右布局，强制同行，缩小字体防止溢出换行 */
   .header-title {
     flex-wrap: nowrap !important;
