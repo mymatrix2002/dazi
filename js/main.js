@@ -1,7 +1,7 @@
 // js/main.js完整代码
 // 程序入口主文件，初始化全部事件与配置
-window.addEventListener('DOMContentLoaded', () => {
-    // 增加100ms延迟，确保所有DOM元素完全渲染，解决GitHub Pages加载慢问题
+window.addEventListener('load', () => {
+    // 等待所有资源加载完成，再初始化
     setTimeout(() => {
         // 初始化字号UI提示（config已执行变量初始化，此处仅同步UI）
         if(fontSizeText){
@@ -21,5 +21,5 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // 页面加载完成自动聚焦文本输入框
         sourceTextEl.focus();
-    }, 100);
+    }, 300);
 });
