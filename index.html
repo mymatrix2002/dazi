@@ -2,23 +2,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
-    <!-- vConsole移动端调试面板：手机右下角生成悬浮日志按钮 -->
-    <script src="https://cdn.jsdelivr.net/npm/vconsole@3.11.0/dist/vconsole.min.js"></script>
-    <script>
-    // 初始化移动端日志面板
-    new VConsole();
-
-    // 强化语音API兜底：无原生语音时生成模拟对象，自带空cancel/speak，杜绝null调用报错
-    window.speechSynthesis = window.speechSynthesis || {
-        cancel: function(){},
-        speak: function(){}
-    };
-    window.speechState = window.speechState || { rate: 1, running: false };
-    window.createUtterance = window.createUtterance || function(word, rate) {
-        return { text: word, rate: rate };
-    };
-    </script>
-    
     <meta charset="UTF-8">
     <!-- 移动端视口：锁定缩放，解决输入法弹窗缩放问题 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
@@ -151,7 +134,7 @@
         <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
             <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
         </div>
-        <textarea id="inputArea" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" rows="2" placeholder="在这里打字..." disabled></textarea>
+        <textarea id="inputArea" rows="2" enterkeyhint="done" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" placeholder="在这里打字..." disabled></textarea>
         <div class="finish-tip-text text-xs mt-2" style="color: var(--text-placeholder);">
             最后一行输入完成后，再次按回车查看成绩
         </div>
@@ -197,12 +180,11 @@
     </div>
 
     <!-- JS 引入：严格按依赖顺序加载 -->
-    <!-- 先加载所有core业务JS，最后加载入口main.js -->
     <script src="js/core/config.js"></script>
     <script src="js/core/utils.js"></script>
-    <script src="js/core/event-base.js"></script>
+    <script src="js/core/typing-mode.js"></script>
     <script src="js/core/typing-input.js"></script>
-    <!-- 入口文件最后引入，此时所有依赖函数已全部定义 -->
+    <script src="js/core/event-base.js"></script>
     <script src="js/main.js"></script>
 
     <!-- 新增：设置面板展开收起切换逻辑 -->

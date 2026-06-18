@@ -1,31 +1,22 @@
 // js/main.js完整代码
-// 项目入口脚本，解决core文件加载时序错乱导致函数未定义报错
-window.addEventListener('DOMContentLoaded', function(){
-    // 安全初始化方法：检测依赖函数是否加载完成，未就绪则延迟重试
-    function safeInitBindEvents() {
-        try {
-            // 校验两个核心绑定全局函数是否已加载完毕
-            if (typeof bindInputEvent === 'function' && typeof bindBaseEvents === 'function') {
-                bindInputEvent();
-                bindBaseEvents();
-                // 日志记录初始化成功状态
-                if (typeof Log !== "undefined") {
-                    Log.info("页面DOM加载完成，事件绑定初始化执行成功");
-                }
-            } else {
-                // 依赖未加载完成，100ms延迟重试初始化
-                if (typeof Log !== "undefined") {
-                    Log.warn("bindInputEvent / bindBaseEvents 尚未加载完成，100ms后重试初始化");
-                }
-                setTimeout(safeInitBindEvents, 100);
-            }
-        } catch (err) {
-            // 捕获初始化异常，写入日志避免页面卡死
-            if (typeof Log !== "undefined") {
-                Log.error("页面初始化绑定事件捕获异常", err);
-            }
-        }
+// 程序入口主文件，初始化全部事件与配置
+window.addEventListener('DOMContentLoaded', () => {
+    // 初始化字号UI提示（config已执行变量初始化，此处仅同步UI）
+    if(fontSizeText){
+        let tip = "标准";
+        if (fontScale <= 0.8) tip = "偏小";
+        else if (fontScale <= 1.0) tip = "标准";
+        else if (fontScale <= 1.2) tip = "偏大";
+        else if (fontScale <= 1.4) tip = "很大";
+        else tip = "超大";
+        fontSizeText.textContent = tip;
     }
-    // 启动安全初始化流程
-    safeInitBindEvents();
+
+    // 绑定输入框打字核心事件
+    bindInputEvent();
+    // 绑定页面全部基础事件（主题、朗读、按钮、弹窗等）
+    bindBaseEvents();
+
+    // 页面加载完成自动聚焦文本输入框
+    sourceTextEl.focus();
 });
