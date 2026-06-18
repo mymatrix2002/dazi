@@ -1,4 +1,3 @@
-// js/core/typing-mode.js完整代码
 // ========== 全文练习模式 ==========
 function runTypingFullMode(text){
     isFullTextMode = true;

@@ -1,4 +1,3 @@
-// js/core/utils完整代码
 // ========== 文本预处理函数 ==========
 function preprocessText(text) {
     let processed = text.replace(/[ \t]{3,}/g, '\n');
