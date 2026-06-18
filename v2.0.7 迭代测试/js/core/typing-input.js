@@ -7,18 +7,18 @@ window.doHandleTypingEnter = function() {
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
 
-        // 朗读当前行文本
-        if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
-            if(val.trim() !== ''){
-                const currentLineText = entryCharsList[currentEntryIndex].join('');
-                // 合并语音API存在性判断，统一用window.前缀访问，彻底规避引用错误
-                if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
-                    window.speechSynthesis.cancel();
-                    const utter = createUtterance(currentLineText, speechState.rate);
-                    window.speechSynthesis.speak(utter);
-                }
+    // 朗读当前行文本
+    if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
+        if(val.trim() !== ''){
+            const currentLineText = entryCharsList[currentEntryIndex].join('');
+            // 合并语音API存在性判断，统一用window.前缀访问，彻底规避引用错误
+            if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+                window.speechSynthesis.cancel();
+                const utter = createUtterance(currentLineText, speechState.rate);
+                window.speechSynthesis.speak(utter);
             }
         }
+    }
 
     // 标记本行完成
     if(!finishedWordSet.has(currentEntryIndex)){
@@ -39,7 +39,7 @@ window.doHandleTypingEnter = function() {
         // 切换下一行
         currentEntryIndex++;
         inputAreaEl.value = '';
-        prevInputValue = '';
+        prevInputValue = '';  // ← 必须加上！否则下一行输入统计会出错
         inputAreaEl.placeholder = "在这里打字...";
         const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
         if(newSpans[0]) newSpans[0].className='char-current';
@@ -143,9 +143,9 @@ function bindInputEvent() {
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
                     // 新增全局对象判断
                     if(window.speechSynthesis){
-                        speechSynthesis.cancel();
+                        window.speechSynthesis.cancel();
                         const utter = createUtterance(targetWord, speechState.rate);
-                        speechSynthesis.speak(utter);
+                        window.speechSynthesis.speak(utter);
                     }
                 }
             }
