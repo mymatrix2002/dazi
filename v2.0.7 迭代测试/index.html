@@ -187,9 +187,11 @@
     <!-- JS 引入：严格按依赖顺序加载 -->
     <script src="js/core/config.js"></script>
     <script src="js/core/utils.js"></script>
+    <!-- 先加载工具函数 -->
     <script src="js/core/typing-mode.js"></script>
     <script src="js/core/typing-input.js"></script>
-    <script src="js/core/event-base.js"></script>
+    <script src="js/core/event-base.js"></script> 
+    <!-- 最后加载事件绑定 -->
     <script src="js/main.js"></script>
     
     <!-- vConsole移动端调试面板，线上排查问题专用 -->

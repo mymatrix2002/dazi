@@ -224,7 +224,7 @@ function splitSentences(text){
     }
     return arr;
 }
-function createUtterance(rawTxt, rate){
+window.createUtterance = function(rawTxt, rate){
     // 先判断语音API是否存在，不存在直接返回null，不报错
     if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
         return null;

@@ -56,7 +56,7 @@ function nextSpeak(lastPause){
     }
 
     setTimeout(() => {
-        const ut = createUtterance(senText, speechState.rate);
+        const ut = window.createUtterance(senText, speechState.rate);
         if(ut) {
             ut.onend = () => nextSpeak(senPause);
             ut.onerror = () => nextSpeak(senPause);
@@ -162,7 +162,7 @@ function bindBaseEvents() {
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        const ut = createUtterance(firstItem.text, speechState.rate);
+        const ut = window.createUtterance(firstItem.text, speechState.rate);
         if(ut) {
             ut.onend = () => nextSpeak(firstItem.pauseType);
             ut.onerror = () => nextSpeak(firstItem.pauseType);

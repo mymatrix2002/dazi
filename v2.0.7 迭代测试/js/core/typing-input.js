@@ -14,7 +14,7 @@ window.doHandleTypingEnter = function() {
             // 合并语音API存在性判断，统一用window.前缀访问，彻底规避引用错误
             if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
                 window.speechSynthesis.cancel();
-                const utter = createUtterance(currentLineText, speechState.rate);
+                const utter = window.createUtterance(currentLineText, speechState.rate);
                 if(utter) window.speechSynthesis.speak(utter);  // ← 加这行判断
             }
         }
@@ -144,7 +144,7 @@ function bindInputEvent() {
                     // 修改后（增加createUtterance返回值判断）
                     if(window.speechSynthesis && window.SpeechSynthesisUtterance){
                         window.speechSynthesis.cancel();
-                        const utter = createUtterance(targetWord, speechState.rate);
+                        const utter = window.createUtterance(targetWord, speechState.rate);
                         if(utter) window.speechSynthesis.speak(utter);
                     }
                 }
