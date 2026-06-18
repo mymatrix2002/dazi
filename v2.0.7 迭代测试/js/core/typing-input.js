@@ -7,17 +7,18 @@ window.doHandleTypingEnter = function() {
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
 
-    // 朗读当前行文本
-    if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
-        if(val.trim() !== ''){
-            const currentLineText = entryCharsList[currentEntryIndex].join('');
-            if(/[a-zA-Z]/.test(currentLineText)) {
-                if(window.speechSynthesis) speechSynthesis.cancel();
-                const utter = createUtterance(currentLineText, speechState.rate);
-                speechSynthesis.speak(utter);
+        // 朗读当前行文本
+        if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
+            if(val.trim() !== ''){
+                const currentLineText = entryCharsList[currentEntryIndex].join('');
+                // 合并语音API存在性判断，统一用window.前缀访问，彻底规避引用错误
+                if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+                    window.speechSynthesis.cancel();
+                    const utter = createUtterance(currentLineText, speechState.rate);
+                    window.speechSynthesis.speak(utter);
+                }
             }
         }
-    }
 
     // 标记本行完成
     if(!finishedWordSet.has(currentEntryIndex)){
@@ -45,12 +46,15 @@ window.doHandleTypingEnter = function() {
         const container = paragraphContainerEl;
         const firstSpan = newSpans[0];
         if(firstSpan){
-            const containerRect = container.getBoundingClientRect();
-            const spanRect = firstSpan.getBoundingClientRect();
-            const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
-            container.scrollTo({top: scrollTop, behavior: 'smooth'});
+            // 仅电脑端执行切换行滚动，手机端保持界面不动
+            if(window.innerWidth > 768) {
+                const containerRect = container.getBoundingClientRect();
+                const spanRect = firstSpan.getBoundingClientRect();
+                const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
+                container.scrollTo({top: scrollTop, behavior: 'smooth'});
+            }
         }
-    } else {
+    } else {  // ← 正确：这个else跟if(currentEntryIndex < ...)配对
         // 最后一行逻辑
         if(!isLastLineEnter){
             isLastLineEnter = true;
@@ -62,7 +66,7 @@ window.doHandleTypingEnter = function() {
             inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
         } else {
             // 这里加判断
-            if(window.speechSynthesis) speechSynthesis.cancel();
+            if(window.speechSynthesis) window.speechSynthesis.cancel();
             waitFinalEnter = false;
             inputAreaEl.placeholder = "在这里打字...";
             showFinishModal();
@@ -96,11 +100,14 @@ function bindInputEvent() {
     // 主输入监听（整合移动端换行兼容）
     inputAreaEl.addEventListener('input',function(e){
         const val = this.value;
-        // 【新增手机软键盘回车兼容】
+        // 【手机软键盘回车兼容】
         if(val.includes('\n') || val.includes('\r')) {
             this.value = val.replace(/[\n\r]/g, '');
-            prevInputValue = val.replace(/[\n\r]/g, '');
-            window.doHandleTypingEnter();
+            prevInputValue = '';
+            // 增加运行状态判断，避免误触发
+            if(typingRunning && window.doHandleTypingEnter) {
+                window.doHandleTypingEnter();
+            }
             return;
         }
 
