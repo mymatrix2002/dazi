@@ -1,6 +1,9 @@
 // js/core/event-base.js v2.0.6 纯净版
 // 彻底删除所有回车相关代码，回车逻辑完全由 typing-input.js 处理
 
+// ========== 全局语音API兜底 ==========
+if (!window.speechSynthesis) window.speechSynthesis = null;
+if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){

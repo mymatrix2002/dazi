@@ -1,4 +1,7 @@
 // js/core/typing-input.js v2.0.6 修复版
+// ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
+if (!window.speechSynthesis) window.speechSynthesis = null;
+if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 
 // ========== 【关键修复1】函数挂载提前到文件最顶部 ==========
 window.doHandleTypingEnter = function() {
