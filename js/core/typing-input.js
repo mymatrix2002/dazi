@@ -1,3 +1,5 @@
+// js/core/typing-input.js 修正后的完整代码（仅修改调用部分）
+
 // ========== 输入框核心逻辑 ==========
 function bindInputEvent() {
     // 禁止粘贴
@@ -48,86 +50,6 @@ function bindInputEvent() {
 
         prevInputValue = val;
 
-        // 换行切换行
-        if(e.inputType === 'insertLineBreak' || val.includes('\n')){
-            // 换行前置同步，避免换行字符再次进入上层音效循环
-            prevInputValue = val;
-
-            // 回车朗读逻辑
-            if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
-                // 新增判断：输入框当前有输入内容才朗读，空输入直接跳过
-                if(val.trim() !== ''){
-                    const currentLineText = entryCharsList[currentEntryIndex].join('');
-                    if(/[a-zA-Z]/.test(currentLineText)) {
-                        speechSynthesis.cancel();
-                        const utter = createUtterance(currentLineText, speechState.rate);
-                        speechSynthesis.speak(utter);
-                    }
-                }
-            }
-
-            // 隐患优化：仅首次换行标记完成行，避免重复add、重复累加字符长度
-            if(!finishedWordSet.has(currentEntryIndex)){
-                finishedWordSet.add(currentEntryIndex);
-                currentPos += entryLen; // 仅首次换行累加行长度
-            }
-            
-            const currentSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-            currentSpans.forEach(s => {
-                if (s.classList.contains('char-correct') || s.classList.contains('char-wrong')) {
-                    s.classList.add('char-done');
-                }
-                s.classList.remove('char-current');
-            });
-
-            if(currentEntryIndex < entryCharsList.length - 1){
-                // 还有下一行，正常切换行
-                currentEntryIndex++;
-                this.value = '';
-                prevInputValue = '';
-                // 切回普通行，恢复原始占位
-                inputAreaEl.placeholder = "在这里打字...";
-                const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-                if(newSpans[0]) newSpans[0].className='char-current';
-                const container = paragraphContainerEl;
-                const firstSpan = newSpans[0];
-                if(firstSpan){
-                    const containerRect = container.getBoundingClientRect();
-                    const spanRect = firstSpan.getBoundingClientRect();
-                    const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
-                    container.scrollTo({top: scrollTop, behavior: 'smooth'});
-                }
-            } else {
-                // 已到最后一行
-                if(!isLastLineEnter){
-                    // 第一次回车
-                    isLastLineEnter = true;
-                    waitFinalEnter = true;
-                    this.value = '';
-                    prevInputValue = '';
-                    currentPos = targetChars.length;
-                    // 新增：暂停计时，用时不再上涨
-                    clearInterval(timerId);
-                    // 新增：修改输入框提示文字，提醒二次回车
-                    inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
-                    updateStat();
-                } else {
-                    // 第二次回车：结束练习，阻断所有按键/错误音效
-                    speechSynthesis.cancel();
-                    waitFinalEnter = false;
-                    // 恢复默认占位文字
-                    inputAreaEl.placeholder = "在这里打字...";
-                    // 无任何playKeySound / playErrorSound调用
-                    showFinishModal();
-                    typingRunning = false;
-                    inputAreaEl.disabled = true;
-                    resetBtnEl.disabled = false;
-                }
-            }
-            updateStat();
-            return;
-        }
-
         // 限制输入长度
         if(val.length > entryLen){
             this.value = val.slice(0, entryLen);
@@ -139,6 +61,7 @@ function bindInputEvent() {
         const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
         allSpans.forEach(s=>s.className='char-pending');
         let hasError = false;
+        let currentSpan = null; // 新增：保存当前光标span
 
         for(let i=0;i<val.length;i++){
             const span = allSpans[i];
@@ -152,6 +75,7 @@ function bindInputEvent() {
 
         if(val.length < entryLen){
             allSpans[val.length].className = 'char-current';
+            currentSpan = allSpans[val.length]; // 新增：获取当前光标span
         }
 
         // ========== 兼容触屏设备：获取坐标 ==========
@@ -187,15 +111,115 @@ function bindInputEvent() {
             }
         }
 
-        // 仅普通输入时滚动，换行不再重复滚动，解决移动端抖动
+        // 定位当前光标字符，滚动容器让字符可视
+        function scrollToCurrentChar(span) {
+          const container = document.querySelector('.paragraph-container');
+          if (!container || !span) return;
+          const containerRect = container.getBoundingClientRect();
+          const spanRect = span.getBoundingClientRect();
+
+          let offset = containerRect.height / 2;
+          // 手机屏幕宽度小于768时，光标置顶，不居中，避开底部输入法键盘
+          if(window.innerWidth <= 768) {
+              offset = 20;
+          }
+          const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - offset;
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+        }
+
+        // ✅ 新增：调用滚动函数，让当前输入位置始终可见
+        scrollToCurrentChar(currentSpan);
+
+        updateStat();
+    });
+}
+
+// 【核心修复】挂载到window全局，event-base.js可跨文件调用，增加完整调试日志
+window.doHandleTypingEnter = function() {
+    console.log("进入全局回车处理函数 doHandleTypingEnter");
+    console.log("typingRunning:", typingRunning, "currentEntryIndex:", currentEntryIndex);
+    if (!typingRunning) {
+        console.log("未开始练习，直接返回");
+        return;
+    }
+    const val = inputAreaEl.value;
+    const activeChars = entryCharsList[currentEntryIndex];
+    const entryLen = activeChars.length;
+    console.log("当前行字符长度", entryLen, "输入框内容：", val);
+
+    // 朗读当前行文本
+    if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
+        if(val.trim() !== ''){
+            const currentLineText = entryCharsList[currentEntryIndex].join('');
+            if(/[a-zA-Z]/.test(currentLineText)) {
+                speechSynthesis.cancel();
+                const utter = createUtterance(currentLineText, speechState.rate);
+                speechSynthesis.speak(utter);
+            }
+        }
+    }
+
+    // 标记本行完成，累加总字符进度
+    if(!finishedWordSet.has(currentEntryIndex)){
+        finishedWordSet.add(currentEntryIndex);
+        currentPos += entryLen;
+        console.log("标记本行完成，总进度字符：", currentPos);
+    }
+    
+    // 渲染本行所有字符为已完成样式
+    const currentSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
+    currentSpans.forEach(s => {
+        if (s.classList.contains('char-correct') || s.classList.contains('char-wrong')) {
+            s.classList.add('char-done');
+        }
+        s.classList.remove('char-current');
+    });
+
+    if(currentEntryIndex < entryCharsList.length - 1){
+        // 切换下一行
+        currentEntryIndex++;
+        inputAreaEl.value = '';
+        prevInputValue = '';
+        inputAreaEl.placeholder = "在这里打字...";
+        const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
+        if(newSpans[0]) newSpans[0].className='char-current';
         const container = paragraphContainerEl;
-        const firstSpan = allSpans[0];
+        const firstSpan = newSpans[0];
         if(firstSpan){
             const containerRect = container.getBoundingClientRect();
             const spanRect = firstSpan.getBoundingClientRect();
             const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
             container.scrollTo({top: scrollTop, behavior: 'smooth'});
         }
-        updateStat();
-    });
+        console.log("切换至下一行，新下标：", currentEntryIndex);
+    } else {
+        // 最后一行逻辑
+        if(!isLastLineEnter){
+            // 第一次回车：等待二次确认
+            isLastLineEnter = true;
+            waitFinalEnter = true;
+            inputAreaEl.value = '';
+            prevInputValue = '';
+            currentPos = targetChars.length;
+            clearInterval(timerId);
+            inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
+            updateStat();
+            console.log("最后一行首次回车，等待二次确认");
+        } else {
+            // 第二次回车：结束练习，重置所有状态
+            speechSynthesis.cancel();
+            waitFinalEnter = false;
+            inputAreaEl.placeholder = "在这里打字...";
+            showFinishModal();
+            typingRunning = false;
+            inputAreaEl.disabled = true;
+            resetBtnEl.disabled = false;
+            console.log("二次回车，练习结束，弹出成绩弹窗");
+        }
+    }
+    updateStat();
+    console.log("回车逻辑执行完毕\n");
 }

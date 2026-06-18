@@ -1,3 +1,4 @@
+// js/core/config.js完整代码
 // ========== 全局基础配置 & 常量 ==========
 const PAUSE_CONFIG = { period:700, mark:400, newline:150 };
 let pauseTimer = null;

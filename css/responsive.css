@@ -1,48 +1,68 @@
-/* 移动端、平板 全局触屏适配 */
-/* 消除移动端点击灰色高亮，统一全平台 */
+/* css/responsive.css完整代码 */
 * {
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
-
-/* ========== 竖屏手机 / 小平板：≤768px ========== */
 @media (max-width: 768px) {
   body {
     padding: 12px;
+    padding-bottom: 180px !important;
+    margin-bottom: 0;
   }
-
-  /* 顶部4列统计卡片改为2列布局 */
+  /* 头部左右布局，强制同行，缩小字体防止溢出换行 */
+  .header-title {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .header-title h1 {
+    font-size: 20px !important;
+  }
+  .version-info {
+    font-size: 12px;
+  }
+  #themeToggle {
+    font-size: 12px;
+    padding: 4px 8px !important;
+    flex-shrink: 0;
+  }
+  #helpBtn {
+    flex-shrink: 0;
+  }
   .grid.grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    margin-bottom: 16px !important;
   }
-
-  /* 放大所有按钮触控区域 */
+  .card-round {
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+    margin-bottom: 16px !important;
+  }
   .btn-primary, .btn-success, .btn-warning, .btn-normal {
     padding: 10px 16px;
     font-size: 16px;
   }
-
-  /* 文本输入框加高、放大字号，触屏更友好 */
   #sourceText {
     height: 120px;
     font-size: 16px;
   }
   #inputArea {
     font-size: 18px;
+    height: 48px !important;
+    padding: 8px 12px !important;
   }
-
-  /* 双语双栏强制切换为单栏阅读 */
   .paragraph-container.two-col {
     grid-template-columns: 100%;
+    max-height: 180px;
+    padding-bottom: 140px;
   }
-
-  /* 练习文本适配小屏字号 */
-  .paragraph-cn, .paragraph-en, .paragraph-full {
-    font-size: 1.1rem;
+  .quick-link {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
   }
-
-  /* 侧边贴纸移至页面底部横向排列，避免遮挡文字 */
   .sticker-box {
     position: fixed;
     right: auto;
@@ -52,68 +72,62 @@
     transform: translateX(-50%);
     flex-direction: row;
     padding: 8px 12px;
+    pointer-events: none;
   }
-  .sticker-item {
+  .sticker-box .sticker-item {
+    pointer-events: auto;
     width: 42px;
     height: 42px;
     font-size: 26px;
   }
-
-  /* 弹窗缩小内边距适配手机 */
   .modal-card-finish, .modal-box {
     padding: 20px;
   }
   .data-row {
     font-size: 16px;
   }
-
-  /* 标题缩小适配竖屏 */
-  .header-title h1 {
-    font-size: 24px;
-  }
-
-  /* 控件换行增加行间距，防止挤压重叠 */
   .flex.flex-wrap {
     row-gap: 8px;
   }
-
-  /* 滑块、下拉选择框扩大点击区域 */
   #fontSizeSlider, #speechVolumeEl, #speechRate {
     padding: 10px 4px;
     min-width: 90px;
   }
 }
-
-/* ========== 迷你手机：≤480px ========== */
 @media (max-width: 480px) {
-  /* 标题垂直堆叠 */
   .header-title {
-    flex-direction: column;
-    gap: 6px;
-    text-align: center;
+    gap: 4px !important;
   }
-
-  /* 弹窗按钮垂直排列，避免宽度不足挤压 */
+  .header-title h1 {
+    font-size: 17px !important;
+  }
+  .header-title > div {
+    gap: 4px !important;
+  }
   .modal-buttons {
     flex-direction: column;
   }
-
-  /* 顶部操作栏控件全宽铺开 */
   .flex.flex-wrap.items-center {
     justify-content: center;
   }
+  #inputArea {
+    height: 44px !important;
+  }
+  .paragraph-container.two-col {
+    max-height: 180px;
+    padding-bottom: 140px;
+  }
+  .quick-link {
+    min-width: 90px;
+  }
 }
-
-/* ========== 平板横屏 补充适配：769px ~ 1024px ========== */
 @media (min-width: 769px) and (max-width: 1024px) {
   body {
     padding: 16px;
   }
-  /* 平板横屏保持4列统计，但缩小卡片内边距 */
   .card-round {
     padding: 1rem;
   }
-  /* 双语双栏缩小比例，避免中文栏过窄 */
   .paragraph-container.two-col {
     grid-template-columns: 45% 55%;
   }
