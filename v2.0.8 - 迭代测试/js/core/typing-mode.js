@@ -97,6 +97,13 @@ function runTypingFullMode(text){
     accBar.style.width = "100%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
+    // 自动滚动到练习区标题，确保手机端能看到"全文练习"文字
+    setTimeout(() => {
+        areaTitleEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }, 50);
 }
 
 // ========== 双语对照练习模式 ==========
@@ -200,4 +207,11 @@ function runTypingBilingualMode(text){
     accBar.style.width = "100%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
+    // 自动滚动到练习区标题，确保手机端能看到"中文对照"文字
+    setTimeout(() => {
+        areaTitleEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }, 50);
 }

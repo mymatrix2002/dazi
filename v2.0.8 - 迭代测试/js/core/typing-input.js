@@ -49,7 +49,6 @@ window.doHandleTypingEnter = function() {
         const container = paragraphContainerEl;
         const firstSpan = newSpans[0];
         if(firstSpan){
-            const container = paragraphContainerEl;
             const containerRect = container.getBoundingClientRect();
             const spanRect = firstSpan.getBoundingClientRect();
             
