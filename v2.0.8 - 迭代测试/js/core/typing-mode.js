@@ -211,7 +211,7 @@ function runTypingBilingualMode(text){
     setTimeout(() => {
         areaTitleEl.scrollIntoView({
             behavior: 'smooth',
-            block: 'center'
+            block: 'start'
         });
     }, 50);
 }
