@@ -7,11 +7,18 @@ function bindInputEvent() {
         e.preventDefault();
     });
 
-    // 新增：回车拦截监听（放在input事件外层，同级）
     inputAreaEl.addEventListener('keydown', function(e){
+        // 判断按下回车键
         if(e.key === 'Enter'){
-            e.preventDefault(); // 阻止textarea自动换行
-            doHandleTypingEnter(); // 执行切换行/结算逻辑
+            e.preventDefault(); // 阻止文本框默认换行
+            // 复用项目原生回车逻辑，替代 doHandleTypingEnter
+            if (currentEntryIndex >= entryCharsList.length - 1) {
+                waitFinalEnter = true;
+            } else {
+                currentEntryIndex++;
+                inputAreaEl.value = '';
+                inputAreaEl.focus();
+            }
         }
     });
 
@@ -39,6 +46,23 @@ function bindInputEvent() {
                     playErrorSound(); // 输错警示音效
                 }
             }
+        }
+
+        // 输入框回车兜底拦截，兼容移动端软键盘
+        const inputAreaEl = document.getElementById('inputArea');
+        if(inputAreaEl){
+            inputAreaEl.addEventListener('keydown', function(e){
+                if(e.key === 'Enter'){
+                    e.preventDefault();
+                    if (currentEntryIndex >= entryCharsList.length - 1) {
+                        waitFinalEnter = true;
+                    } else {
+                        currentEntryIndex++;
+                        inputAreaEl.value = '';
+                        inputAreaEl.focus();
+                    }
+                }
+            });
         }
 
         // 空格触发单词朗读
