@@ -1,4 +1,5 @@
-// js/core/event-base.js 完整代码
+// js/core/event-base.js 最终完整版
+
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
     if(!speechState.running) return;
@@ -68,7 +69,7 @@ function bindBaseEvents() {
         updateThemeButtonText();
     });
 
-    // 单词朗读开关 - 增加空值判断，解决GitHub Pages加载慢时元素未就绪问题
+    // 单词朗读开关 - 增加空值判断
     if(wordSpeakToggleBtn) {
         updateWordSpeakBtnText();
         wordSpeakToggleBtn.addEventListener('click', () => {
@@ -290,7 +291,7 @@ function bindBaseEvents() {
         }
     });
 
-    // 输入框聚焦自动滚动文本区域，延时延长至350ms适配手机输入法加载
+    // 输入框聚焦自动滚动文本区域
     inputAreaEl.addEventListener('focus', function() {
         if (!typingRunning) return;
         setTimeout(() => {
@@ -300,7 +301,7 @@ function bindBaseEvents() {
         }, 350);
     });
 
-    // 监听窗口resize（手机软键盘弹出/收起触发）自动滚动对照区
+    // 监听窗口resize（手机软键盘弹出/收起触发）
     window.addEventListener('resize', () => {
         if (!typingRunning || !inputAreaEl.matches(':focus')) return;
         setTimeout(() => {
@@ -324,22 +325,6 @@ function bindBaseEvents() {
                 targetDom.scrollIntoView({block:'nearest', behavior:'smooth'});
             }
         }, 80);
-    });
-
-    // ========== 仅保留keydown单套回车监听，删除keyup避免重复执行 ==========
-    function runEnterLogic() {
-        console.log('=== 回车触发执行 handleTypingEnter ===');
-        console.log('当前练习状态 typingRunning:', typingRunning);
-        console.log('当前行下标 currentEntryIndex:', currentEntryIndex);
-        console.log('总行数 entryCharsList.length:', entryCharsList.length);
-        window.doHandleTypingEnter();
-    }
-    inputAreaEl.addEventListener('keydown', function(e) {
-        if (!typingRunning) return;
-        if(e.key === 'Enter' || e.keyCode === 13 || e.code === 'Enter'){
-            e.preventDefault();
-            runEnterLogic();
-        }
     });
 }
 
@@ -374,21 +359,4 @@ function updateWordSpeakBtnText() {
         wordSpeakToggleBtn.classList.remove('btn-success');
         wordSpeakToggleBtn.classList.add('btn-normal');
     }
-}
-
-// 统一回车处理函数（仅保留调用入口，核心逻辑移至typing-input.js）
-function handleTypingEnter() {
-    window.doHandleTypingEnter();
-}
-
-// 输入框回车监听，解决手机回车只换行不切换行
-const inputAreaEl = document.getElementById('inputArea');
-if(inputAreaEl) {
-    inputAreaEl.addEventListener('keydown', function(e) {
-        // 拦截回车按键
-        if(e.key === 'Enter') {
-            e.preventDefault(); // 彻底阻止文本域自动换行
-            doHandleTypingEnter(); // 执行切换下一行/结算成绩逻辑
-        }
-    });
 }
