@@ -7,12 +7,11 @@ function bindInputEvent() {
         e.preventDefault();
     });
 
-    // ========== 【修复1】移动端回车拦截，放在最外层，只绑定一次 ==========
+    // ========== 唯一回车处理：完整独立逻辑，不依赖任何外部函数 ==========
     inputAreaEl.addEventListener('keydown', function(e){
         if(e.key === 'Enter'){
             e.preventDefault();
             
-            // 完整回车逻辑，不依赖外部函数
             if (!typingRunning) return;
             
             const val = inputAreaEl.value;
@@ -93,7 +92,7 @@ function bindInputEvent() {
         const activeChars = entryCharsList[currentEntryIndex];
         const entryLen = activeChars.length;
 
-        // 统计有效击键，过滤换行符，回车不触发按键/错误音效
+        // 统计有效击键，过滤换行符
         if(val.length > prevInputValue.length) {
             const startIdx = prevInputValue.length;
             const endIdx = val.length;
@@ -156,7 +155,7 @@ function bindInputEvent() {
             currentSpan = allSpans[val.length];
         }
 
-        // 兼容触屏设备：获取坐标
+        // 触屏坐标
         let posX = e.clientX || window.innerWidth / 2;
         let posY = e.clientY || window.innerHeight / 2;
 
@@ -189,7 +188,7 @@ function bindInputEvent() {
             }
         }
 
-        // 定位当前光标字符，滚动容器让字符可视
+        // 滚动定位
         function scrollToCurrentChar(span) {
           const container = document.querySelector('.paragraph-container');
           if (!container || !span) return;
@@ -213,7 +212,7 @@ function bindInputEvent() {
     });
 }
 
-// 挂载到window全局，保留兼容
+// 兼容保留，不主动调用
 window.doHandleTypingEnter = function() {
     if (!typingRunning) return;
     const val = inputAreaEl.value;

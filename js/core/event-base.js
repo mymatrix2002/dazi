@@ -1,4 +1,4 @@
-// js/core/event-base.js 最终完整版
+// js/core/event-base.js 最终完整版（无回车处理）
 
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
@@ -69,7 +69,7 @@ function bindBaseEvents() {
         updateThemeButtonText();
     });
 
-    // 单词朗读开关 - 增加空值判断
+    // 单词朗读开关
     if(wordSpeakToggleBtn) {
         updateWordSpeakBtnText();
         wordSpeakToggleBtn.addEventListener('click', () => {
@@ -271,17 +271,16 @@ function bindBaseEvents() {
         inputAreaEl.placeholder = "在这里打字...";
     });
 
-    // 页面关闭前清理定时器与语音
+    // 页面关闭前清理
     window.addEventListener('beforeunload',()=>{
         clearTimeout(pauseTimer); speechSynthesis.cancel();
         speechState.running=false; clearInterval(timerId);
     });
 
-    // 帮助弹窗打开
+    // 帮助弹窗
     helpBtn.addEventListener('click', () => {
         helpModal.classList.remove('hidden');
     });
-    // 关闭帮助弹窗
     helpCloseBtn.addEventListener('click', () => {
         helpModal.classList.add('hidden');
     });
@@ -291,7 +290,7 @@ function bindBaseEvents() {
         }
     });
 
-    // 输入框聚焦自动滚动文本区域
+    // 输入框聚焦自动滚动
     inputAreaEl.addEventListener('focus', function() {
         if (!typingRunning) return;
         setTimeout(() => {
@@ -301,7 +300,7 @@ function bindBaseEvents() {
         }, 350);
     });
 
-    // 监听窗口resize（手机软键盘弹出/收起触发）
+    // 窗口resize自动滚动
     window.addEventListener('resize', () => {
         if (!typingRunning || !inputAreaEl.matches(':focus')) return;
         setTimeout(() => {
@@ -311,7 +310,7 @@ function bindBaseEvents() {
         }, 200);
     });
 
-    // 输入实时滚动至当前字符
+    // 输入实时滚动
     inputAreaEl.addEventListener('input', function() {
         if (!typingRunning) return;
         setTimeout(() => {
@@ -328,7 +327,7 @@ function bindBaseEvents() {
     });
 }
 
-// 页面加载初始化字号样式
+// 页面加载初始化字号
 document.documentElement.style.setProperty('--practice-font-scale', fontScale);
 fontSizeSlider.value = fontScale;
 let initTip = "标准";
@@ -348,7 +347,7 @@ function updateThemeButtonText(){
     }
 }
 
-// 更新单词朗读按钮文字样式
+// 更新单词朗读按钮
 function updateWordSpeakBtnText() {
     if(wordSpeakEnable === 'true') {
         wordSpeakToggleBtn.textContent = '单词朗读：已开启';
