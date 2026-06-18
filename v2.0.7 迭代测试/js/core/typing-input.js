@@ -212,9 +212,9 @@ function bindInputEvent() {
 
         // 滚动定位
         function scrollToCurrentChar(span) {
-          // ========== 手机端禁用自动滚动，输入第一个字符界面不再上移 ==========
+          // ========== 手机端禁用对照区自动滚动 ==========
           if(window.innerWidth <= 768) {
-              return; // 移动端直接返回，不执行任何滚动
+              return; // 移动端直接返回，对照区滚动条完全不动
           }
           
           const container = document.querySelector('.paragraph-container');
