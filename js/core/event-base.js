@@ -68,15 +68,13 @@ function bindBaseEvents() {
         updateThemeButtonText();
     });
 
-    // 单词朗读开关 - 增加空值判断，解决GitHub Pages加载慢时元素未就绪问题
-    if(wordSpeakToggleBtn) {
+    // 单词朗读开关
+    updateWordSpeakBtnText();
+    wordSpeakToggleBtn.addEventListener('click', () => {
+        wordSpeakEnable = wordSpeakEnable === 'true' ? 'false' : 'true';
+        localStorage.setItem('wordSpeakEnable', wordSpeakEnable);
         updateWordSpeakBtnText();
-        wordSpeakToggleBtn.addEventListener('click', () => {
-            wordSpeakEnable = wordSpeakEnable === 'true' ? 'false' : 'true';
-            localStorage.setItem('wordSpeakEnable', wordSpeakEnable);
-            updateWordSpeakBtnText();
-        });
-    }
+    });
 
     // 文本字符实时计数
     function updateCharCount(){ charCountEl.textContent=sourceTextEl.value.length; }
@@ -341,16 +339,6 @@ function bindBaseEvents() {
             runEnterLogic();
         }
     });
-    
-        // 设置面板展开/收起（从index.html移到这里，确保DOM就绪）
-    const settingToggleBtn = document.getElementById('settingToggleBtn');
-    const settingPanel = document.getElementById('settingPanel');
-    if(settingToggleBtn && settingPanel) {
-        settingToggleBtn.addEventListener('click', () => {
-            settingPanel.classList.toggle('hidden');
-            settingToggleBtn.textContent = settingPanel.classList.contains('hidden') ? '⚙️ 更多设置' : '⚙️ 收起设置';
-        });
-    }
 }
 
 // 页面加载初始化字号样式

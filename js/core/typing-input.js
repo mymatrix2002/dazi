@@ -1,5 +1,4 @@
-// js/core/typing-input.js 修正后的完整代码（仅修改调用部分）
-
+// js/core/typing-input.js完整代码
 // ========== 输入框核心逻辑 ==========
 function bindInputEvent() {
     // 禁止粘贴
@@ -61,7 +60,6 @@ function bindInputEvent() {
         const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
         allSpans.forEach(s=>s.className='char-pending');
         let hasError = false;
-        let currentSpan = null; // 新增：保存当前光标span
 
         for(let i=0;i<val.length;i++){
             const span = allSpans[i];
@@ -75,7 +73,6 @@ function bindInputEvent() {
 
         if(val.length < entryLen){
             allSpans[val.length].className = 'char-current';
-            currentSpan = allSpans[val.length]; // 新增：获取当前光标span
         }
 
         // ========== 兼容触屏设备：获取坐标 ==========
@@ -111,28 +108,15 @@ function bindInputEvent() {
             }
         }
 
-        // 定位当前光标字符，滚动容器让字符可视
-        function scrollToCurrentChar(span) {
-          const container = document.querySelector('.paragraph-container');
-          if (!container || !span) return;
-          const containerRect = container.getBoundingClientRect();
-          const spanRect = span.getBoundingClientRect();
-
-          let offset = containerRect.height / 2;
-          // 手机屏幕宽度小于768时，光标置顶，不居中，避开底部输入法键盘
-          if(window.innerWidth <= 768) {
-              offset = 20;
-          }
-          const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - offset;
-          container.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          });
+        // 仅普通输入时滚动，换行不再重复滚动，解决移动端抖动
+        const container = paragraphContainerEl;
+        const firstSpan = allSpans[0];
+        if(firstSpan){
+            const containerRect = container.getBoundingClientRect();
+            const spanRect = firstSpan.getBoundingClientRect();
+            const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
+            container.scrollTo({top: scrollTop, behavior: 'smooth'});
         }
-
-        // ✅ 新增：调用滚动函数，让当前输入位置始终可见
-        scrollToCurrentChar(currentSpan);
-
         updateStat();
     });
 }

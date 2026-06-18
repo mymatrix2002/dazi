@@ -1,7 +1,7 @@
 /* css/font-size.css完整代码 */
 /* 全局字号缩放变量 - 由JS字号滑块动态修改 */
 :root {
-  --practice-font-scale: 1.05; /* 默认放大5%，抵消等宽英文偏小 */
+  --practice-font-scale: 1.0;
   --slider-thumb-size: 18px;
   --slider-track-height: 8px;
 }
@@ -11,7 +11,7 @@
   font-size: calc(1.25rem * var(--practice-font-scale));
 }
 .paragraph-en {
-  font-size: calc(1.25rem * var(--practice-font-scale)); /* 英文和中文同基准 */
+  font-size: calc(1.125rem * var(--practice-font-scale));
 }
 .paragraph-full {
   font-size: calc(1.25rem * var(--practice-font-scale));

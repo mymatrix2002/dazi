@@ -1,5 +1,4 @@
 /* css/main.css完整代码 */
-
 /* ========== 全局主题变量 日间/暗色切换 ========== */
 :root[data-theme="light"] {
     --bg-page: #f0f9ff;
@@ -233,11 +232,10 @@ body {
     width: 100%;
     column-gap: 1rem;
     row-gap: 0.8rem;
-    align-items: center;
+    align-items: start;
     max-height: 300px;
     overflow-y: auto;
     padding-right: 8px;
-    padding-bottom: 120px;
     display: grid;
     /* 新增：移动端惯性滚动，解决滑动卡顿 */
     -webkit-overflow-scrolling: touch;
@@ -287,8 +285,6 @@ body {
     word-break: normal;
     text-align: left;
     box-sizing: border-box;
-    display: flex;
-    align-items: center;
 }
 /* 全文模式下的通用行样式（中英通用） */
 .paragraph-full {
