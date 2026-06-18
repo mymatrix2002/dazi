@@ -68,13 +68,15 @@ function bindBaseEvents() {
         updateThemeButtonText();
     });
 
-    // 单词朗读开关
-    updateWordSpeakBtnText();
-    wordSpeakToggleBtn.addEventListener('click', () => {
-        wordSpeakEnable = wordSpeakEnable === 'true' ? 'false' : 'true';
-        localStorage.setItem('wordSpeakEnable', wordSpeakEnable);
+    // 单词朗读开关 - 增加空值判断，解决GitHub Pages加载慢时元素未就绪问题
+    if(wordSpeakToggleBtn) {
         updateWordSpeakBtnText();
-    });
+        wordSpeakToggleBtn.addEventListener('click', () => {
+            wordSpeakEnable = wordSpeakEnable === 'true' ? 'false' : 'true';
+            localStorage.setItem('wordSpeakEnable', wordSpeakEnable);
+            updateWordSpeakBtnText();
+        });
+    }
 
     // 文本字符实时计数
     function updateCharCount(){ charCountEl.textContent=sourceTextEl.value.length; }
