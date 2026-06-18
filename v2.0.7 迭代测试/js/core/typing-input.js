@@ -12,7 +12,7 @@ window.doHandleTypingEnter = function() {
         if(val.trim() !== ''){
             const currentLineText = entryCharsList[currentEntryIndex].join('');
             if(/[a-zA-Z]/.test(currentLineText)) {
-                speechSynthesis.cancel();
+                if(window.speechSynthesis) speechSynthesis.cancel();
                 const utter = createUtterance(currentLineText, speechState.rate);
                 speechSynthesis.speak(utter);
             }
@@ -61,7 +61,8 @@ window.doHandleTypingEnter = function() {
             clearInterval(timerId);
             inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
         } else {
-            speechSynthesis.cancel();
+            // 这里加判断
+            if(window.speechSynthesis) speechSynthesis.cancel();
             waitFinalEnter = false;
             inputAreaEl.placeholder = "在这里打字...";
             showFinishModal();
@@ -80,37 +81,30 @@ function bindInputEvent() {
         e.preventDefault();
     });
 
-    // ========== 【关键修复2】回车监听增加存在性判断 ==========
+    // 电脑键盘回车监听
     inputAreaEl.addEventListener('keydown', function(e){
         if(e.key === 'Enter' || e.keyCode === 13 || e.code === 'Enter'){
             e.preventDefault();
-            
-            // 判断函数存在才调用，解决GitHub加载时序问题
             if(window.doHandleTypingEnter) {
                 window.doHandleTypingEnter();
             } else {
-                // 兜底：如果函数还没挂载，延迟100ms再调用
                 setTimeout(() => window.doHandleTypingEnter(), 100);
             }
         }
     });
 
-    // ========== 【关键修复3】增加input事件换行检测，兼容移动端软键盘 ==========
-    inputAreaEl.addEventListener('input', function(e){
-        const val = this.value;
-        // 检测换行符（移动端软键盘回车会插入\n）
-        if(val.includes('\n') || val.includes('\r')) {
-            this.value = val.replace(/[\n\r]/g, ''); // 删除换行符
-            if(window.doHandleTypingEnter) {
-                window.doHandleTypingEnter();
-            }
-        }
-    });
-
-    // 打字输入监听（原始逻辑完全不变）
+    // 主输入监听（整合移动端换行兼容）
     inputAreaEl.addEventListener('input',function(e){
-        if(!typingRunning) return;
         const val = this.value;
+        // 【新增手机软键盘回车兼容】
+        if(val.includes('\n') || val.includes('\r')) {
+            this.value = val.replace(/[\n\r]/g, '');
+            prevInputValue = val.replace(/[\n\r]/g, '');
+            window.doHandleTypingEnter();
+            return;
+        }
+
+        if(!typingRunning) return;
         const activeChars = entryCharsList[currentEntryIndex];
         const entryLen = activeChars.length;
 
@@ -140,9 +134,12 @@ function bindInputEvent() {
                 const wordList = currentInput.split(/\s+/);
                 const targetWord = wordList[wordList.length - 1];
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    speechSynthesis.cancel();
-                    const utter = createUtterance(targetWord, speechState.rate);
-                    speechSynthesis.speak(utter);
+                    // 新增全局对象判断
+                    if(window.speechSynthesis){
+                        speechSynthesis.cancel();
+                        const utter = createUtterance(targetWord, speechState.rate);
+                        speechSynthesis.speak(utter);
+                    }
                 }
             }
         }
