@@ -12,7 +12,7 @@ window.doHandleTypingEnter = function() {
         if(val.trim() !== ''){
             const currentLineText = entryCharsList[currentEntryIndex].join('');
             // 合并语音API存在性判断，统一用window.前缀访问，彻底规避引用错误
-            if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+            if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
                 window.speechSynthesis.cancel();
                 const utter = createUtterance(currentLineText, speechState.rate);
                 window.speechSynthesis.speak(utter);
@@ -141,11 +141,11 @@ function bindInputEvent() {
                 const wordList = currentInput.split(/\s+/);
                 const targetWord = wordList[wordList.length - 1];
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    // 新增全局对象判断
-                    if(window.speechSynthesis){
+                    // 修改后（增加createUtterance返回值判断）
+                    if(window.speechSynthesis && window.SpeechSynthesisUtterance){
                         window.speechSynthesis.cancel();
                         const utter = createUtterance(targetWord, speechState.rate);
-                        window.speechSynthesis.speak(utter);
+                        if(utter) window.speechSynthesis.speak(utter);
                     }
                 }
             }

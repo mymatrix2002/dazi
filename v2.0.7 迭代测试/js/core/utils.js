@@ -225,7 +225,11 @@ function splitSentences(text){
     return arr;
 }
 function createUtterance(rawTxt, rate){
-    const ut = new SpeechSynthesisUtterance();
+    // 先判断语音API是否存在，不存在直接返回null，不报错
+    if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+        return null;
+    }
+    const ut = new window.SpeechSynthesisUtterance();
     ut.rate = rate;
     ut.pitch = 1;
     ut.volume = speechState.volume;
