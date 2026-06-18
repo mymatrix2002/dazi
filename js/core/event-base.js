@@ -380,3 +380,15 @@ function updateWordSpeakBtnText() {
 function handleTypingEnter() {
     window.doHandleTypingEnter();
 }
+
+// 输入框回车监听，解决手机回车只换行不切换行
+const inputAreaEl = document.getElementById('inputArea');
+if(inputAreaEl) {
+    inputAreaEl.addEventListener('keydown', function(e) {
+        // 拦截回车按键
+        if(e.key === 'Enter') {
+            e.preventDefault(); // 彻底阻止文本域自动换行
+            doHandleTypingEnter(); // 执行切换下一行/结算成绩逻辑
+        }
+    });
+}

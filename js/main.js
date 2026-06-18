@@ -4,9 +4,8 @@
 let fontSizeText, sourceTextEl, settingToggleBtn, settingPanel, wordSpeakToggleBtn;
 window.addEventListener('load', () => {
     setTimeout(() => {
-        // ========== 1. 初始化字号UI ==========
-        const fontSizeText = document.getElementById('fontSizeText');
-        if(fontSizeText){
+        // ========== 1. 初始化字号UI（直接用config.js已声明的fontSizeText，不要重新声明！） ==========
+        if(fontSizeText){  // 直接用，不要加const
             let tip = "标准";
             if (fontScale <= 0.8) tip = "偏小";
             else if (fontScale <= 1.0) tip = "标准";
@@ -20,7 +19,7 @@ window.addEventListener('load', () => {
         bindInputEvent();
         bindBaseEvents();
 
-        // ========== 3. 设置面板逻辑（移到这里，100%确保DOM就绪） ==========
+        // ========== 3. 设置面板逻辑 ==========
         const settingToggleBtn = document.getElementById('settingToggleBtn');
         const settingPanel = document.getElementById('settingPanel');
         if(settingToggleBtn && settingPanel) {
@@ -30,9 +29,8 @@ window.addEventListener('load', () => {
             });
         }
 
-        // ========== 4. 聚焦输入框 ==========
-        const sourceTextEl = document.getElementById('sourceText');
+        // ========== 4. 聚焦输入框（直接用config.js已声明的sourceTextEl） ==========
         if(sourceTextEl) sourceTextEl.focus();
 
-    }, 500); // GitHub增加到500ms，确保所有资源100%加载完成
+    }, 500);
 });

@@ -7,6 +7,14 @@ function bindInputEvent() {
         e.preventDefault();
     });
 
+    // 新增：回车拦截监听（放在input事件外层，同级）
+    inputAreaEl.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+            e.preventDefault(); // 阻止textarea自动换行
+            doHandleTypingEnter(); // 执行切换行/结算逻辑
+        }
+    });
+
     // 输入监听
     inputAreaEl.addEventListener('input',function(e){
         if(!typingRunning) return;
