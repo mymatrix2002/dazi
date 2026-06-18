@@ -39,7 +39,7 @@
   .grid.grid-cols-4 {
     grid-template-columns: repeat(4, 1fr); /* 保持4列，一行显示 */
     gap: 8px; /* 缩小间距，适配手机宽度 */
-    margin-bottom: 16px !important;
+    margin-bottom: 8px !important; /* 数值越小越靠上，默认16px */
   }
   /* 统计数字调小一点 */
   .grid.grid-cols-4 > div > div:first-child {
