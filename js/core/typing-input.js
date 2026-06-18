@@ -1,4 +1,4 @@
-// js/core/typing-input.js 最终完整版
+// js/core/typing-input.js 最终版（无回车绑定）
 
 // ========== 输入框核心逻辑 ==========
 function bindInputEvent() {
@@ -7,85 +7,7 @@ function bindInputEvent() {
         e.preventDefault();
     });
 
-    // ========== 唯一回车处理：完整独立逻辑，不依赖任何外部函数 ==========
-    inputAreaEl.addEventListener('keydown', function(e){
-        if(e.key === 'Enter'){
-            e.preventDefault();
-            
-            if (!typingRunning) return;
-            
-            const val = inputAreaEl.value;
-            const activeChars = entryCharsList[currentEntryIndex];
-            const entryLen = activeChars.length;
-
-            // 朗读当前行文本
-            if(wordSpeakEnable === 'true' && !(currentEntryIndex === entryCharsList.length - 1 && isLastLineEnter)) {
-                if(val.trim() !== ''){
-                    const currentLineText = entryCharsList[currentEntryIndex].join('');
-                    if(/[a-zA-Z]/.test(currentLineText)) {
-                        speechSynthesis.cancel();
-                        const utter = createUtterance(currentLineText, speechState.rate);
-                        speechSynthesis.speak(utter);
-                    }
-                }
-            }
-
-            // 标记本行完成
-            if(!finishedWordSet.has(currentEntryIndex)){
-                finishedWordSet.add(currentEntryIndex);
-                currentPos += entryLen;
-            }
-            
-            // 渲染本行完成样式
-            const currentSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-            currentSpans.forEach(s => {
-                if (s.classList.contains('char-correct') || s.classList.contains('char-wrong')) {
-                    s.classList.add('char-done');
-                }
-                s.classList.remove('char-current');
-            });
-
-            if(currentEntryIndex < entryCharsList.length - 1){
-                // 切换下一行
-                currentEntryIndex++;
-                inputAreaEl.value = '';
-                prevInputValue = '';
-                inputAreaEl.placeholder = "在这里打字...";
-                const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-                if(newSpans[0]) newSpans[0].className='char-current';
-                const container = paragraphContainerEl;
-                const firstSpan = newSpans[0];
-                if(firstSpan){
-                    const containerRect = container.getBoundingClientRect();
-                    const spanRect = firstSpan.getBoundingClientRect();
-                    const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
-                    container.scrollTo({top: scrollTop, behavior: 'smooth'});
-                }
-            } else {
-                // 最后一行逻辑
-                if(!isLastLineEnter){
-                    isLastLineEnter = true;
-                    waitFinalEnter = true;
-                    inputAreaEl.value = '';
-                    prevInputValue = '';
-                    currentPos = targetChars.length;
-                    clearInterval(timerId);
-                    inputAreaEl.placeholder = "已完成全部输入，请再次按下回车查看成绩";
-                } else {
-                    speechSynthesis.cancel();
-                    waitFinalEnter = false;
-                    inputAreaEl.placeholder = "在这里打字...";
-                    showFinishModal();
-                    typingRunning = false;
-                    inputAreaEl.disabled = true;
-                    resetBtnEl.disabled = false;
-                }
-            }
-            updateStat();
-        }
-    });
-
-    // 输入监听
+    // 输入监听（回车逻辑已移至main.js，此处只处理打字逻辑）
     inputAreaEl.addEventListener('input',function(e){
         if(!typingRunning) return;
         const val = this.value;
