@@ -1,5 +1,7 @@
 // js/main.js完整代码
 // 程序入口主文件，初始化全部事件与配置
+// 最顶部增加：兜底所有DOM元素变量，彻底消除未定义错误
+let fontSizeText, sourceTextEl, settingToggleBtn, settingPanel, wordSpeakToggleBtn;
 window.addEventListener('load', () => {
     setTimeout(() => {
         // ========== 1. 初始化字号UI ==========
