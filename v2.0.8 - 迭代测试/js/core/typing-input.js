@@ -49,12 +49,18 @@ window.doHandleTypingEnter = function() {
         const container = paragraphContainerEl;
         const firstSpan = newSpans[0];
         if(firstSpan){
-            // 仅电脑端执行切换行滚动，手机端保持界面不动
+            const container = paragraphContainerEl;
+            const containerRect = container.getBoundingClientRect();
+            const spanRect = firstSpan.getBoundingClientRect();
+            
             if(window.innerWidth > 768) {
-                const containerRect = container.getBoundingClientRect();
-                const spanRect = firstSpan.getBoundingClientRect();
+                // 电脑端：滚动到中间，平滑动画
                 const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - containerRect.height / 2;
                 container.scrollTo({top: scrollTop, behavior: 'smooth'});
+            } else {
+                // 手机端：滚动到新行顶部，瞬间到位
+                const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - 20;
+                container.scrollTop = scrollTop;
             }
         }
     } else {  // ← 正确：这个else跟if(currentEntryIndex < ...)配对
@@ -225,21 +231,40 @@ function bindInputEvent() {
 
         // 滚动定位
         function scrollToCurrentChar(span) {
-          // ========== 手机端禁用对照区自动滚动 ==========
-          if(window.innerWidth <= 768) {
-              return; // 移动端直接返回，对照区滚动条完全不动
-          }
-          
           const container = document.querySelector('.paragraph-container');
           if (!container || !span) return;
+          
           const containerRect = container.getBoundingClientRect();
           const spanRect = span.getBoundingClientRect();
-          let offset = containerRect.height / 2;
-          const scrollTop = container.scrollTop + (spanRect.top - containerRect.top) - offset;
-          container.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          });
+          const containerHeight = containerRect.height;
+          const spanTop = spanRect.top - containerRect.top;
+          const spanBottom = spanRect.bottom - containerRect.top;
+          
+          // ========== 电脑端：光标始终在视口中间，平滑滚动 ==========
+          if(window.innerWidth > 768) {
+              const offset = containerHeight / 2;
+              const scrollTop = container.scrollTop + spanTop - offset;
+              container.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+              });
+              return;
+          }
+          
+          // ========== 手机端：只有光标超出视口才滚动，避免频繁跳动 ==========
+          const visibleTop = 10; // 顶部留10px余量
+          const visibleBottom = containerHeight * 0.3; // 光标超过视口1/3时才滚动
+          
+          if(spanTop < visibleTop) {
+              // 光标跑到上面了，滚动到视口顶部
+              const scrollTop = container.scrollTop + spanTop - visibleTop;
+              container.scrollTop = scrollTop;
+          } else if(spanBottom > visibleBottom) {
+              // 光标跑到下面了，滚动到让光标在视口1/3处
+              const scrollTop = container.scrollTop + spanBottom - visibleBottom;
+              container.scrollTop = scrollTop;
+          }
+          // 光标在可视范围内，不滚动，避免跳动
         }
 
         scrollToCurrentChar(currentSpan);
