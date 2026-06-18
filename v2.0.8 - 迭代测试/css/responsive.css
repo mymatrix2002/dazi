@@ -36,11 +36,11 @@
     margin-bottom: 16px !important;
   }
   /* 统计数字调小一点 */
-  .stat-value {
+  .grid.grid-cols-4 > div > div:first-child {
     font-size: 18px !important;
   }
   /* 统计标签调小一点 */
-  .stat-label {
+  .grid.grid-cols-4 > div > div:last-child {
     font-size: 11px !important;
   }
   .card-round {
