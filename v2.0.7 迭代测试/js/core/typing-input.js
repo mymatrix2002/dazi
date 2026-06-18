@@ -164,6 +164,11 @@ function bindInputEvent() {
         }
 
         // 逐字符样式渲染
+        // 【修复1】全局清除所有行的光标类，彻底杜绝光标出现在非当前行
+        paragraphContainerEl.querySelectorAll('.char-current').forEach(el => {
+            el.classList.remove('char-current');
+        });
+
         const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
         allSpans.forEach(s=>s.className='char-pending');
         let hasError = false;
@@ -179,9 +184,18 @@ function bindInputEvent() {
             }
         }
 
+        // 【修复2】优化光标逻辑
         if(val.length < entryLen){
+            // 未输满：光标在当前待输入字符上
             allSpans[val.length].className = 'char-current';
             currentSpan = allSpans[val.length];
+        } else {
+            // 已输满：光标停在最后一个字符上，明确提示行已完成，等待回车
+            const lastIdx = entryLen - 1;
+            if(allSpans[lastIdx]){
+                allSpans[lastIdx].classList.add('char-current');
+                currentSpan = allSpans[lastIdx];
+            }
         }
 
         // 触屏坐标
