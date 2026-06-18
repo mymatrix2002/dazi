@@ -1,4 +1,5 @@
-// js/core/event-base.js 最终完整版（无回车处理）
+// js/core/event-base.js v2.0.6 纯净版
+// 彻底删除所有回车相关代码，回车逻辑完全由 typing-input.js 处理
 
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){

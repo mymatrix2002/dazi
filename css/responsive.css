@@ -110,9 +110,6 @@
   .flex.flex-wrap.items-center {
     justify-content: center;
   }
-  #inputArea {
-    height: 44px !important;
-  }
   .paragraph-container.two-col {
     max-height: 180px;
     padding-bottom: 140px;
