@@ -1,8 +1,12 @@
 // js/core/event-base.js v2.0.6 纯净版
 // 彻底删除所有回车相关代码，回车逻辑完全由 typing-input.js 处理
 
+
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
+    // ========== 新增：没有语音API直接返回，不报错 ==========
+    if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+    
     if(!speechState.running) return;
 
     document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
@@ -51,11 +55,16 @@ function nextSpeak(lastPause){
         firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    pauseTimer = setTimeout(()=>{
+    setTimeout(() => {
         const ut = createUtterance(senText, speechState.rate);
-        ut.onend = () => nextSpeak(senPause);
-        ut.onerror = () => nextSpeak(senPause);
-        speechSynthesis.speak(ut);
+        if(ut) {
+            ut.onend = () => nextSpeak(senPause);
+            ut.onerror = () => nextSpeak(senPause);
+            window.speechSynthesis.speak(ut);
+        } else {
+            // 没有语音API，直接跳过这句，继续下一句
+            setTimeout(() => nextSpeak(senPause), 100);
+        }
     }, PAUSE_CONFIG[lastPause]);
 }
 
@@ -112,10 +121,10 @@ function bindBaseEvents() {
             return;
         }
         clearTimeout(pauseTimer);
-        speechSynthesis.cancel();
+        if(window.speechSynthesis) window.speechSynthesis.cancel();
         if(speechState.running){
             speechState.running=false;
-            speechSynthesis.cancel();
+            if(window.speechSynthesis) window.speechSynthesis.cancel();
             document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
                 el.classList.remove('sentence-read-highlight');
             });
@@ -154,9 +163,11 @@ function bindBaseEvents() {
         }
 
         const ut = createUtterance(firstItem.text, speechState.rate);
-        ut.onend = () => nextSpeak(firstItem.pauseType);
-        ut.onerror = () => nextSpeak(firstItem.pauseType);
-        speechSynthesis.speak(ut);
+        if(ut) {
+            ut.onend = () => nextSpeak(firstItem.pauseType);
+            ut.onerror = () => nextSpeak(firstItem.pauseType);
+            window.speechSynthesis.speak(ut);
+        }
     });
 
     // 朗读语速切换
@@ -185,7 +196,8 @@ function bindBaseEvents() {
     // 清空全部内容按钮
     clearBtnEl.addEventListener('click',()=>{
         sourceTextEl.value=''; updateCharCount();
-        clearTimeout(pauseTimer); speechSynthesis.cancel();
+        clearTimeout(pauseTimer); 
+        if(window.speechSynthesis) window.speechSynthesis.cancel();
         speechState.running=false;
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent='🔊 朗读全文';
@@ -274,7 +286,8 @@ function bindBaseEvents() {
 
     // 页面关闭前清理
     window.addEventListener('beforeunload',()=>{
-        clearTimeout(pauseTimer); speechSynthesis.cancel();
+        clearTimeout(pauseTimer); 
+        if(window.speechSynthesis) window.speechSynthesis.cancel();
         speechState.running=false; clearInterval(timerId);
     });
 

@@ -15,7 +15,7 @@ window.doHandleTypingEnter = function() {
             if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
                 window.speechSynthesis.cancel();
                 const utter = createUtterance(currentLineText, speechState.rate);
-                window.speechSynthesis.speak(utter);
+                if(utter) window.speechSynthesis.speak(utter);  // ← 加这行判断
             }
         }
     }
