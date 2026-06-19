@@ -57,7 +57,7 @@
   }
   /* 单独调整"用时"标签字号，视觉均衡 */
   .grid.grid-cols-4 > div > div.label-time {
-    font-size: 11px !important;
+    font-size: 12px !important;
   }
   .card-round {
     padding-top: 16px !important;
