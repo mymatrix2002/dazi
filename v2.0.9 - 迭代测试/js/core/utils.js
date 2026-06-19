@@ -117,43 +117,49 @@ function parseBilingualPairs(text) {
     const processed = preprocessText(text);
     const cleanText = cleanMultiBlankLines(processed);
     const lines = cleanText.split('\n');
-    const lineInfos = [];
+    const pairs = [];
+    
     for (let line of lines) {
         line = line.trim();
         if (!line) continue;
+        
+        // ========== 新增：处理同一行中英文混排的情况 ==========
+        const hasCn = /[\u4e00-\u9fa5]/.test(line);
+        const hasEn = /[a-zA-Z]/.test(line);
+        
+        if (hasCn && hasEn) {
+            // 同一行既有中文又有英文，拆分它们
+            // 找到第一个中文字符的位置，前面是英文，后面是中文
+            const firstCnIdx = line.search(/[\u4e00-\u9fa5]/);
+            if (firstCnIdx > 0) {
+                const enPart = line.slice(0, firstCnIdx).trim();
+                const cnPart = line.slice(firstCnIdx).trim();
+                const en = extractEnglishText(enPart);
+                const cn = extractChineseText(cnPart);
+                if (en && !hasNoEnglishLetter(en)) {
+                    pairs.push({ en, cn });
+                    continue;
+                }
+            }
+        }
+        // ========== 新增结束 ==========
+        
+        // 原来的逐行判断逻辑（纯英文行或纯中文行）
         if (isChineseDominant(line)) {
-            lineInfos.push({
-                type: 'cn',
-                cn: extractChineseText(line),
-                en: ''
-            });
+            // 纯中文行，和上一个英文配对（如果上一个是英文且还没配对）
+            const cn = extractChineseText(line);
+            if (pairs.length > 0 && !pairs[pairs.length - 1].cn) {
+                pairs[pairs.length - 1].cn = cn;
+            }
         } else {
             const en = extractEnglishText(line);
             if (en && !hasNoEnglishLetter(en)) {
-                lineInfos.push({
-                    type: 'en',
-                    en: en,
-                    cn: ''
-                });
+                pairs.push({ en, cn: '' });
             }
         }
     }
-    const pairs = [];
-    let i = 0;
-    while (i < lineInfos.length) {
-        const curr = lineInfos[i];
-        if (curr.type === 'en' && i + 1 < lineInfos.length && lineInfos[i+1].type === 'cn') {
-            pairs.push({ en: curr.en, cn: lineInfos[i+1].cn });
-            i += 2;
-            continue;
-        }
-        if (curr.type === 'en') {
-            pairs.push({ en: curr.en, cn: '' });
-            i++;
-            continue;
-        }
-        i++;
-    }
+    
+    // 兜底：如果还是没配对成功，用原来的备用方案
     if (pairs.length === 0) {
         const rawLines = cleanText.split('\n').map(l=>l.trim()).filter(l=>l);
         for (let line of rawLines) {
@@ -164,6 +170,7 @@ function parseBilingualPairs(text) {
             }
         }
     }
+    
     return pairs;
 }
 
