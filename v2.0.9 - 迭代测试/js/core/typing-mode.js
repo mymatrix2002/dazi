@@ -101,7 +101,7 @@ function runTypingFullMode(text){
     setTimeout(() => {
         const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
         window.scrollTo({
-            top: titleTop - 60, // 标题距离顶部60px，不会贴顶
+            top: titleTop - 180, // 标题距离顶部60px，不会贴顶
             behavior: 'smooth'
         });
     }, 50);
@@ -212,7 +212,7 @@ function runTypingBilingualMode(text){
     setTimeout(() => {
         const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
         window.scrollTo({
-            top: titleTop - 60, // 标题距离顶部60px，不会贴顶
+            top: titleTop - 180, // 标题距离顶部60px，不会贴顶
             behavior: 'smooth'
         });
     }, 50);
