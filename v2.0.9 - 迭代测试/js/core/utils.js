@@ -124,13 +124,24 @@ function playFinishSound() {
 }
 
 function parseBilingualPairs(text) {
-    // ========== 新增：紧凑单词表预处理 ==========
+    // ========== 第一步：判断是不是紧凑单词表格式 ==========
+    // 只有一行里包含多个音标，才认为是紧凑格式，才需要拆分
+    let isCompactFormat = false;
     let workingText = text;
-    if ((text.match(/\[/g) || []).length >= 2) {
+    const rawLines = text.split('\n');
+    for (let line of rawLines) {
+        if ((line.match(/\[/g) || []).length >= 2) {
+            isCompactFormat = true;
+            break;
+        }
+    }
+    
+    // 只有紧凑格式才执行预处理拆分
+    if (isCompactFormat) {
         workingText = text.replace(/([\u4e00-\u9fa5\uff09\u0029])\s*([a-zA-Z])/g, '$1\n$2');
     }
     
-    // ========== 逐行解析逻辑 ==========
+    // ========== 第二步：逐行解析 ==========
     const pairs = [];
     const processed = preprocessText(workingText);
     const cleanText = cleanMultiBlankLines(processed);
@@ -140,7 +151,7 @@ function parseBilingualPairs(text) {
         let line = lines[i].trim();
         if (!line) continue;
         
-        // 跨行单词表（英文一行 + 音标+中文一行）
+        // 格式1：跨行单词表（英文一行 + 音标+中文一行）
         const nextLine = lines[i + 1] ? lines[i + 1].trim() : '';
         if (nextLine && nextLine.indexOf('[') >= 0 && !/[\u4e00-\u9fa5]/.test(line) && /[a-zA-Z]/.test(line)) {
             const en = extractEnglishText(line);
@@ -152,22 +163,28 @@ function parseBilingualPairs(text) {
             }
         }
         
-        // 同一行单词表（单词 + [音标] + 中文）
+        // 格式2：同一行单词表（单词 + [音标] + 中文）
         if (line.indexOf('[') >= 0) {
             const phoneticStart = line.indexOf('[');
-            const phoneticEnd = line.indexOf(']', phoneticStart);
-            if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
-                const enPart = line.slice(0, phoneticStart).trim();
-                const cnPart = line.slice(phoneticEnd + 1).trim();
-                const en = extractEnglishText(enPart);
-                if (en && !hasNoEnglishLetter(en)) {
-                    pairs.push({ en, cn: cnPart });
-                    continue;
+            const beforePhonetic = line.slice(0, phoneticStart).trim();
+            
+            // 优化：只有音标前面主要是英文，才认为是单词表格式
+            // 如果音标前面主要是中文，说明是中文行，不当成单词行
+            if (!isChineseDominant(beforePhonetic)) {
+                const phoneticEnd = line.indexOf(']', phoneticStart);
+                if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
+                    const enPart = line.slice(0, phoneticStart).trim();
+                    const cnPart = line.slice(phoneticEnd + 1).trim();
+                    const en = extractEnglishText(enPart);
+                    if (en && !hasNoEnglishLetter(en)) {
+                        pairs.push({ en, cn: cnPart });
+                        continue;
+                    }
                 }
             }
         }
         
-        // 同一行中英文混排（句子+翻译在同一行）
+        // 格式3：同一行中英文混排（句子+翻译在同一行）
         const hasCn = /[\u4e00-\u9fa5]/.test(line);
         const hasEn = /[a-zA-Z]/.test(line);
         if (hasCn && hasEn) {
@@ -184,7 +201,7 @@ function parseBilingualPairs(text) {
             }
         }
         
-        // 原来的逐行判断（英文一行 + 中文一行）
+        // 格式4：原版逐行配对（英文一行 + 中文一行）
         if (isChineseDominant(line)) {
             const cn = extractChineseText(line);
             if (pairs.length > 0 && !pairs[pairs.length - 1].cn) {
@@ -200,8 +217,8 @@ function parseBilingualPairs(text) {
     
     // 兜底方案
     if (pairs.length === 0) {
-        const rawLines = cleanText.split('\n').map(l=>l.trim()).filter(l=>l);
-        for (let line of rawLines) {
+        const rawLines2 = cleanText.split('\n').map(l=>l.trim()).filter(l=>l);
+        for (let line of rawLines2) {
             const en = extractEnglishText(line);
             const cn = extractChineseText(line);
             if (en && !hasNoEnglishLetter(en) && cn) {
