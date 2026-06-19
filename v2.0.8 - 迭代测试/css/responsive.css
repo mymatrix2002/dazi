@@ -59,6 +59,10 @@
   .grid.grid-cols-4 > div > div:first-child {
     margin-bottom: 2px !important;
   }
+  /* 缩小统计栏和设置卡片之间的间距 */
+  .grid.grid-cols-4 {
+    margin-bottom: 16px !important;
+  }  
   .card-round {
     padding-top: 16px !important;
     padding-bottom: 16px !important;
