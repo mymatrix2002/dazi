@@ -1,4 +1,4 @@
-<!-- index.html v2.0.8 最终修复版 -->
+<!-- index.html v2.0.9 最终修复版 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
@@ -20,24 +20,12 @@
     <link rel="stylesheet" href="css/font-size.css">
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
-    <!-- 模式选择弹窗 -->
-    <div id="modeModal" class="modal-mask hidden">
-        <div class="modal-box">
-            <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
-            <p class="text-slate-400 mb-2">「确定」：全文练习模式（单栏全屏，完整保留中英内容，全文打字）</p>
-            <p class="text-slate-400">「取消」：双语对照模式（左右分栏，中文对照，仅练习英文）</p>
-            <div class="modal-buttons">
-                <button id="modalOkBtn" class="btn-primary px-5 py-2">确定</button>
-                <button id="modalCancelBtn" class="btn-normal px-5 py-2">取消</button>
-            </div>
-        </div>
-    </div>
 
     <!-- 头部标题、版本、切换按钮同行布局 -->
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
             <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
-            <span class="version-info whitespace-nowrap">v2.0.8</span>
+            <span class="version-info whitespace-nowrap">v2.0.9</span>
         </div>
         <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
             <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
@@ -166,6 +154,21 @@
         <div class="sticker-item" data-id="1">🐶</div>
         <div class="sticker-item" data-id="2">🚀</div>
         <div class="sticker-item" data-id="3">📖</div>
+    </div>
+
+    <!-- ========== 弹窗统一放最后 ========== -->
+
+    <!-- 模式选择弹窗 -->
+    <div id="modeModal" class="modal-mask hidden">
+        <div class="modal-box">
+            <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
+            <p class="text-slate-400 mb-2">「确定」：全文练习模式（单栏全屏，完整保留中英内容，全文打字）</p>
+            <p class="text-slate-400">「取消」：双语对照模式（左右分栏，中文对照，仅练习英文）</p>
+            <div class="modal-buttons">
+                <button id="modalOkBtn" class="btn-primary px-5 py-2">确定</button>
+                <button id="modalCancelBtn" class="btn-normal px-5 py-2">取消</button>
+            </div>
+        </div>
     </div>
 
     <!-- 使用提醒弹窗 -->
