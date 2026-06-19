@@ -36,7 +36,7 @@
   }
   /* 单独调整第3个统计项（用时）的标签字号 */
   .grid.grid-cols-4 > div:nth-child(3) > div:last-child {
-    font-size: 12px !important;
+    font-size: 11px !important;
   }
   .grid.grid-cols-4 {
     grid-template-columns: repeat(4, 1fr); /* 保持4列，一行显示 */
