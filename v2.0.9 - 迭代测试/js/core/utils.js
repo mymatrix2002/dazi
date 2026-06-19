@@ -116,32 +116,62 @@ function playFinishSound() {
 function parseBilingualPairs(text) {
     const pairs = [];
     
-    // ========== 先解析紧凑单词表格式（多个单词在同一段） ==========
-    try {
-        const wordRegex = /([a-zA-Z][a-zA-Z0-9\s'\-.,!?]*?)\s*\[([^\]]+)\]\s*([\u4e00-\u9fa5][^\[]*?)(?=\s+[a-zA-Z]|$)/g;
-        let match;
-        const wordMatches = [];
-        while ((match = wordRegex.exec(text)) !== null) {
-            wordMatches.push({
-                en: match[1].trim(),
-                cn: match[3].trim()
-            });
-        }
-        if (wordMatches.length >= 2) {
-            wordMatches.forEach(item => {
-                const en = extractEnglishText(item.en);
-                if (en && !hasNoEnglishLetter(en)) {
-                    pairs.push({ en, cn: item.cn });
-                }
-            });
-            return pairs;
-        }
-    } catch(e) {
-        // 正则解析出错就跳过，继续用原来的方法
-        console.log('单词表解析出错，使用原方法:', e);
+    // ========== 第一步：先处理紧凑单词表格式 ==========
+    // 先数一下有几个音标，2个以上才认为是单词表
+    let phoneticCount = 0;
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '[') phoneticCount++;
     }
     
-    // ========== 原来的逐行解析逻辑 ==========
+    if (phoneticCount >= 2) {
+        // 在每个单词前插入换行，把一行拆成多行
+        let newText = '';
+        let i = 0;
+        while (i < text.length) {
+            // 找到下一个 [ 音标开始的位置
+            const bracketIdx = text.indexOf('[', i);
+            if (bracketIdx === -1) {
+                newText += text.slice(i);
+                break;
+            }
+            
+            // 找到音标前面的单词部分
+            const beforeBracket = text.slice(i, bracketIdx);
+            
+            // 找到音标结束的位置
+            const endBracketIdx = text.indexOf(']', bracketIdx);
+            if (endBracketIdx === -1) {
+                newText += text.slice(i);
+                break;
+            }
+            
+            // 找到音标后面的中文，直到下一个单词开始
+            const afterBracket = text.slice(endBracketIdx + 1);
+            let cnEndIdx = 0;
+            // 找下一个大写字母开头的单词（下一个单词的开始）
+            const nextWordMatch = afterBracket.match(/\s+[A-Z][a-zA-Z]/);
+            if (nextWordMatch) {
+                cnEndIdx = nextWordMatch.index;
+            } else {
+                cnEndIdx = afterBracket.length;
+            }
+            
+            const en = beforeBracket.trim();
+            const cn = afterBracket.slice(0, cnEndIdx).trim();
+            
+            if (en && /[a-zA-Z]/.test(en)) {
+                pairs.push({ en: extractEnglishText(en), cn: cn });
+            }
+            
+            i = endBracketIdx + 1 + cnEndIdx;
+        }
+        
+        if (pairs.length >= 2) {
+            return pairs;
+        }
+    }
+    
+    // ========== 第二步：原来的逐行解析逻辑 ==========
     const processed = preprocessText(text);
     const cleanText = cleanMultiBlankLines(processed);
     const lines = cleanText.split('\n');
@@ -150,9 +180,9 @@ function parseBilingualPairs(text) {
         let line = lines[i].trim();
         if (!line) continue;
         
-        // 跨行单词表格式
+        // 跨行单词表（英文一行 + 音标+中文一行）
         const nextLine = lines[i + 1] ? lines[i + 1].trim() : '';
-        if (nextLine && nextLine.match(/\[.*?\]/) && !/[\u4e00-\u9fa5]/.test(line) && /[a-zA-Z]/.test(line)) {
+        if (nextLine && nextLine.indexOf('[') >= 0 && !/[\u4e00-\u9fa5]/.test(line) && /[a-zA-Z]/.test(line)) {
             const en = extractEnglishText(line);
             const cnPart = nextLine.replace(/\[.*?\]/g, '').trim();
             if (en && !hasNoEnglishLetter(en)) {
@@ -162,9 +192,8 @@ function parseBilingualPairs(text) {
             }
         }
         
-        // 同一行单词表格式
-        const phoneticMatch = line.match(/\[.*?\]/);
-        if (phoneticMatch) {
+        // 同一行单词表
+        if (line.indexOf('[') >= 0) {
             const phoneticStart = line.indexOf('[');
             const phoneticEnd = line.indexOf(']', phoneticStart);
             if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
