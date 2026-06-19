@@ -1,0 +1,355 @@
+// js/feature/virtual-keyboard.js 完整代码
+// 虚拟键盘功能模块
+
+(function() {
+    'use strict';
+    
+    // ========== 内部变量 ==========
+    let isEnabled = false;
+    let isShiftActive = false;
+    let isNumberMode = false;
+    let keyboardEl = null;
+    let currentHighlightKey = null;
+    
+    // ========== 键盘布局定义 ==========
+    const LETTER_LAYOUT = [
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+        ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+        ['num', 'space', 'enter']
+    ];
+    
+    const NUMBER_LAYOUT = [
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+        ['-', '/', ':', '?', '!', '@', '#', '$', '%', '&'],
+        ['shift', '"', "'", '(', ')', '*', '+', ',', '.', 'backspace'],
+        ['abc', 'space', 'enter']
+    ];
+    
+    // ========== 初始化 ==========
+    function init() {
+        // 从本地存储读取设置
+        const saved = localStorage.getItem('virtualKeyboardEnabled');
+        isEnabled = saved === 'true';
+        
+        // 创建键盘容器
+        createKeyboard();
+        
+        // 根据设置显示/隐藏
+        if (isEnabled) {
+            show();
+        }
+    }
+    
+    // ========== 创建键盘DOM ==========
+    function createKeyboard() {
+        keyboardEl = document.createElement('div');
+        keyboardEl.className = 'virtual-keyboard';
+        keyboardEl.id = 'virtualKeyboard';
+        
+        // 键盘头部（收起按钮）
+        const header = document.createElement('div');
+        header.className = 'vk-header';
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'vk-close-btn';
+        closeBtn.textContent = '收起键盘';
+        closeBtn.addEventListener('click', () => toggle());
+        header.appendChild(closeBtn);
+        keyboardEl.appendChild(header);
+        
+        // 键盘按键区域
+        const keysContainer = document.createElement('div');
+        keysContainer.className = 'vk-keys-container';
+        keyboardEl.appendChild(keysContainer);
+        
+        // 渲染按键
+        renderKeys();
+        
+        // 添加到页面
+        document.body.appendChild(keyboardEl);
+    }
+    
+    // ========== 安全查找按键（避免特殊字符导致选择器报错） ==========
+    function findKeyByChar(char) {
+        if (!keyboardEl) return null;
+        const keys = keyboardEl.querySelectorAll('.vk-key');
+        for (let i = 0; i < keys.length; i++) {
+            if (keys[i].dataset.key === char) {
+                return keys[i];
+            }
+        }
+        return null;
+    }
+    
+    // ========== 渲染按键 ==========
+    function renderKeys() {
+        const container = keyboardEl.querySelector('.vk-keys-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const layout = isNumberMode ? NUMBER_LAYOUT : LETTER_LAYOUT;
+        
+        layout.forEach((row, rowIndex) => {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'vk-row';
+            rowEl.dataset.row = rowIndex;
+            
+            row.forEach(key => {
+                const keyEl = document.createElement('button');
+                keyEl.className = 'vk-key';
+                keyEl.dataset.key = key;
+                keyEl.type = 'button';
+                
+                // 设置按键显示内容
+                switch(key) {
+                    case 'shift':
+                        keyEl.textContent = '⇧';
+                        keyEl.classList.add('vk-key-wide');
+                        if (isShiftActive) keyEl.classList.add('vk-shift-active');
+                        break;
+                    case 'backspace':
+                        keyEl.textContent = '⌫';
+                        keyEl.classList.add('vk-key-wide');
+                        break;
+                    case 'space':
+                        keyEl.textContent = '空格';
+                        keyEl.classList.add('vk-key-space');
+                        break;
+                    case 'enter':
+                        keyEl.textContent = '回车';
+                        keyEl.classList.add('vk-key-wide');
+                        break;
+                    case 'num':
+                        keyEl.textContent = '123';
+                        keyEl.classList.add('vk-key-wide');
+                        break;
+                    case 'abc':
+                        keyEl.textContent = 'ABC';
+                        keyEl.classList.add('vk-key-wide');
+                        break;
+                    default:
+                        // 字母或数字
+                        keyEl.textContent = isShiftActive ? key.toUpperCase() : key;
+                }
+                
+                // 点击事件
+                keyEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleKeyPress(key, keyEl);
+                });
+                
+                // 触摸事件（防止聚焦输入框）
+                keyEl.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                });
+                
+                rowEl.appendChild(keyEl);
+            });
+            
+            container.appendChild(rowEl);
+        });
+    }
+    
+    // ========== 处理按键点击 ==========
+    function handleKeyPress(key, keyEl) {
+        const inputArea = document.getElementById('inputArea');
+        if (!inputArea) return;
+        
+        // 如果输入框是聚焦状态，先失焦，防止系统键盘弹出
+        if (document.activeElement === inputArea) {
+            inputArea.blur();
+        }
+        
+        switch(key) {
+            case 'shift':
+                isShiftActive = !isShiftActive;
+                renderKeys();
+                return;
+            case 'backspace':
+                // 删除最后一个字符
+                inputArea.value = inputArea.value.slice(0, -1);
+                break;
+            case 'space':
+                inputArea.value += ' ';
+                break;
+            case 'enter':
+                // 触发回车逻辑
+                if (window.doHandleTypingEnter) {
+                    window.doHandleTypingEnter();
+                }
+                break;
+            case 'num':
+                isNumberMode = true;
+                renderKeys();
+                return;
+            case 'abc':
+                isNumberMode = false;
+                renderKeys();
+                return;
+            default:
+                // 普通字符
+                const char = isShiftActive ? key.toUpperCase() : key;
+                inputArea.value += char;
+                // 输入后自动切回小写（模拟真实键盘单次shift）
+                if (isShiftActive && !isNumberMode) {
+                    isShiftActive = false;
+                    renderKeys();
+                }
+        }
+        
+        // 手动触发 input 事件，让原有校验逻辑正常运行
+        const inputEvent = new Event('input', { bubbles: true });
+        inputArea.dispatchEvent(inputEvent);
+        
+        // 按键按下反馈
+        keyEl.classList.add('vk-pressed');
+        setTimeout(() => {
+            keyEl.classList.remove('vk-pressed');
+        }, 150);
+    }
+    
+    // ========== 更新高亮按键（指法引导） ==========
+    function updateHighlight(nextChar) {
+        if (!isEnabled || !keyboardEl) return;
+        
+        // 清除之前的高亮
+        if (currentHighlightKey) {
+            currentHighlightKey.classList.remove('vk-highlight');
+            currentHighlightKey = null;
+        }
+        
+        if (!nextChar || nextChar === '') return;
+        
+        // 空格特殊处理
+        if (nextChar === ' ') {
+            const spaceKey = findKeyByChar('space');
+            if (spaceKey) {
+                spaceKey.classList.add('vk-highlight');
+                currentHighlightKey = spaceKey;
+            }
+            return;
+        }
+        
+        // 换行特殊处理
+        if (nextChar === '\n' || nextChar === '\r') {
+            const enterKey = findKeyByChar('enter');
+            if (enterKey) {
+                enterKey.classList.add('vk-highlight');
+                currentHighlightKey = enterKey;
+            }
+            return;
+        }
+        
+        // 普通字符
+        const charLower = nextChar.toLowerCase();
+        let keyEl = findKeyByChar(charLower);
+        
+        // 如果没找到，尝试在数字符号布局找
+        if (!keyEl && !isNumberMode) {
+            // 检查是否是数字或符号
+            const isNumOrSymbol = /[0-9\-\/:?!@#$%&"'()*+,.]/.test(nextChar);
+            if (isNumOrSymbol) {
+                // 自动切换到数字布局
+                isNumberMode = true;
+                renderKeys();
+                keyEl = findKeyByChar(charLower);
+            }
+        }
+        
+        if (keyEl) {
+            keyEl.classList.add('vk-highlight');
+            currentHighlightKey = keyEl;
+            
+            // 如果是大写字母，自动激活 shift
+            if (/[A-Z]/.test(nextChar) && !isShiftActive && !isNumberMode) {
+                isShiftActive = true;
+                renderKeys();
+                // 重新查找（因为重新渲染了）
+                const newKeyEl = findKeyByChar(charLower);
+                if (newKeyEl) {
+                    newKeyEl.classList.add('vk-highlight');
+                    currentHighlightKey = newKeyEl;
+                }
+            }
+        }
+    }
+    
+    // ========== 设置正确/错误反馈 ==========
+    function setFeedback(isCorrect) {
+        if (!currentHighlightKey) return;
+        
+        const keyEl = currentHighlightKey;
+        const feedbackClass = isCorrect ? 'vk-correct' : 'vk-wrong';
+        keyEl.classList.add(feedbackClass);
+        
+        setTimeout(() => {
+            keyEl.classList.remove(feedbackClass);
+        }, 300);
+    }
+    
+    // ========== 重置键盘状态 ==========
+    function reset() {
+        // 清除高亮
+        if (currentHighlightKey) {
+            currentHighlightKey.classList.remove('vk-highlight');
+            currentHighlightKey = null;
+        }
+        // 清除所有反馈状态
+        if (keyboardEl) {
+            const keys = keyboardEl.querySelectorAll('.vk-key');
+            keys.forEach(key => {
+                key.classList.remove('vk-correct', 'vk-wrong', 'vk-pressed');
+            });
+        }
+        // 重置 shift 和数字模式，回到默认小写字母布局
+        isShiftActive = false;
+        isNumberMode = false;
+        renderKeys();
+    }
+    
+    // ========== 显示/隐藏切换 ==========
+    function toggle() {
+        if (isEnabled) {
+            hide();
+        } else {
+            show();
+        }
+    }
+    
+    function show() {
+        isEnabled = true;
+        localStorage.setItem('virtualKeyboardEnabled', 'true');
+        
+        if (keyboardEl) {
+            keyboardEl.classList.add('vk-show');
+        }
+        
+        // 给 body 添加底部 padding，防止遮挡内容
+        document.body.style.paddingBottom = '260px';
+    }
+    
+    function hide() {
+        isEnabled = false;
+        localStorage.setItem('virtualKeyboardEnabled', 'false');
+        
+        if (keyboardEl) {
+            keyboardEl.classList.remove('vk-show');
+        }
+        
+        // 恢复 body 底部 padding
+        document.body.style.paddingBottom = '';
+    }
+    
+    // ========== 对外接口 ==========
+    window.virtualKeyboard = {
+        init: init,
+        updateHighlight: updateHighlight,
+        setFeedback: setFeedback,
+        toggle: toggle,
+        show: show,
+        hide: hide,
+        reset: reset,
+        isEnabled: function() { return isEnabled; }
+    };
+    
+})();
