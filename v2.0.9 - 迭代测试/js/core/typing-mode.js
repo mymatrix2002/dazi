@@ -97,13 +97,22 @@ function runTypingFullMode(text){
     accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
-    // 自动滚动到练习区，标题距离顶部留一点距离，不会太高
+    // 自动滚动：让第一个光标在视口的 1/3 处
     setTimeout(() => {
-        const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({
-            top: titleTop - 180, // 标题距离顶部60px，不会贴顶
-            behavior: 'smooth'
-        });
+        const firstChar = paragraphContainerEl.querySelector('.char-current');
+        if(firstChar) {
+            const charRect = firstChar.getBoundingClientRect();
+            // 想让光标在视口的哪个位置，就改这个比例
+            // 1/3 = 光标在视口上1/3处
+            // 1/2 = 光标在视口中间
+            // 2/3 = 光标在视口下1/3处
+            const targetY = window.innerHeight / 3;
+            const scrollDelta = charRect.top - targetY;
+            window.scrollBy({
+                top: scrollDelta,
+                behavior: 'smooth'
+            });
+        }
     }, 50);
 }
 
@@ -208,12 +217,21 @@ function runTypingBilingualMode(text){
     accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
-    // 自动滚动到练习区，标题距离顶部留一点距离，不会太高
+    // 自动滚动：让第一个光标在视口的 1/3 处
     setTimeout(() => {
-        const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({
-            top: titleTop - 180, // 标题距离顶部60px，不会贴顶
-            behavior: 'smooth'
-        });
+        const firstChar = paragraphContainerEl.querySelector('.char-current');
+        if(firstChar) {
+            const charRect = firstChar.getBoundingClientRect();
+            // 想让光标在视口的哪个位置，就改这个比例
+            // 1/3 = 光标在视口上1/3处
+            // 1/2 = 光标在视口中间
+            // 2/3 = 光标在视口下1/3处
+            const targetY = window.innerHeight / 3;
+            const scrollDelta = charRect.top - targetY;
+            window.scrollBy({
+                top: scrollDelta,
+                behavior: 'smooth'
+            });
+        }
     }, 50);
 }
