@@ -39,6 +39,10 @@
     gap: 8px; /* 缩小间距，适配手机宽度 */
     margin-bottom: 16px !important;
   }
+    /* 单独调整"用时"标签字号，视觉均衡 */
+  .grid.grid-cols-4 > div > div.label-time {
+    font-size: 14px !important;
+  }
   /* 统计数字调小一点 */
   .grid.grid-cols-4 > div > div:first-child {
     font-size: 18px !important;
@@ -54,10 +58,6 @@
   /* 数字和标签间距缩小 */
   .grid.grid-cols-4 > div > div:first-child {
     margin-bottom: 2px !important;
-  }
-  /* 单独调整"用时"标签字号，视觉均衡 */
-  .grid.grid-cols-4 > div > div.label-time {
-    font-size: 13px !important;
   }
   .card-round {
     padding-top: 16px !important;
