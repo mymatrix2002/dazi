@@ -61,7 +61,7 @@
   }
   /* 缩小统计栏和设置卡片之间的间距 */
   .grid.grid-cols-4 {
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
   }  
   .card-round {
     padding-top: 16px !important;
