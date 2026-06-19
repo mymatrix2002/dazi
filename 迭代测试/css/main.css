@@ -56,8 +56,8 @@
 
 /* ========== 动画定义 ========== */
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); } /* 跳动幅度，-3px更柔和 */
+    0%, 100% { top: 0; }
+    50% { top: -5px; }
 }
 @keyframes blink {
     0%, 50% { border-color: var(--border-focus); }
@@ -159,7 +159,8 @@
     color: var(--color-correct);
     animation: bounce 0.3s ease;
     font-weight: 600;
-    display: inline-block; /* 关键：改成inline-block，动画只影响单个字符 */
+    position: relative;
+    display: inline;
 }
 .char-wrong {
     color: var(--color-wrong);
@@ -253,6 +254,7 @@ body {
 }
 .paragraph-container.two-col {
     grid-template-columns: 42% 58%;
+    align-items: start; /* 新增：左右两栏强制顶部对齐 */
 }
 .paragraph-container.one-col {
     grid-template-columns: 100%;
@@ -295,7 +297,9 @@ body {
     word-break: normal;
     text-align: left;
     box-sizing: border-box;
-    display: block; /* 必须用block，才能正常换行 */
+    display: block;
+    padding: 0.75rem; /* 新增：和中文栏保持一样的内边距 */
+    border-radius: 0.5rem; /* 新增：圆角也保持一致 */
 }
 .paragraph-full {
     width: 100%;

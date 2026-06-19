@@ -177,7 +177,11 @@
                 if (window.doHandleTypingEnter) {
                     window.doHandleTypingEnter();
                 }
-                break;
+                // 回车强制重置键盘状态（切回字母、关闭shift）
+                isNumberMode = false;
+                isShiftActive = false;
+                renderKeys();
+                return;
             case 'num':
                 isNumberMode = true;
                 renderKeys();
@@ -190,8 +194,8 @@
                 // 普通字符
                 const char = isShiftActive ? key.toUpperCase() : key;
                 inputArea.value += char;
-                // 输入后自动切回小写（模拟真实键盘单次shift）
-                if (isShiftActive && !isNumberMode) {
+                // 单次shift输入后立刻关闭shift，防止常亮
+                if (isShiftActive) {
                     isShiftActive = false;
                     renderKeys();
                 }
@@ -200,6 +204,14 @@
         // 手动触发 input 事件，让原有校验逻辑正常运行
         const inputEvent = new Event('input', { bubbles: true });
         inputArea.dispatchEvent(inputEvent);
+        
+        // ========== 输入符号后自动切回字母键盘 ==========
+        if (isNumberMode) {
+            setTimeout(() => {
+                isNumberMode = false;
+                renderKeys();
+            }, 300);
+        }
         
         // 按键按下反馈
         keyEl.classList.add('vk-pressed');
@@ -220,57 +232,73 @@
         
         if (!nextChar || nextChar === '') return;
         
-        // 空格特殊处理
-        if (nextChar === ' ') {
-            const spaceKey = findKeyByChar('space');
-            if (spaceKey) {
-                spaceKey.classList.add('vk-highlight');
-                currentHighlightKey = spaceKey;
+        // 封装真正执行高亮的逻辑，方便布局切换后延迟调用
+        function doHighlightLogic(char) {
+            // 空格特殊处理
+            if (char === ' ') {
+                const spaceKey = findKeyByChar('space');
+                if (spaceKey) {
+                    spaceKey.classList.add('vk-highlight');
+                    currentHighlightKey = spaceKey;
+                }
+                return;
             }
-            return;
-        }
-        
-        // 换行特殊处理
-        if (nextChar === '\n' || nextChar === '\r') {
-            const enterKey = findKeyByChar('enter');
-            if (enterKey) {
-                enterKey.classList.add('vk-highlight');
-                currentHighlightKey = enterKey;
-            }
-            return;
-        }
-        
-        // 普通字符
-        const charLower = nextChar.toLowerCase();
-        let keyEl = findKeyByChar(charLower);
-        
-        // 如果没找到，尝试在数字符号布局找
-        if (!keyEl && !isNumberMode) {
-            // 检查是否是数字或符号
-            const isNumOrSymbol = /[0-9\-\/:?!@#$%&"'()*+,.]/.test(nextChar);
-            if (isNumOrSymbol) {
-                // 自动切换到数字布局
-                isNumberMode = true;
-                renderKeys();
-                keyEl = findKeyByChar(charLower);
-            }
-        }
-        
-        if (keyEl) {
-            keyEl.classList.add('vk-highlight');
-            currentHighlightKey = keyEl;
             
-            // 如果是大写字母，自动激活 shift
-            if (/[A-Z]/.test(nextChar) && !isShiftActive && !isNumberMode) {
-                isShiftActive = true;
-                renderKeys();
-                // 重新查找（因为重新渲染了）
-                const newKeyEl = findKeyByChar(charLower);
-                if (newKeyEl) {
-                    newKeyEl.classList.add('vk-highlight');
-                    currentHighlightKey = newKeyEl;
+            // 换行特殊处理
+            if (char === '\n' || char === '\r') {
+                const enterKey = findKeyByChar('enter');
+                if (enterKey) {
+                    enterKey.classList.add('vk-highlight');
+                    currentHighlightKey = enterKey;
+                }
+                return;
+            }
+            
+            const charLower = char.toLowerCase();
+            let keyEl = findKeyByChar(charLower);
+            
+            // 如果没找到，尝试在数字符号布局找
+            if (!keyEl && !isNumberMode) {
+                // 检查是否是数字或符号
+                const isNumOrSymbol = /[0-9\-\/:?!@#$%&"'()*+,.]/.test(char);
+                if (isNumOrSymbol) {
+                    // 自动切换到数字布局
+                    isNumberMode = true;
+                    renderKeys();
+                    keyEl = findKeyByChar(charLower);
                 }
             }
+            
+            if (keyEl && !isNumberMode) {
+                // ========== 自动同步 shift 状态（指法引导用） ==========
+                const needShift = /[A-Z]/.test(char); // 大写字母需要shift
+                if (needShift !== isShiftActive) {
+                    isShiftActive = needShift;
+                    renderKeys();
+                    // 重新查找并高亮
+                    const newKeyEl = findKeyByChar(charLower);
+                    if (newKeyEl) {
+                        newKeyEl.classList.add('vk-highlight');
+                        currentHighlightKey = newKeyEl;
+                    }
+                    return;
+                }
+            }
+            
+            if (keyEl) {
+                keyEl.classList.add('vk-highlight');
+                currentHighlightKey = keyEl;
+            }
+        }
+        
+        // 如果当前是数字布局，先切回字母布局，渲染完再做高亮判断
+        if (isNumberMode) {
+            isNumberMode = false;
+            renderKeys();
+            // 延迟一帧保证DOM渲染完成
+            setTimeout(() => doHighlightLogic(nextChar), 0);
+        } else {
+            doHighlightLogic(nextChar);
         }
     }
     
