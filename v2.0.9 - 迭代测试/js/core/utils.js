@@ -123,12 +123,29 @@ function parseBilingualPairs(text) {
         line = line.trim();
         if (!line) continue;
         
-        // ========== 新增：处理同一行中英文混排的情况 ==========
+        // ========== 新增1：单词表格式（单词 + [音标] + 中文释义） ==========
+        const phoneticMatch = line.match(/\[.*?\]/);
+        if (phoneticMatch) {
+            const phoneticStart = line.indexOf('[');
+            const phoneticEnd = line.indexOf(']', phoneticStart);
+            if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
+                // 音标前面是英文单词/短语
+                const enPart = line.slice(0, phoneticStart).trim();
+                // 音标后面是中文释义
+                const cnPart = line.slice(phoneticEnd + 1).trim();
+                const en = extractEnglishText(enPart);
+                if (en && !hasNoEnglishLetter(en)) {
+                    pairs.push({ en, cn: cnPart });
+                    continue;
+                }
+            }
+        }
+        
+        // ========== 新增2：同一行中英文混排（句子+翻译在同一行） ==========
         const hasCn = /[\u4e00-\u9fa5]/.test(line);
         const hasEn = /[a-zA-Z]/.test(line);
         
         if (hasCn && hasEn) {
-            // 同一行既有中文又有英文，拆分它们
             // 找到第一个中文字符的位置，前面是英文，后面是中文
             const firstCnIdx = line.search(/[\u4e00-\u9fa5]/);
             if (firstCnIdx > 0) {
@@ -142,11 +159,10 @@ function parseBilingualPairs(text) {
                 }
             }
         }
-        // ========== 新增结束 ==========
         
-        // 原来的逐行判断逻辑（纯英文行或纯中文行）
+        // ========== 原来的逐行判断逻辑（英文一行+中文一行） ==========
         if (isChineseDominant(line)) {
-            // 纯中文行，和上一个英文配对（如果上一个是英文且还没配对）
+            // 纯中文行，和上一个英文配对
             const cn = extractChineseText(line);
             if (pairs.length > 0 && !pairs[pairs.length - 1].cn) {
                 pairs[pairs.length - 1].cn = cn;
@@ -159,7 +175,7 @@ function parseBilingualPairs(text) {
         }
     }
     
-    // 兜底：如果还是没配对成功，用原来的备用方案
+    // 兜底方案
     if (pairs.length === 0) {
         const rawLines = cleanText.split('\n').map(l=>l.trim()).filter(l=>l);
         for (let line of rawLines) {
@@ -173,6 +189,7 @@ function parseBilingualPairs(text) {
     
     return pairs;
 }
+
 
 // ========== 语音朗读工具 ==========
 function numberToEnglish(num) {
