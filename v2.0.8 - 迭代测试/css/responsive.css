@@ -34,9 +34,9 @@
   #helpBtn {
     flex-shrink: 0;
   }
-   /* 单独调整"用时"标签字号，视觉均衡 */
-  .grid.grid-cols-4 > div > div.label-time {
-    font-size: 16px !important;
+  /* 单独调整第3个统计项（用时）的标签字号 */
+  .grid.grid-cols-4 > div:nth-child(3) > div:last-child {
+    font-size: 12px !important;
   }
   .grid.grid-cols-4 {
     grid-template-columns: repeat(4, 1fr); /* 保持4列，一行显示 */
