@@ -97,11 +97,12 @@ function runTypingFullMode(text){
     accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
-    // 自动滚动到练习区标题，确保手机端能看到"全文练习"文字
+    // 自动滚动到练习区，标题距离顶部留一点距离，不会太高
     setTimeout(() => {
-        areaTitleEl.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+        const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({
+            top: titleTop - 60, // 标题距离顶部60px，不会贴顶
+            behavior: 'smooth'
         });
     }, 50);
 }
@@ -207,11 +208,12 @@ function runTypingBilingualMode(text){
     accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
-    // 自动滚动到练习区标题，确保手机端能看到"中文对照"文字
+    // 自动滚动到练习区，标题距离顶部留一点距离，不会太高
     setTimeout(() => {
-        areaTitleEl.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+        const titleTop = areaTitleEl.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({
+            top: titleTop - 60, // 标题距离顶部60px，不会贴顶
+            behavior: 'smooth'
         });
     }, 50);
 }
