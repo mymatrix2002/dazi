@@ -127,7 +127,7 @@ function parseBilingualPairs(text) {
     // ========== 新增：紧凑单词表预处理 ==========
     let workingText = text;
     if ((text.match(/\[/g) || []).length >= 2) {
-        workingText = text.replace(/([\u4e00-\u9fa5）)])\s*([a-zA-Z])/g, '$1\n$2');
+        workingText = text.replace(/([\u4e00-\u9fa5\uff09\u0029])\s*([a-zA-Z])/g, '$1\n$2');
     }
     
     // ========== 逐行解析逻辑 ==========
