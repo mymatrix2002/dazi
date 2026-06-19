@@ -30,6 +30,11 @@
     function init() {
         // 手机端不显示虚拟键盘（宽度 <= 768px）
         if (window.innerWidth <= 768) {
+            // 手机端：去掉 inputmode="none"，让系统键盘可以正常弹出
+            const inputArea = document.getElementById('inputArea');
+            if (inputArea) {
+                inputArea.removeAttribute('inputmode');
+            }
             return;
         }
         
