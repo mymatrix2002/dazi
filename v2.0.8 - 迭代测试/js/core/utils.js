@@ -357,31 +357,40 @@ function showFinishModal(){
         alert('还没有输入任何内容哦～');
         return;
     }
-
+    
     playFinishSound(); // 练习完成欢庆音效
     unlockSticker(3);
     const totalSec = Math.floor((Date.now() - startTime) / 1000);
     const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
     const sec = String(totalSec % 60).padStart(2, '0');
     const timeStr = `${min}:${sec}`;
-
+    
+    // 计算全文完成度
+    let prog = 0;
+    if(targetChars.length > 0){
+        prog = Math.round(currentPos / targetChars.length * 100);
+    }
+    
     let finalAcc = 0;
     if (totalInput > 0) {
         finalAcc = Math.round((correctCnt / totalInput) * 100);
         if(finalAcc > 100) finalAcc = 100;
     }
+    
     const wordCount = finishedWordSet.size;
     let tipText = '';
-    if(finalAcc === 100){
-        tipText = '太棒啦！全部正确，打字基本功非常扎实🎉';
+    if(finalAcc === 100 && prog === 100){
+        tipText = '太棒啦！全部正确且全部完成，打字基本功非常扎实🎉';
+    }else if(finalAcc >= 80 && prog >= 80){
+        tipText = '表现不错！完成度和准确率都很好，继续加油✨';
+    }else if(prog < 50){
+        tipText = '这次只做了一小部分，下次争取多做几行哦～';
     }else if(finalAcc >= 80){
-        tipText = '表现不错！少量失误，多加练习就能满分✨';
-    }else if(finalAcc >= 60){
-        tipText = '刚好及格，注意区分易混淆字母，放慢速度减少错误';
+        tipText = '正确率很高！放慢速度，争取完成更多内容';
     }else{
         tipText = '正确率偏低，建议放慢输入速度，看清单词再敲击';
     }
-
+    
     const mask = document.createElement('div');
     mask.className = 'modal-mask-finish';
     mask.id = 'finishMask';
@@ -392,6 +401,10 @@ function showFinishModal(){
             <div class="data-row">
                 <span class="data-label">总用时</span>
                 <span class="data-value">${timeStr}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">全文完成度</span>
+                <span class="data-value">${prog}%</span>
             </div>
             <div class="data-row">
                 <span class="data-label">完成单词行数</span>
@@ -406,9 +419,13 @@ function showFinishModal(){
                 <span class="data-value good">${correctCnt}</span>
             </div>
             <div class="data-row">
-                <span class="data-label">最终准确率</span>
+                <span class="data-label">输入准确率</span>
                 <span class="data-value good">${finalAcc}%</span>
             </div>
+            <p style="font-size: 12px; color: var(--text-light); text-align: center; margin-top: 12px; line-height: 1.5;">
+                完成度 = 已练习内容占全文的比例<br>
+                准确率 = 已输入内容的正确率
+            </p>
             <div class="btn-wrap">
                 <button class="btn-finish btn-secondary-finish" id="modalClear">清空文本</button>
                 <button class="btn-finish btn-primary-finish" id="modalRestart">重新练习</button>
