@@ -327,21 +327,6 @@ function bindBaseEvents() {
         }, 200);
     });
 
-    // 输入实时滚动
-    inputAreaEl.addEventListener('input', function() {
-        if (!typingRunning) return;
-        setTimeout(() => {
-            let targetDom = null;
-            if(isBilingualMode){
-                targetDom = paragraphContainerEl.querySelector('.char-wrong') || paragraphContainerEl.querySelector('.char-current') || paragraphContainerEl.querySelector('.char-pending');
-            }else{
-                targetDom = displayAreaEl.querySelector('.char-wrong') || displayAreaEl.querySelector('.char-current') || displayAreaEl.querySelector('.char-pending');
-            }
-            if(targetDom){
-                targetDom.scrollIntoView({block:'nearest', behavior:'smooth'});
-            }
-        }, 80);
-    });
 }
 
 // 页面加载初始化字号
