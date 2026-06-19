@@ -93,8 +93,8 @@ function runTypingFullMode(text){
     resetBtnEl.disabled = false;
 
     timerId = setInterval(updateStat, 1000);
-    accuracyEl.textContent = "100%";
-    accBar.style.width = "100%";
+    accuracyEl.textContent = "0%";
+    accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
     // 自动滚动到练习区标题，确保手机端能看到"全文练习"文字
@@ -203,8 +203,8 @@ function runTypingBilingualMode(text){
     resetBtnEl.disabled = false;
 
     timerId = setInterval(updateStat, 1000);
-    accuracyEl.textContent = "100%";
-    accBar.style.width = "100%";
+    accuracyEl.textContent = "0%";
+    accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
     // 自动滚动到练习区标题，确保手机端能看到"中文对照"文字
