@@ -114,7 +114,7 @@ function bindBaseEvents() {
         if(!/^https?:\/\//i.test(url)) url='https://'+url;
         window.open(url,'_blank');
     }
-    quickLinkBtns.forEach(btn=>btn.addEventListener('click',()=>openUrl(btn.dataset)));
+    quickLinkBtns.forEach(btn=>btn.addEventListener('click',()=>openUrl(btn.dataset.url)));
 
     // 全文朗读/停止按钮
     readAllBtnEl.addEventListener('click',function(){
