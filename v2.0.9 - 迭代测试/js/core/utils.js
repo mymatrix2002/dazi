@@ -127,7 +127,8 @@ function parseBilingualPairs(text) {
     // ========== 新增：紧凑单词表预处理 ==========
     let workingText = text;
     if ((text.match(/\[/g) || []).length >= 2) {
-        workingText = text.replace(/([\u4e00-\u9fa5\uff09\u0029])\s*([a-zA-Z])/g, '$1\n$2');
+        // 只在「中文字符 + 可选音标 + 英文字母/★」的地方拆分，避免拆到音标内部
+        workingText = text.replace(/([\u4e00-\u9fa5])(\[.*?\])?\s*([a-zA-Z★])/g, '$1$2\n$3');
     }
     
     // ========== 逐行解析逻辑 ==========
@@ -140,34 +141,7 @@ function parseBilingualPairs(text) {
         let line = lines[i].trim();
         if (!line) continue;
         
-        // 跨行单词表（英文一行 + 音标+中文一行）
-        const nextLine = lines[i + 1] ? lines[i + 1].trim() : '';
-        if (nextLine && nextLine.indexOf('[') >= 0 && !/[\u4e00-\u9fa5]/.test(line) && /[a-zA-Z]/.test(line)) {
-            const en = extractEnglishText(line);
-            const cnPart = nextLine.replace(/\[.*?\]/g, '').trim();
-            if (en && !hasNoEnglishLetter(en)) {
-                pairs.push({ en, cn: cnPart });
-                i++;
-                continue;
-            }
-        }
-        
-        // 同一行单词表（单词 + [音标] + 中文）
-        if (line.indexOf('[') >= 0) {
-            const phoneticStart = line.indexOf('[');
-            const phoneticEnd = line.indexOf(']', phoneticStart);
-            if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
-                const enPart = line.slice(0, phoneticStart).trim();
-                const cnPart = line.slice(phoneticEnd + 1).trim();
-                const en = extractEnglishText(enPart);
-                if (en && !hasNoEnglishLetter(en)) {
-                    pairs.push({ en, cn: cnPart });
-                    continue;
-                }
-            }
-        }
-        
-        // 同一行中英文混排（句子+翻译在同一行）
+        // 同一行既有英文又有中文 → 按第一个中文字符拆分（音标在哪边都能处理）
         const hasCn = /[\u4e00-\u9fa5]/.test(line);
         const hasEn = /[a-zA-Z]/.test(line);
         if (hasCn && hasEn) {
@@ -181,6 +155,18 @@ function parseBilingualPairs(text) {
                     pairs.push({ en, cn });
                     continue;
                 }
+            }
+        }
+        
+        // 跨行单词表（英文一行 + 音标+中文一行）
+        const nextLine = lines[i + 1] ? lines[i + 1].trim() : '';
+        if (nextLine && nextLine.indexOf('[') >= 0 && !hasCn && hasEn) {
+            const en = extractEnglishText(line);
+            const cnPart = nextLine.replace(/\[.*?\]/g, '').trim();
+            if (en && !hasNoEnglishLetter(en)) {
+                pairs.push({ en, cn: cnPart });
+                i++;
+                continue;
             }
         }
         
