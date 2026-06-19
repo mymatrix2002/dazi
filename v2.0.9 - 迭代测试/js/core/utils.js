@@ -126,56 +126,135 @@ function playFinishSound() {
 function parseBilingualPairs(text) {
     const pairs = [];
     
-    // ========== 第一步：预处理，把中文和英文拆成不同的行 ==========
-    let workingText = text;
+    // ========== 第一步：判断是不是紧凑单词表格式 ==========
+    let isCompactFormat = false;
+    const rawLines = text.split('\n');
+    for (let line of rawLines) {
+        if ((line.match(/\[/g) || []).length >= 2) {
+            isCompactFormat = true;
+            break;
+        }
+    }
     
-    // 中文/中文标点 后面跟英文字母 → 中间插入换行
-    workingText = workingText.replace(/([\u4e00-\u9fa5\uff09\u0029\uff1b\uff0c\u3002])\s*([a-zA-Z])/g, '$1\n$2');
-    // 英文字母 后面跟中文字符 → 中间插入换行
-    workingText = workingText.replace(/([a-zA-Z])\s*([\u4e00-\u9fa5])/g, '$1\n$2');
-    
-    // ========== 第二步：分别收集所有英文和中文 ==========
-    const processed = preprocessText(workingText);
-    const cleanText = cleanMultiBlankLines(processed);
-    const lines = cleanText.split('\n');
-    
-    const enList = [];
-    const cnList = [];
-    
-    for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
+    if (isCompactFormat) {
+        // ========== 紧凑格式处理（已验证正确） ==========
+        let workingText = text.replace(/([\u4e00-\u9fa5\uff09\u0029])\s*([a-zA-Z])/g, '$1\n$2');
+        const processed = preprocessText(workingText);
+        const cleanText = cleanMultiBlankLines(processed);
+        const lines = cleanText.split('\n');
         
-        if (isChineseDominant(line)) {
-            // 中文行：提取中文，自动去掉音标
-            const cn = extractChineseText(line);
-            if (cn) {
-                cnList.push(cn);
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+            
+            // 跨行单词表（英文一行 + 音标+中文一行）
+            const nextLine = lines[i + 1] ? lines[i + 1].trim() : '';
+            if (nextLine && nextLine.indexOf('[') >= 0 && !/[\u4e00-\u9fa5]/.test(line) && /[a-zA-Z]/.test(line)) {
+                const en = extractEnglishText(line);
+                const cnPart = nextLine.replace(/\[.*?\]/g, '').trim();
+                if (en && !hasNoEnglishLetter(en)) {
+                    pairs.push({ en, cn: cnPart });
+                    i++;
+                    continue;
+                }
             }
-        } else {
-            // 英文行：提取英文，自动去掉音标和特殊符号
-            const en = extractEnglishText(line);
-            if (en && !hasNoEnglishLetter(en)) {
-                enList.push(en);
+            
+            // 同一行单词表（单词 + [音标] + 中文）
+            if (line.indexOf('[') >= 0) {
+                const phoneticStart = line.indexOf('[');
+                const beforePhonetic = line.slice(0, phoneticStart).trim();
+                if (!isChineseDominant(beforePhonetic)) {
+                    const phoneticEnd = line.indexOf(']', phoneticStart);
+                    if (phoneticStart > 0 && phoneticEnd > phoneticStart) {
+                        const enPart = line.slice(0, phoneticStart).trim();
+                        const cnPart = line.slice(phoneticEnd + 1).trim();
+                        const en = extractEnglishText(enPart);
+                        if (en && !hasNoEnglishLetter(en)) {
+                            pairs.push({ en, cn: cnPart });
+                            continue;
+                        }
+                    }
+                }
+            }
+            
+            // 同一行中英文混排
+            const hasCn = /[\u4e00-\u9fa5]/.test(line);
+            const hasEn = /[a-zA-Z]/.test(line);
+            if (hasCn && hasEn) {
+                const firstCnIdx = line.search(/[\u4e00-\u9fa5]/);
+                if (firstCnIdx > 0) {
+                    const enPart = line.slice(0, firstCnIdx).trim();
+                    const cnPart = line.slice(firstCnIdx).trim();
+                    const en = extractEnglishText(enPart);
+                    const cn = extractChineseText(cnPart);
+                    if (en && !hasNoEnglishLetter(en)) {
+                        pairs.push({ en, cn });
+                        continue;
+                    }
+                }
+            }
+            
+            // 原版逐行配对
+            if (isChineseDominant(line)) {
+                const cn = extractChineseText(line);
+                if (pairs.length > 0 && !pairs[pairs.length - 1].cn) {
+                    pairs[pairs.length - 1].cn = cn;
+                }
+            } else {
+                const en = extractEnglishText(line);
+                if (en && !hasNoEnglishLetter(en)) {
+                    pairs.push({ en, cn: '' });
+                }
+            }
+        }
+    } else {
+        // ========== 非紧凑格式：简单逐行配对 ==========
+        const processed = preprocessText(text);
+        const cleanText = cleanMultiBlankLines(processed);
+        const lines = cleanText.split('\n');
+        
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
+            
+            // 同一行既有英文又有中文 → 直接拆成一对
+            const hasCn = /[\u4e00-\u9fa5]/.test(line);
+            const hasEn = /[a-zA-Z]/.test(line);
+            if (hasCn && hasEn) {
+                const firstCnIdx = line.search(/[\u4e00-\u9fa5]/);
+                if (firstCnIdx > 0) {
+                    const enPart = line.slice(0, firstCnIdx).trim();
+                    const cnPart = line.slice(firstCnIdx).trim();
+                    const en = extractEnglishText(enPart);
+                    const cn = extractChineseText(cnPart);
+                    if (en && !hasNoEnglishLetter(en)) {
+                        pairs.push({ en, cn });
+                        continue;
+                    }
+                }
+            }
+            
+            // 中文行：和上一个英文配对
+            if (isChineseDominant(line)) {
+                const cn = extractChineseText(line);
+                if (pairs.length > 0 && !pairs[pairs.length - 1].cn) {
+                    pairs[pairs.length - 1].cn = cn;
+                }
+            }
+            // 英文行：加入列表
+            else {
+                const en = extractEnglishText(line);
+                if (en && !hasNoEnglishLetter(en)) {
+                    pairs.push({ en, cn: '' });
+                }
             }
         }
     }
     
-    // ========== 第三步：按顺序一一配对 ==========
-    const minLen = Math.min(enList.length, cnList.length);
-    for (let i = 0; i < minLen; i++) {
-        pairs.push({ en: enList[i], cn: cnList[i] });
-    }
-    
-    // 多余的英文（没有对应中文的）也保留
-    for (let i = minLen; i < enList.length; i++) {
-        pairs.push({ en: enList[i], cn: '' });
-    }
-    
     // 兜底方案
     if (pairs.length === 0) {
-        const rawLines = cleanText.split('\n').map(l=>l.trim()).filter(l=>l);
-        for (let line of rawLines) {
+        const rawLines2 = text.split('\n').map(l=>l.trim()).filter(l=>l);
+        for (let line of rawLines2) {
             const en = extractEnglishText(line);
             const cn = extractChineseText(line);
             if (en && !hasNoEnglishLetter(en) && cn) {
