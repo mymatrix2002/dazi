@@ -28,6 +28,11 @@
     
     // ========== 初始化 ==========
     function init() {
+        // 手机端不显示虚拟键盘（宽度 <= 768px）
+        if (window.innerWidth <= 768) {
+            return;
+        }
+        
         // 从本地存储读取设置
         const saved = localStorage.getItem('virtualKeyboardEnabled');
         isEnabled = saved === 'true';

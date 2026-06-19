@@ -121,6 +121,10 @@
     padding: 10px 4px;
     min-width: 90px;
   }
+  /* 手机端隐藏虚拟键盘开关 */
+  #vkToggleBtn {
+    display: none !important;
+  }
 }
 @media (max-width: 480px) {
   .header-title {
