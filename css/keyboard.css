@@ -1,0 +1,220 @@
+/* css/keyboard.css 完整代码
+ * 虚拟键盘样式
+ */
+
+/* ========== 键盘容器 ========== */
+.virtual-keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-normal);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    padding: 8px 12px 12px;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.virtual-keyboard.vk-show {
+    transform: translateY(0);
+}
+
+/* ========== 键盘头部 ========== */
+.vk-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 28px;
+    margin-bottom: 6px;
+}
+
+.vk-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.vk-close-btn:hover {
+    background: var(--bg-gray);
+}
+
+/* ========== 按键区域布局 ========== */
+.vk-keys-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.vk-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* 第二行缩进，模拟真实键盘 */
+.vk-row[data-row="1"] {
+    padding-left: 20px;
+}
+
+/* 第三行缩进更多 */
+.vk-row[data-row="2"] {
+    padding-left: 8px;
+}
+
+/* ========== 普通按键 ========== */
+.vk-key {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-gray);
+    color: var(--text-main);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.vk-key:hover {
+    filter: brightness(1.1);
+}
+
+.vk-key:active,
+.vk-key.vk-pressed {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+}
+
+/* ========== 宽按键（功能键） ========== */
+.vk-key.vk-key-wide {
+    flex: 1.5;
+    font-size: 14px;
+}
+
+/* ========== 空格按键 ========== */
+.vk-key.vk-key-space {
+    flex: 4;
+    font-size: 14px;
+}
+
+/* ========== 高亮状态（待输入按键） ========== */
+.vk-key.vk-highlight {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: 0 0 12px var(--color-primary);
+    animation: vk-pulse 1s ease-in-out infinite;
+}
+
+@keyframes vk-pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px var(--color-primary);
+    }
+    50% {
+        box-shadow: 0 0 16px var(--color-primary);
+    }
+}
+
+/* ========== 正确反馈 ========== */
+.vk-key.vk-correct {
+    background: var(--color-success);
+    color: white;
+}
+
+/* ========== 错误反馈 ========== */
+.vk-key.vk-wrong {
+    background: var(--color-wrong);
+    color: white;
+}
+
+/* ========== Shift 激活状态 ========== */
+.vk-key.vk-shift-active {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 768px) {
+    .virtual-keyboard {
+        padding: 6px 8px 10px;
+    }
+    
+    .vk-keys-container {
+        gap: 5px;
+    }
+    
+    .vk-row {
+        gap: 3px;
+    }
+    
+    .vk-key {
+        height: 46px;
+        font-size: 18px;
+        border-radius: 6px;
+    }
+    
+    .vk-key.vk-key-wide {
+        font-size: 14px;
+    }
+    
+    .vk-key.vk-key-space {
+        font-size: 14px;
+    }
+    
+    .vk-row[data-row="1"] {
+        padding-left: 16px;
+    }
+    
+    .vk-row[data-row="2"] {
+        padding-left: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .vk-key {
+        height: 42px;
+        font-size: 16px;
+    }
+    
+    .vk-key.vk-key-wide {
+        font-size: 12px;
+    }
+    
+    .vk-key.vk-key-space {
+        font-size: 12px;
+    }
+}
+
+/* ========== 电脑端适配（按键小一点） ========== */
+@media (min-width: 769px) {
+    .vk-key {
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .vk-key.vk-key-wide {
+        font-size: 12px;
+    }
+    
+    .vk-key.vk-key-space {
+        font-size: 12px;
+    }
+}
