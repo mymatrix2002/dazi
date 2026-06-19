@@ -30,11 +30,6 @@
     function init() {
         // 手机端不显示虚拟键盘（宽度 <= 768px）
         if (window.innerWidth <= 768) {
-            // 手机端：去掉 inputmode="none"，让系统键盘可以正常弹出
-            const inputArea = document.getElementById('inputArea');
-            if (inputArea) {
-                inputArea.removeAttribute('inputmode');
-            }
             return;
         }
         
@@ -362,6 +357,12 @@
             keyboardEl.classList.add('vk-show');
         }
         
+        // 显示虚拟键盘时，禁用系统键盘
+        const inputArea = document.getElementById('inputArea');
+        if (inputArea) {
+            inputArea.setAttribute('inputmode', 'none');
+        }
+        
         // 给 body 添加底部 padding，防止遮挡内容
         document.body.style.paddingBottom = '260px';
     }
@@ -372,6 +373,12 @@
         
         if (keyboardEl) {
             keyboardEl.classList.remove('vk-show');
+        }
+        
+        // 隐藏虚拟键盘时，恢复系统键盘
+        const inputArea = document.getElementById('inputArea');
+        if (inputArea) {
+            inputArea.removeAttribute('inputmode');
         }
         
         // 恢复 body 底部 padding
