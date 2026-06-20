@@ -149,11 +149,8 @@ function bindInputEvent() {
                 const targetWord = activeChars.slice(wordStart, val.length).join('');
                 
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    if(window.speechSynthesis && window.SpeechSynthesisUtterance){
-                        window.speechSynthesis.cancel();
-                        const utter = window.createUtterance(targetWord, speechState.rate);
-                        if(utter) window.speechSynthesis.speak(utter);
-                    }
+                    stopAllSpeech();
+                    speakSingle(targetWord, speechState.rate);
                 }
             }
         }
@@ -161,19 +158,19 @@ function bindInputEvent() {
         // ========== 自动触发行朗读（输完整行最后一个字符时） ==========
         if(wordSpeakEnable === 'true' && val.length === entryLen) {
             const currentLineText = activeChars.join('');
-            if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
-                window.speechSynthesis.cancel();
-                const utter = window.createUtterance(currentLineText, speechState.rate);
-                if(utter) window.speechSynthesis.speak(utter);
+            if(/[a-zA-Z]/.test(currentLineText)) {
+                stopAllSpeech();
+                speakSingle(currentLineText, speechState.rate);
             }
         }
+
 
         // ========== 最后一行输完自动弹出成绩弹窗 ==========
         if(val.length === entryLen && currentEntryIndex === entryCharsList.length - 1 && !finishModalAutoShown) {
             finishModalAutoShown = true;
             // 延迟500ms，让用户看到最后一个字符变绿
             setTimeout(() => {
-                if(window.speechSynthesis) window.speechSynthesis.cancel();
+                stopAllSpeech();
                 currentPos = targetChars.length;
                 clearInterval(timerId);
                 showFinishModal();
@@ -182,7 +179,6 @@ function bindInputEvent() {
                 resetBtnEl.disabled = false;
             }, 500);
         }
-        
         prevInputValue = val;
 
         // 限制输入长度

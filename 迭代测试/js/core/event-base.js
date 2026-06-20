@@ -6,16 +6,13 @@ if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 
 // ========== 朗读滚动高亮逻辑 ==========
-function nextSpeak(lastPause){
-    // ========== 新增：没有语音API直接返回，不报错 ==========
-    if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
-    
+async function nextSpeak(lastPause){
     if(!speechState.running) return;
-
+    
     document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
         el.classList.remove('sentence-read-highlight');
     });
-
+    
     speechState.idx++;
     if(speechState.idx >= speechSentenceMap.length){
         speechState.running = false;
@@ -23,31 +20,31 @@ function nextSpeak(lastPause){
         readAllBtnEl.textContent = '🔊 朗读全文';
         return;
     }
-
+    
     const currentItem = speechSentenceMap[speechState.idx];
     if(!currentItem) return;
-
+    
     const senText = currentItem.text;
     const senPause = currentItem.pauseType;
     const startIdx = currentItem.startNode;
     const endIdx = currentItem.endNode;
-
+    
     if(!senText.trim()){
         setTimeout(() => nextSpeak(senPause), PAUSE_CONFIG[senPause]);
         return;
     }
-
+    
+    // 高亮当前句子
     let allSpans = [];
     if (isBilingualMode) {
         allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full span, .paragraph-en span');
     } else {
         allSpans = displayAreaEl.querySelectorAll('span');
     }
-
     for(let i = startIdx; i <= endIdx && i < allSpans.length; i++){
         allSpans[i].classList.add('sentence-read-highlight');
     }
-
+    
     let firstHighlight = null;
     if (isBilingualMode) {
         firstHighlight = paragraphContainerEl.querySelector('.sentence-read-highlight');
@@ -57,17 +54,11 @@ function nextSpeak(lastPause){
     if(firstHighlight){
         firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-
-    setTimeout(() => {
-        const ut = window.createUtterance(senText, speechState.rate);
-        if(ut) {
-            ut.onend = () => nextSpeak(senPause);
-            ut.onerror = () => nextSpeak(senPause);
-            window.speechSynthesis.speak(ut);
-        } else {
-            // 没有语音API，直接跳过这句，继续下一句
-            setTimeout(() => nextSpeak(senPause), 100);
-        }
+    
+    // 延迟后播放，等播放完再继续下一句
+    setTimeout(async () => {
+        await speakSingle(senText, speechState.rate);
+        nextSpeak(senPause);
     }, PAUSE_CONFIG[lastPause]);
 }
 
@@ -124,10 +115,10 @@ function bindBaseEvents() {
             return;
         }
         clearTimeout(pauseTimer);
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        stopAllSpeech();
         if(speechState.running){
             speechState.running=false;
-            if(window.speechSynthesis) window.speechSynthesis.cancel();
+            stopAllSpeech();
             document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
                 el.classList.remove('sentence-read-highlight');
             });
@@ -165,12 +156,11 @@ function bindBaseEvents() {
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        const ut = window.createUtterance(firstItem.text, speechState.rate);
-        if(ut) {
-            ut.onend = () => nextSpeak(firstItem.pauseType);
-            ut.onerror = () => nextSpeak(firstItem.pauseType);
-            window.speechSynthesis.speak(ut);
-        }
+        // 用统一接口播放第一句，播完再继续下一句
+        (async () => {
+            await speakSingle(firstItem.text, speechState.rate);
+            nextSpeak(firstItem.pauseType);
+        })();
     });
 
     // 朗读语速切换
@@ -219,24 +209,47 @@ function bindBaseEvents() {
     }
 
     // 语音选择
-    const voiceSelect = document.getElementById('voiceSelect');
-    if(voiceSelect && window.speechSynthesis) {
-        // 初始化语音列表
-        initVoiceSelection();
+     const voiceSelect = document.getElementById('voiceSelect');
+     if(voiceSelect && window.speechSynthesis) {
+         // 初始化语音列表
+         initVoiceSelection();
+         
+         // 语音选择变化
+         voiceSelect.addEventListener('change', function() {
+             selectedVoiceURI = this.value;
+             localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
+         });
+     }
+    
+    // 语音引擎选择
+    const engineSelect = document.getElementById('engineSelect');
+    if(engineSelect) {
+        // 初始化
+        const savedEngine = getSpeechEngine();
+        engineSelect.value = savedEngine;
         
-        // 语音选择变化
-        voiceSelect.addEventListener('change', function() {
-            selectedVoiceURI = this.value;
-            localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
+        // 切换事件
+        engineSelect.addEventListener('change', function() {
+            setSpeechEngine(this.value);
+            // 切换时停止当前播放
+            stopAllSpeech();
+            speechState.running = false;
+            readAllBtnEl.classList.remove('btn-speaking');
+            readAllBtnEl.textContent = '🔊 朗读全文';
+            document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
+                el.classList.remove('sentence-read-highlight');
+            });
         });
     }
+
     
     // 清空全部内容按钮
     clearBtnEl.addEventListener('click',()=>{
         sourceTextEl.value=''; updateCharCount();
         clearTimeout(pauseTimer); 
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        stopAllSpeech();
         speechState.running=false;
+
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent='🔊 朗读全文';
         bilingualAreaEl.classList.add('hidden');
@@ -360,7 +373,7 @@ function bindBaseEvents() {
     // 页面关闭前清理
     window.addEventListener('beforeunload',()=>{
         clearTimeout(pauseTimer); 
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        stopAllSpeech();
         speechState.running=false; clearInterval(timerId);
     });
 

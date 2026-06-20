@@ -445,6 +445,112 @@ function initVoiceSelection() {
     }
 }
 
+// ========== 语音引擎选择（双引擎） ==========
+// auto: 自动选择（优先在线，失败自动降级到本地）
+// online: 强制在线语音
+// local: 强制本地语音
+let speechEngine = localStorage.getItem('speechEngine') || 'auto';
+
+function getSpeechEngine() {
+    return speechEngine;
+}
+
+function setSpeechEngine(engine) {
+    speechEngine = engine;
+    localStorage.setItem('speechEngine', engine);
+}
+
+// 判断当前是否应该用在线语音
+function shouldUseOnline() {
+    if (!window.onlineTTS || !window.onlineTTS.isSupported()) {
+        return false;
+    }
+    if (speechEngine === 'online') return true;
+    if (speechEngine === 'local') return false;
+    // auto 模式：优先在线
+    return true;
+}
+
+// ========== 统一语音播放接口 ==========
+
+/**
+ * 播放单段文本（单词/短语/句子）
+ * @param {string} text - 要朗读的文本
+ * @param {number} rate - 语速
+ * @returns {Promise<boolean>} 是否播放成功
+ */
+async function speakSingle(text, rate) {
+    if (!text || !text.trim()) return false;
+    
+    const isCN = hasChinese(text);
+    const lang = isCN ? 'zh' : 'en';
+    const volume = speechState.volume;
+    
+    // 优先尝试在线语音
+    if (shouldUseOnline()) {
+        const speed = rate || speechState.rate;
+        // 在线语音音量可以超过 1（放大）
+        const onlineVol = speechEngine === 'online' ? volume * 2 : volume;
+        const success = await window.onlineTTS.speak(text, lang, speed, onlineVol);
+        if (success) return true;
+        
+        // 自动模式下失败，降级到本地
+        if (speechEngine === 'auto') {
+            console.warn('[Speech] 在线语音失败，降级到本地语音');
+        }
+    }
+    
+    // 本地语音兜底
+    if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+        const ut = createUtterance(text, rate);
+        if (ut) {
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(ut);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * 停止所有语音播放
+ */
+function stopAllSpeech() {
+    // 停止在线语音
+    if (window.onlineTTS) {
+        window.onlineTTS.stop();
+    }
+    // 停止本地语音
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+}
+
+/**
+ * 暂停语音播放
+ */
+function pauseAllSpeech() {
+    if (window.onlineTTS) {
+        window.onlineTTS.pause();
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.pause();
+    }
+}
+
+/**
+ * 恢复语音播放
+ */
+function resumeAllSpeech() {
+    if (window.onlineTTS) {
+        window.onlineTTS.resume();
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.resume();
+    }
+}
+
 window.createUtterance = function(rawTxt, rate){
     // 先判断语音API是否存在，不存在直接返回null，不报错
     if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
