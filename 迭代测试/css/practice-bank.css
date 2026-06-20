@@ -1,0 +1,395 @@
+/* ============================================
+   题库选择 UI 样式
+   ============================================ */
+
+/* 题库按钮 */
+.bank-btn {
+    padding: 8px 16px;
+    background: var(--color-primary, #4F46E5);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.bank-btn:hover {
+    background: var(--color-primary-dark, #4338CA);
+    transform: translateY(-1px);
+}
+
+/* 弹窗遮罩 */
+.bank-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+}
+
+.bank-modal.open {
+    display: block;
+}
+
+.bank-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+/* 弹窗内容 */
+.bank-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    background: var(--color-bg, white);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 弹窗头部 */
+.bank-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border, #E5E7EB);
+}
+
+.bank-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--color-text, #111827);
+}
+
+.bank-close-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary, #6B7280);
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.bank-close-btn:hover {
+    background: var(--color-bg-secondary, #F3F4F6);
+    color: var(--color-text, #111827);
+}
+
+/* 弹窗主体 */
+.bank-modal-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab 切换 */
+.bank-tabs {
+    display: flex;
+    padding: 16px 24px 0;
+    gap: 8px;
+    border-bottom: 1px solid var(--color-border, #E5E7EB);
+}
+
+.bank-tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary, #6B7280);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.bank-tab:hover {
+    color: var(--color-text, #111827);
+    background: var(--color-bg-secondary, #F3F4F6);
+}
+
+.bank-tab.active {
+    color: var(--color-primary, #4F46E5);
+    font-weight: 600;
+}
+
+.bank-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--color-primary, #4F46E5);
+}
+
+/* 主内容区 */
+.bank-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* 左侧边栏 */
+.bank-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--color-border, #E5E7EB);
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.bank-module-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* 模块 */
+.bank-module {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.bank-module.active {
+    background: var(--color-bg-secondary, #F3F4F6);
+}
+
+.bank-module-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text, #111827);
+    transition: background 0.2s;
+}
+
+.bank-module-title:hover {
+    background: var(--color-bg-secondary, #F3F4F6);
+}
+
+.bank-module-arrow {
+    font-size: 10px;
+    color: var(--color-text-secondary, #6B7280);
+    transition: transform 0.2s;
+    width: 12px;
+}
+
+.bank-module-cn {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--color-text-secondary, #6B7280);
+    font-weight: normal;
+}
+
+/* 单元列表 */
+.bank-unit-list {
+    padding: 0 0 8px 24px;
+}
+
+.bank-unit {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-text, #111827);
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bank-unit:hover {
+    background: var(--color-bg-secondary, #F3F4F6);
+}
+
+.bank-unit.active {
+    background: var(--color-primary-light, #EEF2FF);
+    color: var(--color-primary, #4F46E5);
+    font-weight: 500;
+}
+
+.bank-unit-cn {
+    font-size: 11px;
+    color: var(--color-text-secondary, #6B7280);
+    font-weight: normal;
+}
+
+.bank-unit.active .bank-unit-cn {
+    color: var(--color-primary, #4F46E5);
+}
+
+/* 右侧内容区 */
+.bank-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.bank-unit-info {
+    margin-bottom: 24px;
+}
+
+.bank-unit-info h4 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--color-text, #111827);
+}
+
+.bank-unit-subtitle {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: var(--color-text-secondary, #6B7280);
+}
+
+.bank-unit-difficulty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-secondary, #6B7280);
+}
+
+.bank-empty {
+    color: var(--color-text-secondary, #6B7280);
+    text-align: center;
+    padding: 40px 0;
+}
+
+/* 练习类型列表 */
+.bank-practice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bank-practice-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--color-bg-secondary, #F3F4F6);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bank-practice-item:hover {
+    background: var(--color-primary-light, #EEF2FF);
+    transform: translateX(4px);
+}
+
+.bank-practice-icon {
+    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bank-practice-info {
+    flex: 1;
+}
+
+.bank-practice-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text, #111827);
+    margin-bottom: 4px;
+}
+
+.bank-practice-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary, #6B7280);
+}
+
+.bank-practice-arrow {
+    font-size: 18px;
+    color: var(--color-text-secondary, #6B7280);
+}
+
+.bank-practice-item:hover .bank-practice-arrow {
+    color: var(--color-primary, #4F46E5);
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+    .bank-modal-content {
+        background: var(--color-bg, #1F2937);
+    }
+    
+    .bank-module-title:hover,
+    .bank-unit:hover {
+        background: var(--color-bg-secondary, #374151);
+    }
+    
+    .bank-module.active,
+    .bank-unit.active {
+        background: var(--color-primary-dark, #3730A3);
+    }
+    
+    .bank-practice-item {
+        background: var(--color-bg-secondary, #374151);
+    }
+    
+    .bank-practice-item:hover {
+        background: var(--color-primary-dark, #3730A3);
+    }
+    
+    .bank-practice-icon {
+        background: var(--color-bg, #1F2937);
+    }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .bank-modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .bank-main {
+        flex-direction: column;
+    }
+    
+    .bank-sidebar {
+        width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border, #E5E7EB);
+    }
+    
+    .bank-content {
+        padding: 16px;
+    }
+    
+    .bank-tabs {
+        padding: 12px 16px 0;
+    }
+    
+    .bank-modal-header {
+        padding: 16px;
+    }
+}
