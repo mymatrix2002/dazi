@@ -1,6 +1,6 @@
 // js/feature/online-tts.js
 // 极简版在线 TTS（有道翻译接口）
-// 移动端兼容优化版
+// 移动端兼容优化版 + 防盗链绕过
 (function() {
     'use strict';
 
@@ -32,8 +32,8 @@
         audio.setAttribute('webkit-playsinline', '');
         audio.setAttribute('preload', 'auto');
         
-        // 跨域设置（试试能不能解决）
-        audio.crossOrigin = 'anonymous';
+        // 关键：去掉 Referer，绕过防盗链
+        audio.referrerPolicy = 'no-referrer';
         
         // 音量（确保有默认值）
         const vol = volume || 1;
