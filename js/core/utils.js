@@ -1,4 +1,4 @@
-// js/core/utils.js 完整代码（已加音效开关）
+// js/core/utils.js 完整代码（已加音效开关 + 优化语音优选）
 
 // ========== 文本预处理函数 ==========
 function preprocessText(text) {
@@ -313,7 +313,7 @@ function getVoiceList() {
     return window.speechSynthesis.getVoices() || [];
 }
 
-// 自动优选语音（方案三：优先选更响亮清晰的）
+// 自动优选语音（优化版：优先选更响亮清晰的）
 function getPreferredVoice(lang) {
     const voices = getVoiceList();
     if(voices.length === 0) return null;
@@ -328,18 +328,29 @@ function getPreferredVoice(lang) {
         const name = voice.name || '';
         const uri = voice.voiceURI || '';
         const full = name + ' ' + uri;
+        const fullLower = full.toLowerCase();
         
-        // 第一优先级：Google 系列语音（通常声音大且清晰）
-        if(full.toLowerCase().includes('google')) score += 100;
+        // ===== 音量优先的打分规则优化 =====
+        // 第一梯队：Google 系列（质量好、音量稳定）
+        if(fullLower.includes('google')) score += 100;
         
-        // 第二优先级：女声（通常更响亮）
-        if(full.includes('Female') || full.includes('女') || full.includes('Xiaoxiao') || full.includes('Xiaoyi')) score += 50;
+        // 第二梯队：微软自然语音（通常最响亮）
+        if(fullLower.includes('microsoft') && fullLower.includes('natural')) score += 95;
         
-        // 第三优先级：不是系统默认的（有时候默认语音很小声）
-        if(full.toLowerCase().includes('default')) score -= 20;
+        // 第三梯队：微软系统语音（普遍较大声）
+        if(fullLower.includes('microsoft')) score += 80;
         
-        // 第四优先级：高质量标识
-        if(full.includes('Enhanced') || full.includes('高质量')) score += 10;
+        // 第四梯队：女声 / 经典响亮语音
+        if(full.includes('Female') || full.includes('女') 
+            || full.includes('Xiaoxiao') || full.includes('Xiaoyi')
+            || full.includes('Samantha') || full.includes('Victoria')) score += 50;
+        
+        // 减分项：默认语音（通常偏小）
+        if(fullLower.includes('default')) score -= 30;
+        
+        // 加分项：高质量版本
+        if(full.includes('Enhanced') || full.includes('高质量') 
+            || full.includes('Premium') || full.includes('高级')) score += 15;
         
         return { voice, score };
     });
