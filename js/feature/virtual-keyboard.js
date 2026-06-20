@@ -365,6 +365,13 @@
         
         // 给 body 添加底部 padding，防止遮挡内容
         document.body.style.paddingBottom = '260px';
+        
+        // 按钮激活状态
+        const vkBtn = document.getElementById('vkToggleBtn');
+        if (vkBtn) {
+            vkBtn.classList.add('btn-vk-active');
+            vkBtn.textContent = '虚拟键盘：已开启';
+        }
     }
     
     function hide() {
@@ -383,6 +390,13 @@
         
         // 恢复 body 底部 padding
         document.body.style.paddingBottom = '';
+        
+        // 按钮恢复默认状态
+        const vkBtn = document.getElementById('vkToggleBtn');
+        if (vkBtn) {
+            vkBtn.classList.remove('btn-vk-active');
+            vkBtn.textContent = '虚拟键盘：已关闭';
+        }
     }
     
     // ========== 对外接口 ==========

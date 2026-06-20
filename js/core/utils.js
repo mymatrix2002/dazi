@@ -1,4 +1,4 @@
-// js/core/utils 完整代码
+// js/core/utils.js 完整代码（已加音效开关）
 
 // ========== 文本预处理函数 ==========
 function preprocessText(text) {
@@ -54,11 +54,53 @@ function parseFullTextLines(text) {
     return lines;
 }
 
+// ========== 音效开关 ==========
+let soundEnabled = localStorage.getItem('soundEnabled') !== 'false'; // 默认开启
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem('soundEnabled', soundEnabled);
+    
+    const btn = document.getElementById('soundToggleBtn');
+    if (btn) {
+        if (soundEnabled) {
+            btn.classList.add('btn-sound-active');
+            btn.textContent = '🔊 音效：已开启';
+        } else {
+            btn.classList.remove('btn-sound-active');
+            btn.textContent = '🔇 音效：已关闭';
+        }
+    }
+}
+
+// 初始化音效按钮状态
+function initSoundToggleBtn() {
+    const btn = document.getElementById('soundToggleBtn');
+    if (!btn) return;
+    if (soundEnabled) {
+        btn.classList.add('btn-sound-active');
+        btn.textContent = '🔊 音效：已开启';
+    } else {
+        btn.classList.remove('btn-sound-active');
+        btn.textContent = '🔇 音效：已关闭';
+    }
+}
+
+// 页面加载完成后自动初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSoundToggleBtn);
+} else {
+    initSoundToggleBtn();
+}
+
+
+
 // ========== 内置系统波形音效：按键音 / 错误音 / 完成音 ==========
 /**
  * 正常按键清脆音效
  */
 function playKeySound() {
+    if (!soundEnabled) return;
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -77,6 +119,7 @@ function playKeySound() {
  * 输入错误警示音效
  */
 function playErrorSound() {
+    if (!soundEnabled) return;
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -95,6 +138,7 @@ function playErrorSound() {
  * 练习完成欢庆提示音（两段音阶）
  */
 function playFinishSound() {
+    if (!soundEnabled) return;
     const ctx = getAudioCtx();
     const vol = speechState.volume * 0.3;
     // 第一段
@@ -521,16 +565,6 @@ function updateStat(){
     progressEl.textContent = prog + "%";
     progBar.style.width = prog + "%";
 
-    // 增强判断：兼容收尾回车逻辑，双重兜底
-    if(targetChars.length > 0 && currentPos >= targetChars.length) {
-        // 无需等待二次回车也可兜底结束，保留原有waitFinalEnter交互
-        if(!waitFinalEnter){
-            typingRunning = false;
-            clearInterval(timerId);
-            inputAreaEl.disabled = true;
-            showFinishModal();
-        }
-    }
 }
 
 function showFinishModal(){

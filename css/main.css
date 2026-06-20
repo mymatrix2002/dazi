@@ -1,5 +1,4 @@
-/* css/main.css v2.0.6 完整代码 */
-
+/* css/main.css v2.0.12 完整代码（已合并题库样式） */
 /* ========== 全局主题变量 ========== */
 :root[data-theme="light"] {
     --bg-page: #f0f9ff;
@@ -53,7 +52,6 @@
     --scrollbar-bg: #1e293b;
     --scrollbar-thumb: #475569;
 }
-
 /* ========== 动画定义 ========== */
 @keyframes bounce {
     0%, 100% { top: 0; }
@@ -73,7 +71,6 @@
     85% { opacity: 1; bottom: 30px; }
     100% { opacity: 0; bottom: 20px; }
 }
-
 /* ========== 完成弹窗样式 ========== */
 .modal-mask-finish {
     position: fixed;
@@ -153,7 +150,6 @@
 .btn-secondary-finish:hover {
     filter: brightness(1.15);
 }
-
 /* ========== 打字字符样式 ========== */
 .char-correct {
     color: var(--color-correct);
@@ -181,7 +177,6 @@
     background-color: rgba(96, 165, 250, 0.18);
     border-radius: 4px;
 }
-
 /* ========== 全局基础样式 ========== */
 body {
     background-color: var(--bg-page);
@@ -196,7 +191,6 @@ body {
     background-color: var(--bg-card);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-
 /* ========== 按钮样式 ========== */
 .btn-primary {
     background-color: var(--color-primary);
@@ -237,7 +231,6 @@ body {
 .btn-normal:hover {
     filter: brightness(1.15);
 }
-
 /* ========== 对照区容器样式（v2.0.6原版换行） ========== */
 .paragraph-container {
     width: 100%;
@@ -269,7 +262,6 @@ body {
 .paragraph-container::-webkit-scrollbar-track {
     background: var(--scrollbar-bg);
 }
-
 /* ========== 段落文本样式（原版正确换行） ========== */
 .paragraph-cn {
     width: 100%;
@@ -313,7 +305,6 @@ body {
     text-align: left;
     box-sizing: border-box;
 }
-
 /* ========== 其他通用样式 ========== */
 #displayArea {
     min-height: 120px;
@@ -341,6 +332,18 @@ body {
     user-select: none;
 }
 .btn-speaking {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+.btn-sound-active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+.btn-vk-active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+.btn-sound-active {
     background-color: var(--color-primary) !important;
     color: white !important;
 }
@@ -496,4 +499,306 @@ textarea::placeholder {
 }
 .hidden {
     display: none !important;
+}
+
+/* ============================================
+   题库弹窗样式（已合并，变量名已统一）
+   ============================================ */
+/* 弹窗遮罩容器 */
+.bank-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+.bank-modal.open {
+    display: block;
+}
+.bank-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+}
+/* 弹窗主体盒子 */
+.bank-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 92%;
+    max-width: 820px;
+    max-height: 82vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-card);
+    color: var(--text-main);
+    box-shadow: var(--shadow-modal);
+}
+/* 弹窗头部 */
+.bank-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-normal);
+}
+.bank-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+.bank-close-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text-sub);
+}
+.bank-close-btn:hover {
+    background: var(--bg-gray-deep);
+    color: var(--text-main);
+}
+/* 弹窗主体区域 */
+.bank-modal-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+/* 上下册Tab切换 */
+.bank-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 14px 24px 0;
+    border-bottom: 1px solid var(--border-normal);
+}
+.bank-tab {
+    padding: 9px 18px;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    color: var(--text-sub);
+    position: relative;
+}
+.bank-tab:hover {
+    background: var(--bg-gray-deep);
+    color: var(--text-main);
+}
+.bank-tab.active {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+.bank-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--color-primary);
+}
+/* 左右分栏主布局 */
+.bank-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+/* 左侧模块侧边栏 */
+.bank-sidebar {
+    width: 270px;
+    border-right: 1px solid var(--border-normal);
+    overflow-y: auto;
+    padding: 10px;
+}
+.bank-module-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.bank-module {
+    border-radius: 8px;
+    overflow: hidden;
+}
+.bank-module.active {
+    background: var(--bg-gray-deep);
+}
+.bank-module-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.18s;
+}
+.bank-module-title:hover {
+    background: var(--bg-gray-deep);
+}
+.bank-module-arrow {
+    width: 12px;
+    font-size: 10px;
+    color: var(--text-sub);
+}
+.bank-module-cn {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-sub);
+    font-weight: normal;
+    flex-shrink: 0;
+    min-width: 50px;
+    max-width: 70px;           /* 新增：最大宽度，超出换行 */
+    text-align: right;         /* 新增：文字右对齐 */
+    line-height: 1.4;          /* 新增：多行时行高更舒服 */
+    word-break: break-all;     /* 新增：允许在任意字符处换行 */
+}
+/* 单元子列表 */
+.bank-unit-list {
+    padding: 0 0 8px 22px;
+}
+.bank-unit {
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: background 0.18s;
+}
+.bank-unit:hover {
+    background: var(--bg-gray-deep);
+}
+.bank-unit.active {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--color-primary);
+    font-weight: 500;
+}
+.bank-unit-cn {
+    font-size: 11px;
+    color: var(--text-sub);
+    font-weight: normal;
+}
+.bank-unit.active .bank-unit-cn {
+    color: var(--color-primary);
+}
+/* 右侧内容区 */
+.bank-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+.bank-unit-info h4 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: var(--text-main);
+}
+.bank-unit-subtitle {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--text-sub);
+}
+.bank-unit-difficulty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-sub);
+}
+.bank-empty {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-sub);
+}
+/* 练习类型卡片 */
+.bank-practice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+.bank-practice-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--bg-gray-deep);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bank-practice-item:hover {
+    background: rgba(59, 130, 246, 0.12);
+    transform: translateX(3px);
+}
+.bank-practice-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.bank-practice-info {
+    flex: 1;
+}
+.bank-practice-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-main);
+}
+.bank-practice-desc {
+    font-size: 13px;
+    color: var(--text-sub);
+}
+.bank-practice-arrow {
+    font-size: 18px;
+    color: var(--text-sub);
+}
+.bank-practice-item:hover .bank-practice-arrow {
+    color: var(--color-primary);
+}
+/* 暗色模式适配 */
+[data-theme="dark"] .bank-unit.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-primary-dark);
+}
+[data-theme="dark"] .bank-unit.active .bank-unit-cn {
+    color: var(--color-primary-dark);
+}
+[data-theme="dark"] .bank-practice-item:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+/* 移动端适配 宽度≤768px */
+@media (max-width:768px) {
+    .bank-modal-content {
+        width: 96%;
+        max-height: 90vh;
+    }
+    .bank-main {
+        flex-direction: column;
+    }
+    .bank-sidebar {
+        width: 100%;
+        max-height: 180px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-normal);
+    }
+    .bank-content {
+        padding: 16px;
+    }
+    .bank-modal-header,
+    .bank-tabs {
+        padding-inline: 16px;
+    }
 }
