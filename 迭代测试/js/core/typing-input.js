@@ -155,8 +155,7 @@ function bindInputEvent() {
         }
         
         // ========== 自动触发行朗读（输完整行最后一个字符时） ==========
-        if(wordSpeakEnable === 'true' && val.length === entryLen && currentEntryIndex !== lastSpokenLineIndex) {
-            lastSpokenLineIndex = currentEntryIndex;
+        if(wordSpeakEnable === 'true' && val.length === entryLen) {
             const currentLineText = activeChars.join('');
             if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
                 window.speechSynthesis.cancel();
