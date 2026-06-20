@@ -109,6 +109,9 @@ function bindBaseEvents() {
 
     // 全文朗读/停止按钮
     readAllBtnEl.addEventListener('click',function(){
+        // 解锁移动端音频
+        if(window.onlineTTS) window.onlineTTS.unlockAudio();
+        
         let txt = targetFullText.trim();
         if(!txt){
             alert('展示区暂无文字，请先点击【开始练习】');
