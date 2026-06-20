@@ -2,9 +2,9 @@ typing-practice/
 ├─ index.html （仅保留 DOM 结构 + 外部资源引入，无内嵌样式、无内嵌 JS）
 ├─ css/
 │  ├─ main.css （存放全部原有样式、主题变量、动画、组件样式（原代码中 <style> 标签完整内容））
-│  ├─ responsive.css （移动端 / 平板适配，目前留空）
-│  ├─ keyboard.css （虚拟键盘样式，目前留空）
-│  └─ font-size.css （字号调节样式，目前留空）
+│  ├─ responsive.css （移动端 / 平板适配）
+│  ├─ keyboard.css （虚拟键盘样式）
+│  └─ font-size.css （字号调节样式）
 ├─ js/
 │  ├─ core/
 │  │  ├─ config.js （全局配置、常量、DOM 缓存、全局变量）
@@ -13,6 +13,7 @@ typing-practice/
 │  │  ├─ typing-input.js （输入框核心逻辑、逐字符校验）
 │  │  └─ event-base.js （基础按钮事件、主题、朗读、重置、文件上传）
 │  ├─ feature/  # 后续新增功能使用，目前先建空文件夹即可
+│  │  └─ virtual-keyboard.js （虚拟键盘功能模块）
 │  └─ main.js （项目入口文件（统一初始化））
 └─ assets/      # 音效、图片资源，后续新增功能再使用，目前空文件夹
    ├─ sounds/

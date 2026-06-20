@@ -260,6 +260,136 @@ function splitSentences(text){
     return arr;
 }
 
+// ========== 语音选择相关 ==========
+let selectedVoiceURI = localStorage.getItem('selectedVoiceURI') || '';
+
+// 获取所有可用语音列表
+function getVoiceList() {
+    if(!window.speechSynthesis) return [];
+    return window.speechSynthesis.getVoices() || [];
+}
+
+// 自动优选语音（方案三：优先选更响亮清晰的）
+function getPreferredVoice(lang) {
+    const voices = getVoiceList();
+    if(voices.length === 0) return null;
+    
+    // 筛选对应语言的语音
+    const langVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+    const candidates = langVoices.length > 0 ? langVoices : voices;
+    
+    // 按优先级排序
+    const scored = candidates.map(voice => {
+        let score = 0;
+        const name = voice.name || '';
+        const uri = voice.voiceURI || '';
+        const full = name + ' ' + uri;
+        
+        // 第一优先级：Google 系列语音（通常声音大且清晰）
+        if(full.toLowerCase().includes('google')) score += 100;
+        
+        // 第二优先级：女声（通常更响亮）
+        if(full.includes('Female') || full.includes('女') || full.includes('Xiaoxiao') || full.includes('Xiaoyi')) score += 50;
+        
+        // 第三优先级：不是系统默认的（有时候默认语音很小声）
+        if(full.toLowerCase().includes('default')) score -= 20;
+        
+        // 第四优先级：高质量标识
+        if(full.includes('Enhanced') || full.includes('高质量')) score += 10;
+        
+        return { voice, score };
+    });
+    
+    // 按分数从高到低排序
+    scored.sort((a, b) => b.score - a.score);
+    
+    return scored.length > 0 ? scored[0].voice : null;
+}
+
+// 初始化语音选择（页面加载时调用）
+function initVoiceSelection() {
+    if(!window.speechSynthesis) return;
+    
+    const loadVoices = () => {
+        const voices = getVoiceList();
+        const selectEl = document.getElementById('voiceSelect');
+        if(!selectEl || voices.length === 0) return;
+        
+        // 清空下拉框
+        selectEl.innerHTML = '';
+        
+        // 按语言分组
+        const cnVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+        const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+        const otherVoices = voices.filter(v => !v.lang || (!v.lang.toLowerCase().startsWith('zh') && !v.lang.toLowerCase().startsWith('en')));
+        
+        // 添加中文语音
+        if(cnVoices.length > 0) {
+            const cnGroup = document.createElement('optgroup');
+            cnGroup.label = '中文语音';
+            cnVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.voiceURI;
+                opt.textContent = v.name;
+                cnGroup.appendChild(opt);
+            });
+            selectEl.appendChild(cnGroup);
+        }
+        
+        // 添加英文语音
+        if(enVoices.length > 0) {
+            const enGroup = document.createElement('optgroup');
+            enGroup.label = '英文语音';
+            enVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.voiceURI;
+                opt.textContent = v.name;
+                enGroup.appendChild(opt);
+            });
+            selectEl.appendChild(enGroup);
+        }
+        
+        // 添加其他语音
+        if(otherVoices.length > 0) {
+            const otherGroup = document.createElement('optgroup');
+            otherGroup.label = '其他语音';
+            otherVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.voiceURI;
+                opt.textContent = v.name + ' (' + v.lang + ')';
+                otherGroup.appendChild(opt);
+            });
+            selectEl.appendChild(otherGroup);
+        }
+        
+        // 设置选中的语音
+        if(selectedVoiceURI) {
+            // 检查用户保存的语音是否还存在
+            const exists = voices.find(v => v.voiceURI === selectedVoiceURI);
+            if(exists) {
+                selectEl.value = selectedVoiceURI;
+                return;
+            }
+        }
+        
+        // 用户没选过或语音不存在，自动优选
+        const prefVoice = getPreferredVoice('zh');
+        if(prefVoice) {
+            selectEl.value = prefVoice.voiceURI;
+            selectedVoiceURI = prefVoice.voiceURI;
+            localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
+        }
+    };
+    
+    // 先尝试立即获取
+    loadVoices();
+    
+    // 如果列表为空，等事件触发
+    if(getVoiceList().length === 0) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+}
+
 window.createUtterance = function(rawTxt, rate){
     // 先判断语音API是否存在，不存在直接返回null，不报错
     if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
@@ -269,6 +399,16 @@ window.createUtterance = function(rawTxt, rate){
     ut.rate = rate;
     ut.pitch = 1;
     ut.volume = speechState.volume;
+    
+    // 设置选中的语音
+    if(selectedVoiceURI) {
+        const voices = getVoiceList();
+        const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+        if(voice) {
+            ut.voice = voice;
+        }
+    }
+    
     const isCN = hasChinese(rawTxt);
     if(isCN){
         ut.lang = "zh-CN";

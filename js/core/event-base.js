@@ -217,6 +217,19 @@ function bindBaseEvents() {
             }
         });
     }
+
+    // 语音选择
+    const voiceSelect = document.getElementById('voiceSelect');
+    if(voiceSelect && window.speechSynthesis) {
+        // 初始化语音列表
+        initVoiceSelection();
+        
+        // 语音选择变化
+        voiceSelect.addEventListener('change', function() {
+            selectedVoiceURI = this.value;
+            localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
+        });
+    }
     
     // 清空全部内容按钮
     clearBtnEl.addEventListener('click',()=>{

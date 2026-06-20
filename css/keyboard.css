@@ -218,3 +218,13 @@
         font-size: 12px;
     }
 }
+
+/* ========== 手机端隐藏虚拟键盘 ========== */
+@media (max-width: 768px) {
+    .virtual-keyboard {
+        display: none !important;
+    }
+    body {
+        padding-bottom: 0 !important;
+    }
+}
