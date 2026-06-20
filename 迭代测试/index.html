@@ -78,7 +78,7 @@
 
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>
-                    <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" style="width: 80px;">
+                    <input type="range" id="speechVolume" min="0" max="2" step="0.1" value="1">
                 </div>
 
                 <button id="settingToggleBtn" class="btn-normal px-3 py-1.5 text-sm">⚙️ 更多设置</button>
@@ -115,6 +115,16 @@
                     <span style="font-size: 12px;color: var(--text-sub);">语音</span>
                     <select id="voiceSelect" style="background-color: var(--bg-gray); border: none; outline: none; border-radius: 12px; padding: 6px 8px; font-size: 14px; cursor: pointer; color: var(--text-main); min-width: 120px;">
                         <option value="">加载中...</option>
+                    </select>
+                </div>
+                
+                <!-- 在语音选择下面新增这一行 -->
+                <div style="display: flex;align-items: center;gap: 6px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">引擎</span>
+                    <select id="engineSelect" style="background-color: var(--bg-gray); border: none; outline: none; border-radius: 12px; padding: 6px 8px; font-size: 14px; cursor: pointer; color: var(--text-main); min-width: 140px;">
+                        <option value="auto">自动选择（推荐）</option>
+                        <option value="online">在线语音（音量大）</option>
+                        <option value="local">本地语音（离线可用）</option>
                     </select>
                 </div>
             </div>
@@ -219,7 +229,8 @@
     <script src="js/data/p5u-m4.js?v=2.0.14"></script>
     <script src="js/data/p5u-m5.js?v=2.0.14"></script>
     <script src="js/data/p5u-m6.js?v=2.0.14"></script>
-    
+    <!-- 在线语音引擎 -->
+<script src="js/feature/online-tts.js?v=2.1.14"></script>
     <!-- 题库 UI 功能 -->
     <script src="js/feature/practice-bank-ui.js?v=2.0.14"></script>
     
