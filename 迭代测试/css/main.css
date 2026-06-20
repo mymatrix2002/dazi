@@ -335,7 +335,15 @@ body {
     background-color: var(--color-primary) !important;
     color: white !important;
 }
+.btn-sound-active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
 .btn-vk-active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+.btn-sound-active {
     background-color: var(--color-primary) !important;
     color: white !important;
 }
@@ -646,6 +654,12 @@ textarea::placeholder {
     font-size: 12px;
     color: var(--text-sub);
     font-weight: normal;
+    flex-shrink: 0;
+    min-width: 50px;
+    max-width: 70px;           /* 新增：最大宽度，超出换行 */
+    text-align: right;         /* 新增：文字右对齐 */
+    line-height: 1.4;          /* 新增：多行时行高更舒服 */
+    word-break: break-all;     /* 新增：允许在任意字符处换行 */
 }
 /* 单元子列表 */
 .bank-unit-list {
