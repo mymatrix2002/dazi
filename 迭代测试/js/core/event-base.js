@@ -124,10 +124,11 @@ function bindBaseEvents() {
             return;
         }
         clearTimeout(pauseTimer);
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        if(window.onlineTTS) window.onlineTTS.stop();
         if(speechState.running){
             speechState.running=false;
-            if(window.speechSynthesis) window.speechSynthesis.cancel();
+            if(window.onlineTTS) window.onlineTTS.stop();
+
             document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
                 el.classList.remove('sentence-read-highlight');
             });
@@ -165,12 +166,11 @@ function bindBaseEvents() {
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        const ut = window.createUtterance(firstItem.text, speechState.rate);
-        if(ut) {
-            ut.onend = () => nextSpeak(firstItem.pauseType);
-            ut.onerror = () => nextSpeak(firstItem.pauseType);
-            window.speechSynthesis.speak(ut);
+        // 测试：用在线语音直接播放整段
+        if(window.onlineTTS) {
+            window.onlineTTS.speak(txt, 'en', speechState.rate, speechState.volume);
         }
+
     });
 
     // 朗读语速切换
