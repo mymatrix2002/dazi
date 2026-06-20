@@ -1,138 +1,146 @@
 // js/data/practice-bank.js
-// 内置练习题库 - 主文件
-// 支持多版本教材（广州版、人教版等）
+// 内置题库主文件 - 结构定义 + 工具方法
+// 修复：grade 参数自动转换，支持数字和字符串两种格式
 
-// 全局题库对象
-const practiceBank = {
-    // 当前默认版本
-    defaultVersion: 'guangzhou',
+(function() {
+    'use strict';
 
-    // ========== 学段 ==========
-    primary: {
-        name: '小学',
-        versions: {
-            // 广州版（教科版）
-            guangzhou: {
-                name: '广州版',
-                fullName: '广州教育版（教科版）',
-                grades: {}
+    // ========== 题库根结构 ==========
+    const practiceBank = {
+        // 学段：小学
+        primary: {
+            name: '小学',
+            // 版本
+            versions: {
+                // 广州版（教科版）
+                guangzhou: {
+                    name: '广州版',
+                    // 年级
+                    grades: {
+                        // 示例结构，实际数据由各模块文件注册
+                        // grade5: {
+                        //     name: '五年级',
+                        //     volumes: {
+                        //         upper: { name: '上册', modules: [] },
+                        //         lower: { name: '下册', modules: [] }
+                        //     }
+                        // }
+                    }
+                }
+                // 以后可加：renjiao（人教版）、waiyan（外研版）等
             }
-            // 未来可以加：
-            // renjiao: { name: '人教版', grades: {} }
-            // waiyan: { name: '外研版', grades: {} }
         }
-    },
-
-    // 预留初中
-    junior: {
-        name: '初中',
-        versions: {}
-    },
-
-    // 预留高中
-    senior: {
-        name: '高中',
-        versions: {}
-    },
+        // 以后可加：junior（初中）、senior（高中）等
+    };
 
     // ========== 工具方法 ==========
 
     /**
-     * 获取指定版本的数据
-     */
-    getVersionData: function(stage, version) {
-        try {
-            const stageData = this[stage];
-            if (!stageData || !stageData.versions) return null;
-            
-            const ver = version || this.defaultVersion;
-            return stageData.versions[ver] || null;
-        } catch (e) {
-            console.error('获取版本数据失败:', e);
-            return null;
-        }
-    },
-
-    /**
-     * 获取指定年级和册别的所有模块
-     * @param {string} stage - 学段：primary/junior/senior
-     * @param {number} grade - 年级：5/6...
-     * @param {string} volume - 册别：upper/lower
-     * @param {string} version - 版本：guangzhou/renjiao...（可选，默认广州版）
+     * 获取模块列表
+     * @param {string} stage - 学段：primary（小学）
+     * @param {number|string} grade - 年级：5 或 'grade5'
+     * @param {string} volume - 册别：upper（上册）/ lower（下册）
+     * @param {string} version - 版本：guangzhou（广州版）
      * @returns {Array} 模块列表
      */
-    getModules: function(stage, grade, volume, version) {
+    function getModules(stage, grade, volume, version) {
+        const gradeKey = formatGradeKey(grade);
+        
         try {
-            const verData = this.getVersionData(stage, version);
-            if (!verData) return [];
-            
-            const gradeData = verData.grades['grade' + grade];
-            if (!gradeData) return [];
-            
-            const volumeData = gradeData.volumes[volume];
-            if (!volumeData) return [];
-            
-            return volumeData.modules || [];
+            return practiceBank[stage]
+                .versions[version]
+                .grades[gradeKey]
+                .volumes[volume]
+                .modules || [];
         } catch (e) {
-            console.error('获取模块列表失败:', e);
+            console.warn('practiceBank.getModules 查找失败:', e.message);
             return [];
         }
-    },
+    }
 
     /**
-     * 获取指定单元的内容
+     * 获取单元内容
+     * @param {string} stage - 学段
+     * @param {number|string} grade - 年级
+     * @param {string} volume - 册别
+     * @param {string} moduleId - 模块ID
+     * @param {string} unitId - 单元ID
+     * @param {string} version - 版本
+     * @returns {Object|null} 单元内容
      */
-    getUnitContent: function(stage, grade, volume, moduleId, unitId, version) {
-        try {
-            const modules = this.getModules(stage, grade, volume, version);
-            const module = modules.find(m => m.id === moduleId);
-            if (!module) return null;
-            
-            const unit = module.units.find(u => u.id === unitId);
-            if (!unit) return null;
-            
-            return unit.content || null;
-        } catch (e) {
-            console.error('获取单元内容失败:', e);
-            return null;
-        }
-    },
+    function getUnitContent(stage, grade, volume, moduleId, unitId, version) {
+        const modules = getModules(stage, grade, volume, version);
+        const module = modules.find(m => m.id === moduleId);
+        if (!module) return null;
+        
+        const unit = module.units.find(u => u.id === unitId);
+        return unit ? unit.content : null;
+    }
 
     /**
-     * 获取练习内容的纯文本
+     * 获取纯文本内容（用于填充到练习框）
      * @param {Object} content - 单元内容对象
      * @param {string} type - 类型：words/phrases/sentences/dialogue
      * @param {boolean} withCn - 是否包含中文
-     * @returns {string} 纯文本内容
+     * @returns {string} 纯文本
      */
-    getPlainText: function(content, type, withCn) {
-        try {
-            if (!content || !content[type]) return '';
-            
-            const items = content[type];
-            
-            // 对话类型特殊处理
-            if (type === 'dialogue') {
-                if (withCn && items[0] && items[0].cn) {
-                    return items[0].cn;
-                }
-                return items[0] ? items[0].en : '';
-            }
-            
-            // 单词、短语、句型
-            return items.map(item => {
-                if (withCn && item.cn) {
-                    return item.en + '  ' + item.cn;
-                }
-                return item.en;
-            }).join('\n');
-            
-        } catch (e) {
-            console.error('获取纯文本失败:', e);
-            return '';
-        }
-    }
-};
+    function getPlainText(content, type, withCn) {
+        if (!content || !content[type]) return '';
 
-// 暴露给全局
-window.practiceBank = practiceBank;
+        const items = content[type];
+        let lines = [];
+
+        if (type === 'dialogue') {
+            // 对话类型：统一数组格式
+            items.forEach(item => {
+                if (item.speaker) {
+                    // 人物对话
+                    if (withCn !== false) {
+                        lines.push(`${item.speaker}: ${item.en}`);
+                        lines.push(item.cn);
+                    } else {
+                        lines.push(`${item.speaker}: ${item.en}`);
+                    }
+                } else {
+                    // 叙述句
+                    if (withCn !== false) {
+                        lines.push(item.en);
+                        lines.push(item.cn);
+                    } else {
+                        lines.push(item.en);
+                    }
+                }
+                lines.push(''); // 空行分隔
+            });
+        } else {
+            // 单词/短语/句型
+            items.forEach(item => {
+                if (withCn && item.cn) {
+                    lines.push(`${item.en} ${item.cn}`);
+                } else {
+                    lines.push(item.en);
+                }
+            });
+        }
+
+        return lines.join('\n').trim();
+    }
+
+    /**
+     * 格式化年级 key：数字 5 → 'grade5'，字符串 'grade5' → 'grade5'
+     */
+    function formatGradeKey(grade) {
+        if (typeof grade === 'number') {
+            return 'grade' + grade;
+        }
+        return grade;
+    }
+
+    // ========== 暴露到全局 ==========
+    practiceBank.getModules = getModules;
+    practiceBank.getUnitContent = getUnitContent;
+    practiceBank.getPlainText = getPlainText;
+
+    window.practiceBank = practiceBank;
+
+})();

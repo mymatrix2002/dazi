@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
-    <link rel="stylesheet" href="css/practice-bank.css">
+
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
 
@@ -68,11 +68,13 @@
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h2 class="font-semibold">练习内容设置</h2>
             <div class="flex flex-wrap gap-2 items-center">
+                <button onclick="openPracticeBank()" class="btn-normal px-3 py-1.5 text-sm">📚 选择题库</button>
                 <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
                     📁 上传TXT文件
                     <input type="file" id="fileInput" accept=".txt" class="hidden">
                 </label>
                 <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
+
 
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>

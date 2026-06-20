@@ -1,6 +1,5 @@
 // js/feature/practice-bank-ui.js
-// 内置题库选择 UI 功能
-
+// 内置题库选择 UI 功能（修复createButton残留报错、手风琴、输入框ID）
 (function() {
     'use strict';
 
@@ -8,7 +7,7 @@
     const CONFIG = {
         defaultStage: 'primary',
         defaultGrade: 5,
-        defaultVolume: 'lower',  // 默认显示下册
+        defaultVolume: 'lower',
         version: 'guangzhou'
     };
 
@@ -26,26 +25,11 @@
 
     // ========== 初始化 ==========
     function init() {
-        createButton();
         createModal();
         bindEvents();
     }
 
-    // ========== 创建按钮 ==========
-    function createButton() {
-        const btn = document.createElement('button');
-        btn.id = 'practiceBankBtn';
-        btn.className = 'bank-btn';
-        btn.innerHTML = '📚 选择题库';
-        btn.onclick = openModal;
-
-        // 插入到练习内容区的按钮组里
-        const contentArea = document.getElementById('contentArea');
-        if (contentArea) {
-            const btnGroup = contentArea.querySelector('.btn-group') || contentArea;
-            btnGroup.appendChild(btn);
-        }
-    }
+    // ========== 已删除createButton函数，彻底消除报错源头 ==========
 
     // ========== 创建弹窗 ==========
     function createModal() {
@@ -62,8 +46,8 @@
                 <div class="bank-modal-body">
                     <!-- 册别切换 Tab -->
                     <div class="bank-tabs">
-                        <button class="bank-tab active" data-volume="upper">五年级上册</button>
-                        <button class="bank-tab" data-volume="lower">五年级下册</button>
+                        <button class="bank-tab" data-volume="upper">五年级上册</button>
+                        <button class="bank-tab active" data-volume="lower">五年级下册</button>
                     </div>
                     <!-- 主内容区 -->
                     <div class="bank-main">
@@ -73,14 +57,15 @@
                         </div>
                         <!-- 右侧：练习内容 -->
                         <div class="bank-content">
-                            <div class="bank-unit-info" id="unitInfo"></div>
+                            <div class="bank-unit-info" id="unitInfo">
+                                <p class="bank-empty">请选择左侧的单元</p>
+                            </div>
                             <div class="bank-practice-list" id="practiceList"></div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
-
         document.body.appendChild(modalEl);
     }
 
@@ -88,7 +73,6 @@
     function bindEvents() {
         // 点击遮罩关闭
         modalEl.querySelector('.bank-modal-overlay').addEventListener('click', closeModal);
-
         // Tab 切换
         modalEl.querySelectorAll('.bank-tab').forEach(tab => {
             tab.addEventListener('click', function() {
@@ -96,16 +80,13 @@
                 switchVolume(volume);
             });
         });
-
-        // ESC 关闭
+        // ESC 关闭弹窗
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && isOpen) {
-                closeModal();
-            }
+            if (e.key === 'Escape' && isOpen) closeModal();
         });
     }
 
-    // ========== 打开弹窗 ==========
+    // ========== 打开弹窗（全局暴露给onclick）==========
     function openModal() {
         if (!modalEl) return;
         modalEl.classList.add('open');
@@ -120,17 +101,14 @@
         isOpen = false;
     }
 
-    // ========== 切换册别 ==========
+    // ========== 切换上下册 ==========
     function switchVolume(volume) {
         currentState.volume = volume;
         currentState.moduleId = null;
         currentState.unitId = null;
-
-        // 更新 Tab 样式
         modalEl.querySelectorAll('.bank-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.volume === volume);
         });
-
         loadModules();
         clearUnitInfo();
     }
@@ -143,17 +121,15 @@
             currentState.volume,
             CONFIG.version
         );
-
         const listEl = document.getElementById('moduleList');
         if (!listEl) return;
-
         let html = '';
         modules.forEach(module => {
             const isActive = currentState.moduleId === module.id;
             html += `
                 <div class="bank-module ${isActive ? 'active' : ''}" data-module-id="${module.id}">
                     <div class="bank-module-title" onclick="toggleModule('${module.id}')">
-                        <span class="bank-module-arrow">▶</span>
+                        <span class="bank-module-arrow">${isActive ? '▼' : '▶'}</span>
                         <span>${module.name}</span>
                         <span class="bank-module-cn">${module.nameCn}</span>
                     </div>
@@ -170,50 +146,49 @@
                 </div>
             `;
         });
-
         listEl.innerHTML = html;
     }
 
-    // ========== 展开/收起模块 ==========
+    // ========== 手风琴：展开模块，自动收起其他模块 ==========
     function toggleModule(moduleId) {
-        const unitList = document.getElementById('unitList-' + moduleId);
-        if (!unitList) return;
-
-        if (unitList.style.display === 'none') {
-            unitList.style.display = 'block';
-            currentState.moduleId = moduleId;
-        } else {
-            unitList.style.display = 'none';
-            if (currentState.moduleId === moduleId) {
-                currentState.moduleId = null;
-            }
-        }
-
-        // 更新箭头方向
-        const moduleEl = document.querySelector(`.bank-module[data-module-id="${moduleId}"]`);
-        if (moduleEl) {
+        const allModules = document.querySelectorAll('.bank-module');
+        allModules.forEach(moduleEl => {
+            const mid = moduleEl.dataset.moduleId;
+            const unitWrap = document.getElementById(`unitList-${mid}`);
             const arrow = moduleEl.querySelector('.bank-module-arrow');
-            if (arrow) {
-                arrow.textContent = unitList.style.display === 'none' ? '▶' : '▼';
+            if (mid === moduleId) {
+                // 当前点击模块切换展开/收起
+                if (unitWrap.style.display === 'none') {
+                    unitWrap.style.display = 'block';
+                    moduleEl.classList.add('active');
+                    arrow.textContent = '▼';
+                    currentState.moduleId = moduleId;
+                } else {
+                    unitWrap.style.display = 'none';
+                    moduleEl.classList.remove('active');
+                    arrow.textContent = '▶';
+                    if (currentState.moduleId === moduleId) currentState.moduleId = null;
+                }
+            } else {
+                // 其他模块全部收起
+                unitWrap.style.display = 'none';
+                moduleEl.classList.remove('active');
+                arrow.textContent = '▶';
             }
-            moduleEl.classList.toggle('active', unitList.style.display !== 'none');
-        }
+        });
     }
 
     // ========== 选择单元 ==========
     function selectUnit(moduleId, unitId) {
         currentState.moduleId = moduleId;
         currentState.unitId = unitId;
-
-        // 更新选中样式
         document.querySelectorAll('.bank-unit').forEach(el => {
             el.classList.toggle('active', el.dataset.unitId === unitId);
         });
-
         loadUnitContent();
     }
 
-    // ========== 加载单元内容 ==========
+    // ========== 渲染单元详情、练习卡片 ==========
     function loadUnitContent() {
         const content = window.practiceBank.getUnitContent(
             currentState.stage,
@@ -223,7 +198,6 @@
             currentState.unitId,
             CONFIG.version
         );
-
         const modules = window.practiceBank.getModules(
             currentState.stage,
             currentState.grade,
@@ -232,8 +206,7 @@
         );
         const module = modules.find(m => m.id === currentState.moduleId);
         const unit = module ? module.units.find(u => u.id === currentState.unitId) : null;
-
-        // 单元信息
+        // 单元标题信息
         const infoEl = document.getElementById('unitInfo');
         if (infoEl && unit) {
             const stars = '⭐'.repeat(unit.difficulty || 2);
@@ -243,17 +216,15 @@
                 <p class="bank-unit-difficulty">难度：${stars}</p>
             `;
         }
-
-        // 练习类型列表
+        // 四类练习卡片
         const listEl = document.getElementById('practiceList');
         if (listEl && content) {
             const types = [
-                { id: 'words', name: '单元单词', icon: '🔤', desc: `${content.words ? content.words.length : 0} 个单词` },
-                { id: 'phrases', name: '重点短语', icon: '📝', desc: `${content.phrases ? content.phrases.length : 0} 个短语` },
-                { id: 'sentences', name: '重点句型', icon: '💬', desc: `${content.sentences ? content.sentences.length : 0} 个句型` },
+                { id: 'words', name: '单元单词', icon: '🔤', desc: `${content.words?.length || 0} 个单词` },
+                { id: 'phrases', name: '重点短语', icon: '📝', desc: `${content.phrases?.length || 0} 个短语` },
+                { id: 'sentences', name: '重点句型', icon: '💬', desc: `${content.sentences?.length || 0} 个句型` },
                 { id: 'dialogue', name: '课文对话', icon: '📖', desc: '中英双语对照' }
             ];
-
             listEl.innerHTML = types.map(type => `
                 <div class="bank-practice-item" onclick="selectPractice('${type.id}')">
                     <div class="bank-practice-icon">${type.icon}</div>
@@ -275,7 +246,7 @@
         if (listEl) listEl.innerHTML = '';
     }
 
-    // ========== 选择练习类型 ==========
+    // ========== 填充内容到输入框 #sourceText ==========
     function selectPractice(type) {
         const content = window.practiceBank.getUnitContent(
             currentState.stage,
@@ -285,44 +256,26 @@
             currentState.unitId,
             CONFIG.version
         );
-
         if (!content) return;
-
-        // 获取纯文本
-        const withCn = type !== 'dialogue'; // 对话类型用双语模式，其他类型带中文
+        const withCn = type !== 'dialogue';
         const text = window.practiceBank.getPlainText(content, type, withCn);
-
-        // 填充到练习内容区
-        const textInput = document.getElementById('textInput');
-        if (textInput) {
-            textInput.value = text;
-            // 触发内容变化事件，让主程序重新渲染
-            if (textInput.onchange) textInput.onchange();
-            if (window.loadText) window.loadText();
+        const inputBox = document.getElementById('sourceText');
+        if (inputBox) {
+            inputBox.value = text;
+            // 触发输入事件，自动更新字符计数
+            inputBox.dispatchEvent(new Event('input', { bubbles: true }));
         }
-
-        // 如果是课文对话，切换到双语对照模式
-        if (type === 'dialogue' && window.switchMode) {
-            window.switchMode('bilingual');
-        } else if (window.switchMode) {
-            window.switchMode('full');
-        }
-
-        // 关闭弹窗
         closeModal();
-
-        // 重置练习
-        if (window.resetPractice) window.resetPractice();
     }
 
-    // ========== 暴露全局方法 ==========
+    // ========== 挂载全局函数（给HTML onclick调用）==========
     window.openPracticeBank = openModal;
     window.closePracticeBank = closeModal;
     window.toggleModule = toggleModule;
     window.selectUnit = selectUnit;
     window.selectPractice = selectPractice;
 
-    // ========== 启动 ==========
+    // ========== DOM加载完成后初始化弹窗 ==========
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
