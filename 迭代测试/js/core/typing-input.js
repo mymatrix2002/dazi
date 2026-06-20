@@ -1,4 +1,5 @@
-// js/core/typing-input.js 完整代码
+// js/core/typing-input.js 完整代码（修复字符索引错位）
+
 // ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
@@ -21,7 +22,8 @@ window.doHandleTypingEnter = function() {
     }
     
     // 渲染本行完成样式
-    const currentSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
+    // ========== 修复：只选择 .char-span，排除说话人前缀 ==========
+    const currentSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] .char-span`);
     currentSpans.forEach(s => {
         if (s.classList.contains('char-correct') || s.classList.contains('char-wrong')) {
             s.classList.add('char-done');
@@ -35,8 +37,10 @@ window.doHandleTypingEnter = function() {
         inputAreaEl.value = '';
         prevInputValue = '';  // ← 必须加上！否则下一行输入统计会出错
         inputAreaEl.placeholder = "在这里打字...";
-        const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-        if(newSpans[0]) newSpans[0].className='char-current';
+        // ========== 修复：只选择 .char-span，排除说话人前缀 ==========
+        const newSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] .char-span`);
+        // ========== 修复：保留 char-span 类，避免被覆盖 ==========
+        if(newSpans[0]) newSpans[0].className = 'char-span char-current';
         // 虚拟键盘高亮更新
         if(window.virtualKeyboard && window.virtualKeyboard.isEnabled()) {
             const nextChars = entryCharsList[currentEntryIndex];
@@ -194,24 +198,29 @@ function bindInputEvent() {
             el.classList.remove('char-current');
         });
 
-        const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] span`);
-        allSpans.forEach(s=>s.className='char-pending');
+        // ========== 修复：只选择 .char-span，排除说话人前缀 ==========
+        const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] .char-span`);
+        // ========== 修复：保留 char-span 类，避免被覆盖 ==========
+        allSpans.forEach(s => s.className = 'char-span char-pending');
         let hasError = false;
         let currentSpan = null;
 
         for(let i=0;i<val.length;i++){
             const span = allSpans[i];
             if(val[i] === activeChars[i]){
-                span.className = 'char-correct';
+                // ========== 修复：保留 char-span 类 ==========
+                span.className = 'char-span char-correct';
             }else{
-                span.className = 'char-wrong';
+                // ========== 修复：保留 char-span 类 ==========
+                span.className = 'char-span char-wrong';
                 hasError = true;
             }
         }
 
         // 2. 只有未输满时，才显示光标；输满后光标消失，等待回车
         if(val.length < entryLen){
-            allSpans[val.length].className = 'char-current';
+            // ========== 修复：保留 char-span 类 ==========
+            allSpans[val.length].className = 'char-span char-current';
             currentSpan = allSpans[val.length];
         } 
         

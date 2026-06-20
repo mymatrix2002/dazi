@@ -257,7 +257,7 @@
             CONFIG.version
         );
         if (!content) return;
-        const withCn = type !== 'dialogue';
+        const withCn = true;  // 所有类型都带中文译文
         const text = window.practiceBank.getPlainText(content, type, withCn);
         const inputBox = document.getElementById('sourceText');
         if (inputBox) {

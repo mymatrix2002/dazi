@@ -684,7 +684,7 @@ textarea::placeholder {
     font-weight: 500;
 }
 .bank-unit-cn {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-sub);
     font-weight: normal;
 }
