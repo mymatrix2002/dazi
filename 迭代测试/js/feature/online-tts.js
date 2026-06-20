@@ -1,18 +1,18 @@
 // js/feature/online-tts.js
-// 极简版在线 TTS（百度翻译接口）
-// 移动端兼容优化版
+// 极简版在线 TTS（有道翻译接口）
+// 移动端兼容优化版 + 防盗链绕过
 (function() {
     'use strict';
 
     let _isPlaying = false;
     let currentAudio = null;
 
-    // 生成 TTS 地址
+    // 生成 TTS 地址（有道翻译）
     function getTTSUrl(text, lang, speed) {
-        const lan = (lang === 'zh' || lang === 'zh-CN') ? 'zh' : 'en';
-        const spd = Math.max(0.5, Math.min(9, speed * 3));
+        // type=1 美音，type=2 英音
+        const type = 2;
         const encoded = encodeURIComponent(text);
-        return `https://fanyi.baidu.com/gettts?lan=${lan}&text=${encoded}&spd=${spd}&source=web`;
+        return `https://dict.youdao.com/dictvoice?audio=${encoded}&type=${type}`;
     }
 
     // 播放
@@ -32,6 +32,9 @@
         audio.setAttribute('webkit-playsinline', '');
         audio.setAttribute('preload', 'auto');
         
+        // 关键：去掉 Referer，绕过防盗链
+        audio.referrerPolicy = 'no-referrer';
+        
         // 音量（确保有默认值）
         const vol = volume || 1;
         audio.volume = Math.min(1, Math.max(0, vol));
@@ -47,7 +50,6 @@
             }).catch(e => {
                 console.warn('[OnlineTTS] 播放失败:', e.message);
                 _isPlaying = false;
-                // 调试：弹出错误信息
                 alert('播放失败: ' + e.message);
             });
         } else {
@@ -63,10 +65,9 @@
         };
 
         // 加载错误
-        audio.onerror = () => {
-            console.warn('[OnlineTTS] 加载失败');
+        audio.onerror = (e) => {
+            console.warn('[OnlineTTS] 加载失败', e);
             _isPlaying = false;
-            // 调试：弹出错误信息
             alert('音频加载失败');
             if (currentAudio === audio) {
                 currentAudio = null;
