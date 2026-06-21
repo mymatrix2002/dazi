@@ -1,6 +1,5 @@
 // js/feature/online-tts.js
-// 在线 TTS 语音引擎（百度翻译版）
-// 终极兼容版：fetch + Blob URL，移动端/电脑端都能播
+// 在线 TTS 语音引擎（调试版 - 带详细日志）
 (function() {
     'use strict';
 
@@ -9,44 +8,41 @@
     let _onEndCallback = null;
     let _onErrorCallback = null;
     let audioContainer = null;
-    let abortController = null;
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
     const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
     // ======================================================
 
-    // 初始化容器
     function initContainer() {
         if (audioContainer) return;
         audioContainer = document.createElement('div');
         audioContainer.style.display = 'none';
         document.body.appendChild(audioContainer);
+        console.log('[TTS] 容器已创建');
     }
 
-    // 语速转换
     function convertRateToBaiduSpeed(rate) {
         const baseSpeed = 3;
         const speed = Math.round(baseSpeed * rate);
         return Math.max(1, Math.min(9, speed));
     }
 
-    // 生成 TTS 地址
     function getTTSUrl(text, lang, speed) {
         const baiduSpeed = convertRateToBaiduSpeed(speed);
         const encoded = encodeURIComponent(text);
         return `${WORKER_URL}?text=${encoded}&lang=${lang}&speed=${baiduSpeed}`;
     }
 
-    // 播放
     async function speak(text, lang, speed, volume, onEnd, onError) {
+        console.log('[TTS] 开始播放:', text.substring(0, 30) + '...');
+        
         if (!text || !text.trim()) {
+            console.log('[TTS] 文本为空，跳过');
             if (onEnd) setTimeout(onEnd, 100);
             return;
         }
 
         initContainer();
-        
-        // 先停止之前的
         stop();
         
         _isPlaying = true;
@@ -55,65 +51,58 @@
 
         try {
             const url = getTTSUrl(text, lang, speed);
+            console.log('[TTS] 请求地址:', url);
             
-            // 用 fetch 下载音频，转成 Blob URL（同源，移动端兼容好）
-            abortController = new AbortController();
-            
-            const response = await fetch(url, {
-                signal: abortController.signal,
-                mode: 'cors'
-            });
-            
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
-            }
-            
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // 创建 Audio 播放
+            // ===== 方案1：直接 Audio src（用户点击时同步播放，绕过自动播放限制）=====
             const audio = new Audio();
             audio.setAttribute('playsinline', '');
             audio.setAttribute('webkit-playsinline', '');
             audio.setAttribute('x5-playsinline', '');
-            audio.src = blobUrl;
+            audio.preload = 'auto';
             
-            // 设置音量
             const vol = volume || 1;
             audio.volume = Math.min(1, Math.max(0, vol));
+            console.log('[TTS] 音量:', vol);
             
             audioContainer.appendChild(audio);
             currentAudio = audio;
 
-            // 播放结束
             audio.onended = () => {
+                console.log('[TTS] 播放结束');
                 if (audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onEndCallback;
                 _onEndCallback = null;
-                // 清理
                 if (audio.parentNode) audio.parentNode.removeChild(audio);
-                URL.revokeObjectURL(blobUrl);
                 if (cb) cb();
             };
 
-            // 播放错误
-            audio.onerror = () => {
+            audio.onerror = (e) => {
+                console.error('[TTS] 播放错误:', e, '错误代码:', audio.error ? audio.error.code : '未知');
                 if (audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onErrorCallback;
                 _onErrorCallback = null;
-                // 清理
                 if (audio.parentNode) audio.parentNode.removeChild(audio);
-                URL.revokeObjectURL(blobUrl);
                 if (cb) cb(new Error('播放失败'));
             };
 
-            // 开始播放
+            audio.onloadstart = () => console.log('[TTS] 开始加载');
+            audio.oncanplay = () => console.log('[TTS] 可以播放了');
+            audio.onplay = () => console.log('[TTS] 正式开始播放');
+            audio.onpause = () => console.log('[TTS] 暂停');
+
+            audio.src = url;
+            console.log('[TTS] 已设置 src，准备播放');
+            
             const playPromise = audio.play();
+            console.log('[TTS] play() 返回值:', playPromise);
             
             if (playPromise !== undefined) {
-                playPromise.catch(e => {
+                playPromise.then(() => {
+                    console.log('[TTS] play Promise 成功');
+                }).catch(e => {
+                    console.error('[TTS] play Promise 失败:', e.name, e.message);
                     if (audio !== currentAudio) return;
                     if (e.name === 'AbortError') return;
                     _isPlaying = false;
@@ -123,25 +112,17 @@
                 });
             }
         } catch (e) {
-            if (e.name === 'AbortError') return; // 主动取消的，忽略
+            console.error('[TTS] 异常:', e);
             _isPlaying = false;
             if (onError) onError(e);
         }
     }
 
-    // 停止
     function stop() {
+        console.log('[TTS] 停止播放');
         _onEndCallback = null;
         _onErrorCallback = null;
         _isPlaying = false;
-        
-        // 取消正在进行的 fetch
-        if (abortController) {
-            try {
-                abortController.abort();
-            } catch (e) {}
-            abortController = null;
-        }
         
         if (currentAudio) {
             const oldAudio = currentAudio;
@@ -149,11 +130,16 @@
             try {
                 oldAudio.onended = null;
                 oldAudio.onerror = null;
+                oldAudio.onloadstart = null;
+                oldAudio.oncanplay = null;
+                oldAudio.onplay = null;
+                oldAudio.onpause = null;
                 oldAudio.pause();
                 oldAudio.src = '';
                 oldAudio.load();
-            } catch (e) {}
-            // 延迟清理
+            } catch (e) {
+                console.warn('[TTS] 停止时出错:', e);
+            }
             setTimeout(() => {
                 if (oldAudio.parentNode) {
                     try {
@@ -164,16 +150,14 @@
         }
     }
 
-    // 状态
     function isPlaying() {
         return _isPlaying;
     }
 
     function isSupported() {
-        return !!window.Audio && !!window.fetch && !!URL.createObjectURL;
+        return !!window.Audio;
     }
 
-    // 暴露到全局
     window.onlineTTS = {
         speak,
         stop,
@@ -181,4 +165,5 @@
         isSupported
     };
 
+    console.log('[TTS] 模块已加载');
 })();
