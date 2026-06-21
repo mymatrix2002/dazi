@@ -1,6 +1,6 @@
 // js/feature/online-tts.js
-// 在线 TTS 语音引擎（通过 Cloudflare Workers 代理有道翻译接口）
-// 逐句播放优化版 - 支持播放结束回调 + 语速调节
+// 在线 TTS 语音引擎（通过 Cloudflare Workers 代理百度翻译接口）
+// 百度翻译版 - 支持长句子 + 原生语速调节
 (function() {
     'use strict';
 
@@ -40,11 +40,20 @@
         };
     }
 
+    // 语速转换：把 0.25-1.5 的倍率转换成百度的 1-9 语速
+    function convertRateToBaiduSpeed(rate) {
+        // 百度语速：1最慢，9最快，3正常
+        // 我们的 rate：0.25x 到 1.5x，1.0 对应百度的 3
+        const baseSpeed = 3;
+        const speed = Math.round(baseSpeed * rate);
+        return Math.max(1, Math.min(9, speed));
+    }
+
     // 生成 TTS 地址
-    function getTTSUrl(text, lang) {
-        const type = 2; // type=1 美音，type=2 英音
+    function getTTSUrl(text, lang, speed) {
+        const baiduSpeed = convertRateToBaiduSpeed(speed);
         const encoded = encodeURIComponent(text);
-        return `${WORKER_URL}?text=${encoded}&type=${type}`;
+        return `${WORKER_URL}?text=${encoded}&lang=${lang}&speed=${baiduSpeed}`;
     }
 
     // 播放
@@ -59,7 +68,7 @@
         // 先停止之前的
         stop();
 
-        const url = getTTSUrl(text, lang);
+        const url = getTTSUrl(text, lang, speed);
         
         // 保存回调
         _onEndCallback = onEnd || null;
@@ -69,10 +78,6 @@
             // 设置音量
             const vol = volume || 1;
             audioEl.volume = Math.min(1, Math.max(0, vol));
-
-            // 设置语速（通过 playbackRate 实现，可能会有点变声）
-            const rate = speed || 1;
-            audioEl.playbackRate = Math.min(2, Math.max(0.5, rate));
 
             // 设置地址并播放
             audioEl.src = url;
