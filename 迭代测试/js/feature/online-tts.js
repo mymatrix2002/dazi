@@ -1,6 +1,6 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（百度翻译版）
-// 兼容版：每次新建 Audio，移动端/电脑端都兼容，停止零报错
+// 移动端优化版：DOM 挂载 + 自动播放解锁 + 零日志
 (function() {
     'use strict';
 
@@ -8,10 +8,22 @@
     let currentAudio = null;
     let _onEndCallback = null;
     let _onErrorCallback = null;
+    let audioContainer = null;
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
     const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
     // ======================================================
+
+    // 初始化音频容器（放到 DOM 里，移动端兼容性更好）
+    function initContainer() {
+        if (audioContainer) return;
+        audioContainer = document.createElement('div');
+        audioContainer.style.display = 'none';
+        audioContainer.style.position = 'absolute';
+        audioContainer.style.left = '-9999px';
+        audioContainer.style.top = '-9999px';
+        document.body.appendChild(audioContainer);
+    }
 
     // 语速转换
     function convertRateToBaiduSpeed(rate) {
@@ -34,7 +46,9 @@
             return;
         }
 
-        // 先停止之前的播放
+        initContainer();
+        
+        // 先停止之前的
         stop();
         
         _isPlaying = true;
@@ -42,11 +56,14 @@
         _onErrorCallback = onError || null;
 
         try {
-            // 每次都新建 Audio 元素，兼容性最好
             const audio = new Audio();
             audio.setAttribute('playsinline', '');
             audio.setAttribute('webkit-playsinline', '');
+            audio.setAttribute('x5-playsinline', ''); // 腾讯 X5 内核
             audio.setAttribute('preload', 'auto');
+            
+            // 放到 DOM 容器里，移动端兼容性更好
+            audioContainer.appendChild(audio);
             
             // 设置音量
             const vol = volume || 1;
@@ -54,19 +71,27 @@
 
             // 播放结束
             audio.onended = () => {
-                if (audio !== currentAudio) return; // 不是当前播放的，忽略
+                if (audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onEndCallback;
                 _onEndCallback = null;
+                // 清理 DOM
+                if (audio.parentNode) {
+                    audio.parentNode.removeChild(audio);
+                }
                 if (cb) cb();
             };
 
             // 播放错误
             audio.onerror = () => {
-                if (audio !== currentAudio) return; // 不是当前播放的，忽略
+                if (audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onErrorCallback;
                 _onErrorCallback = null;
+                // 清理 DOM
+                if (audio.parentNode) {
+                    audio.parentNode.removeChild(audio);
+                }
                 if (cb) cb(new Error('播放失败'));
             };
 
@@ -82,7 +107,10 @@
                 playPromise.catch(e => {
                     if (audio !== currentAudio) return;
                     // 忽略被中断的情况
-                    if (e.message && e.message.indexOf('interrupted by a call to pause') !== -1) {
+                    if (e.message && (
+                        e.message.indexOf('interrupted by a call to pause') !== -1 ||
+                        e.message.indexOf('The play() request was interrupted') !== -1
+                    )) {
                         return;
                     }
                     _isPlaying = false;
@@ -104,14 +132,24 @@
         _isPlaying = false;
         
         if (currentAudio) {
-            try {
-                // 清空所有回调，避免停止后还触发事件
-                currentAudio.onended = null;
-                currentAudio.onerror = null;
-                currentAudio.pause();
-                currentAudio.src = '';
-            } catch (e) {}
+            const oldAudio = currentAudio;
             currentAudio = null;
+            try {
+                // 清空所有回调
+                oldAudio.onended = null;
+                oldAudio.onerror = null;
+                oldAudio.pause();
+                oldAudio.src = '';
+                oldAudio.load(); // 强制停止加载
+            } catch (e) {}
+            // 延迟清理 DOM，避免触发事件
+            setTimeout(() => {
+                if (oldAudio.parentNode) {
+                    try {
+                        oldAudio.parentNode.removeChild(oldAudio);
+                    } catch (e) {}
+                }
+            }, 100);
         }
     }
 
