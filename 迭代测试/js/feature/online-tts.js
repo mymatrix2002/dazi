@@ -10,7 +10,7 @@
     let audioContainer = null;
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
-    const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
+    const WORKER_URL = 'https://tts.841231.xyz/';
     // ======================================================
 
     function initContainer() {
