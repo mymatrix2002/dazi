@@ -1,5 +1,5 @@
 // js/core/event-base.js 完整代码
-// 在线语音版 - 逐句播放 + 高亮滚动
+// 在线语音版 - 逐句播放 + 高亮滚动（修复角色名前缀高亮错位）
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
@@ -26,11 +26,12 @@ function nextSpeak(lastPause){
         setTimeout(() => nextSpeak(senPause), PAUSE_CONFIG[senPause]);
         return;
     }
+    // ========== 修复：只选择 char-span，跳过角色名前缀 ==========
     let allSpans = [];
     if (isBilingualMode) {
-        allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full span, .paragraph-en span');
+        allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full .char-span, .paragraph-en .char-span');
     } else {
-        allSpans = displayAreaEl.querySelectorAll('span');
+        allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     for(let i = startIdx; i <= endIdx && i < allSpans.length; i++){
         allSpans[i].classList.add('sentence-read-highlight');
@@ -130,11 +131,12 @@ function bindBaseEvents() {
         this.textContent = '⏹ 停止朗读';
         const firstItem = speechSentenceMap[0];
         if(!firstItem) return;
+        // ========== 修复：只选择 char-span，跳过角色名前缀 ==========
         let allSpans = [];
         if (isBilingualMode) {
-            allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full span, .paragraph-en span');
+            allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full .char-span, .paragraph-en .char-span');
         } else {
-            allSpans = displayAreaEl.querySelectorAll('span');
+            allSpans = displayAreaEl.querySelectorAll('.char-span');
         }
         for(let i = firstItem.startNode; i <= firstItem.endNode && i < allSpans.length; i++){
             allSpans[i].classList.add('sentence-read-highlight');
