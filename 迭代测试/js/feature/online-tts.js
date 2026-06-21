@@ -9,7 +9,7 @@
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
     // 把下面的地址换成你自己的 Worker 地址
-    const WORKER_URL = 'https://你的-worker-地址.workers.dev/';
+    const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
     // ======================================================
 
     // 初始化 Audio 元素（只创建一次）
