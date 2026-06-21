@@ -1,10 +1,11 @@
 // js/feature/online-tts.js
-// 在线 TTS 语音引擎（通过 Cloudflare Workers 代理百度翻译接口）
-// 百度翻译版 - 支持长句子 + 原生语速调节
+// 在线 TTS 语音引擎（百度翻译版）
+// 优化版：停止时不报错，更稳定
 (function() {
     'use strict';
 
     let _isPlaying = false;
+    let _isStopping = false; // 主动停止标志位
     let audioEl = null;
     let _onEndCallback = null;
     let _onErrorCallback = null;
@@ -24,6 +25,7 @@
         
         // 播放结束
         audioEl.onended = () => {
+            if (_isStopping) return;
             _isPlaying = false;
             const cb = _onEndCallback;
             _onEndCallback = null;
@@ -32,6 +34,7 @@
 
         // 播放错误
         audioEl.onerror = (e) => {
+            if (_isStopping) return; // 主动停止导致的错误，忽略
             console.warn('[OnlineTTS] 播放错误', e);
             _isPlaying = false;
             const cb = _onErrorCallback;
@@ -42,8 +45,6 @@
 
     // 语速转换：把 0.25-1.5 的倍率转换成百度的 1-9 语速
     function convertRateToBaiduSpeed(rate) {
-        // 百度语速：1最慢，9最快，3正常
-        // 我们的 rate：0.25x 到 1.5x，1.0 对应百度的 3
         const baseSpeed = 3;
         const speed = Math.round(baseSpeed * rate);
         return Math.max(1, Math.min(9, speed));
@@ -64,6 +65,9 @@
         }
 
         initAudio();
+        
+        // 重置停止标志
+        _isStopping = false;
         
         // 先停止之前的
         stop();
@@ -86,22 +90,26 @@
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
+                    if (_isStopping) return;
                     _isPlaying = true;
                 }).catch(e => {
+                    if (_isStopping) return; // 主动停止导致的中断，忽略
+                    // 忽略 "interrupted by pause" 这种正常中断
+                    if (e.message && e.message.indexOf('interrupted by a call to pause') !== -1) {
+                        return;
+                    }
                     console.warn('[OnlineTTS] 播放失败:', e.message);
                     _isPlaying = false;
                     _onEndCallback = null;
                     const cb = _onErrorCallback;
                     _onErrorCallback = null;
-                    // 忽略 "interrupted by pause" 这种错误
-                    if (e.message && e.message.indexOf('interrupted by a call to pause') === -1) {
-                        if (cb) cb(e);
-                    }
+                    if (cb) cb(e);
                 });
             } else {
                 _isPlaying = true;
             }
         } catch (e) {
+            if (_isStopping) return;
             console.warn('[OnlineTTS] 播放异常:', e.message);
             _isPlaying = false;
             if (onError) onError(e);
@@ -110,13 +118,24 @@
 
     // 停止
     function stop() {
+        _isStopping = true;
         _onEndCallback = null;
         _onErrorCallback = null;
-        if (!audioEl) return;
+        if (!audioEl) {
+            _isPlaying = false;
+            return;
+        }
         try {
             audioEl.pause();
             audioEl.currentTime = 0;
-            audioEl.src = '';
+            // 延迟一点再清空 src，避免触发不必要的 error
+            setTimeout(() => {
+                if (_isStopping && audioEl) {
+                    try {
+                        audioEl.src = '';
+                    } catch(e) {}
+                }
+            }, 50);
         } catch (e) {}
         _isPlaying = false;
     }
