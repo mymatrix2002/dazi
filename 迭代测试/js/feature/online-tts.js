@@ -1,21 +1,24 @@
 // js/feature/online-tts.js
-// 极简版在线 TTS（有道翻译接口）
-// 移动端兼容优化版 + 防盗链绕过
+// 在线 TTS 语音引擎（通过 Cloudflare Workers 代理有道翻译接口）
+// 移动端兼容优化版
 (function() {
     'use strict';
 
     let _isPlaying = false;
     let currentAudio = null;
 
+    // ========== 配置：你的 Cloudflare Worker 地址 ==========
+    // 把下面的地址换成你自己的 Worker 地址
+    const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
+    // ======================================================
+
     // 生成 TTS 地址（通过 Cloudflare Workers 代理）
     function getTTSUrl(text, lang, speed) {
         // type=1 美音，type=2 英音
         const type = 2;
         const encoded = encodeURIComponent(text);
-        // 替换成你的 Worker 地址
-        return `https://green-forest-10ba.mymatrix2002-ae86.workers.dev/?text=${encoded}&type=${type}`;
+        return `${WORKER_URL}?text=${encoded}&type=${type}`;
     }
-
 
     // 播放
     function speak(text, lang, speed, volume) {
@@ -33,9 +36,6 @@
         audio.setAttribute('playsinline', '');
         audio.setAttribute('webkit-playsinline', '');
         audio.setAttribute('preload', 'auto');
-        
-        // 关键：去掉 Referer，绕过防盗链
-        audio.referrerPolicy = 'no-referrer';
         
         // 音量（确保有默认值）
         const vol = volume || 1;
