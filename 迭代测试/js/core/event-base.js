@@ -92,14 +92,15 @@ function nextSpeak(lastPause){
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     
-    // 只高亮可见英文字符，排除中文和所有空白字符（空格、&nbsp;等）
+    // 只高亮 ASCII 可见字符（英文/数字/英文标点），排除空格、中文、中文标点
     const safeEnd = Math.min(endIdx, allSpans.length - 1);
     for(let i = startIdx; i <= safeEnd; i++){
         const span = allSpans[i];
         if (!span) continue;
         const ch = span.textContent;
-        // 判断条件：不是中文 且 不是空白字符（trim后不为空）
-        if(!isChineseChar(ch) && ch.trim() !== '') {
+        // 判断标准：ASCII 可见字符（33=! 到 126=~），自动排除空格(32)和所有中文
+        const code = ch.charCodeAt(0);
+        if(code >= 33 && code <= 126) {
             span.classList.add('sentence-read-highlight');
         }
     }
