@@ -166,10 +166,13 @@ function bindBaseEvents() {
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // 测试：用在线语音直接播放整段
-        if(window.onlineTTS) {
-            window.onlineTTS.speak(txt, 'en', speechState.rate, speechState.volume);
+        // 测试：用 meSpeak 本地语音合成
+        if(window.meSpeak) {
+            meSpeak.speak(txt, { speed: speechState.rate * 150 });
+        } else {
+            alert('语音库还在加载中，请稍等几秒再试');
         }
+
 
     });
 
