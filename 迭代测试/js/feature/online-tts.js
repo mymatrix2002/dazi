@@ -9,7 +9,7 @@
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
     // 把下面的地址换成你自己的 Worker 地址
-    const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
+    const WORKER_URL = 'https://你的-worker-地址.workers.dev/';
     // ======================================================
 
     // 初始化 Audio 元素（只创建一次）
@@ -67,7 +67,7 @@
             }).catch(e => {
                 console.warn('[OnlineTTS] 播放失败:', e.message);
                 _isPlaying = false;
-                // 忽略 "interrupted by pause" 这种错误，因为是我们主动停止的
+                // 忽略 "interrupted by pause" 这种错误（主动停止导致的）
                 if (e.message && e.message.indexOf('interrupted by a call to pause') === -1) {
                     alert('播放失败: ' + e.message);
                 }
