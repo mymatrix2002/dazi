@@ -47,10 +47,10 @@ function nextSpeak(lastPause){
     }
     // 延迟后播放（模拟原停顿效果）
     setTimeout(() => {
-        // 用在线语音播放当前句子
-        if(window.onlineTTS) {
+// 过滤掉中文，只保留英文部分朗读
+            const enText = senText.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
             window.onlineTTS.speak(
-                senText, 
+                enText, 
                 'en', 
                 speechState.rate, 
                 speechState.volume,
