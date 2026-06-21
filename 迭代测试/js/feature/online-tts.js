@@ -7,13 +7,15 @@
     let _isPlaying = false;
     let currentAudio = null;
 
-    // 生成 TTS 地址（有道翻译）
+    // 生成 TTS 地址（通过 Cloudflare Workers 代理）
     function getTTSUrl(text, lang, speed) {
         // type=1 美音，type=2 英音
         const type = 2;
         const encoded = encodeURIComponent(text);
-        return `https://dict.youdao.com/dictvoice?audio=${encoded}&type=${type}`;
+        // 替换成你的 Worker 地址
+        return `https://green-forest-10ba.mymatrix2002-ae86.workers.dev/?text=${encoded}&type=${type}`;
     }
+
 
     // 播放
     function speak(text, lang, speed, volume) {
