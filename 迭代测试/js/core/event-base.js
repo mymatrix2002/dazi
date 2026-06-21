@@ -281,6 +281,16 @@ function bindBaseEvents() {
             toggleTranslationBtnEl.textContent = '展开';
         }
     });
+    
+        // 停止正在播放的在线语音
+        if(window.onlineTTS) window.onlineTTS.stop();
+        speechState.running = false;
+        document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
+            el.classList.remove('sentence-read-highlight');
+        });
+        readAllBtnEl.classList.remove('btn-speaking');
+        if(readAllBtnEl) readAllBtnEl.textContent = '🔊 朗读全文';
+        
     // 开始练习按钮
     startBtnEl.addEventListener('click',()=>{
         pendingText=sourceTextEl.value.trim();
