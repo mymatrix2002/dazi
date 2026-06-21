@@ -1,18 +1,39 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（通过 Cloudflare Workers 代理有道翻译接口）
-// 移动端兼容优化版
+// 移动端兼容优化版 - 复用 Audio 元素
 (function() {
     'use strict';
 
     let _isPlaying = false;
-    let currentAudio = null;
+    let audioEl = null;
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
     // 把下面的地址换成你自己的 Worker 地址
-    const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
+    const WORKER_URL = 'https://你的-worker-地址.workers.dev/';
     // ======================================================
 
-    // 生成 TTS 地址（通过 Cloudflare Workers 代理）
+    // 初始化 Audio 元素（只创建一次）
+    function initAudio() {
+        if (audioEl) return;
+        
+        audioEl = new Audio();
+        audioEl.setAttribute('playsinline', '');
+        audioEl.setAttribute('webkit-playsinline', '');
+        audioEl.setAttribute('preload', 'auto');
+        
+        // 播放结束
+        audioEl.onended = () => {
+            _isPlaying = false;
+        };
+
+        // 播放错误
+        audioEl.onerror = (e) => {
+            console.warn('[OnlineTTS] 播放错误', e);
+            _isPlaying = false;
+        };
+    }
+
+    // 生成 TTS 地址
     function getTTSUrl(text, lang, speed) {
         // type=1 美音，type=2 英音
         const type = 2;
@@ -24,27 +45,21 @@
     function speak(text, lang, speed, volume) {
         if (!text || !text.trim()) return;
 
+        initAudio();
+        
+        // 先停止之前的
         stop();
 
         const url = getTTSUrl(text, lang, speed);
         
-        // 每次都创建新的 Audio 元素（移动端兼容性更好）
-        const audio = new Audio();
-        currentAudio = audio;
-        
-        // 移动端兼容属性
-        audio.setAttribute('playsinline', '');
-        audio.setAttribute('webkit-playsinline', '');
-        audio.setAttribute('preload', 'auto');
-        
-        // 音量（确保有默认值）
+        // 设置音量
         const vol = volume || 1;
-        audio.volume = Math.min(1, Math.max(0, vol));
+        audioEl.volume = Math.min(1, Math.max(0, vol));
 
-        audio.src = url;
+        // 设置新地址并播放
+        audioEl.src = url;
         
-        // 播放
-        const playPromise = audio.play();
+        const playPromise = audioEl.play();
         
         if (playPromise !== undefined) {
             playPromise.then(() => {
@@ -52,40 +67,23 @@
             }).catch(e => {
                 console.warn('[OnlineTTS] 播放失败:', e.message);
                 _isPlaying = false;
-                alert('播放失败: ' + e.message);
+                // 忽略 "interrupted by pause" 这种错误，因为是我们主动停止的
+                if (e.message && e.message.indexOf('interrupted by a call to pause') === -1) {
+                    alert('播放失败: ' + e.message);
+                }
             });
         } else {
             _isPlaying = true;
         }
-
-        // 播放结束
-        audio.onended = () => {
-            _isPlaying = false;
-            if (currentAudio === audio) {
-                currentAudio = null;
-            }
-        };
-
-        // 加载错误
-        audio.onerror = (e) => {
-            console.warn('[OnlineTTS] 加载失败', e);
-            _isPlaying = false;
-            alert('音频加载失败');
-            if (currentAudio === audio) {
-                currentAudio = null;
-            }
-        };
     }
 
     // 停止
     function stop() {
-        if (currentAudio) {
-            try {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-            } catch (e) {}
-            currentAudio = null;
-        }
+        if (!audioEl) return;
+        try {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+        } catch (e) {}
         _isPlaying = false;
     }
 
