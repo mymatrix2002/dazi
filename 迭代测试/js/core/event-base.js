@@ -323,12 +323,12 @@ function bindBaseEvents() {
         if(mask) mask.remove();
         inputAreaEl.placeholder = "在这里打字...";
         
-        // 虚拟键盘空指针保护
+        // 重置虚拟键盘（加 try-catch 保护）
         if (window.virtualKeyboard && typeof window.virtualKeyboard.reset === 'function') {
             try {
                 window.virtualKeyboard.reset();
             } catch(e) {
-                console.warn('虚拟键盘重置失败:', e);
+                // 忽略虚拟键盘重置错误，不影响主功能
             }
         }
         
