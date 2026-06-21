@@ -1,11 +1,10 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（百度翻译版）
-// 稳定版：修复停止后立即播放的报错问题
+// 最终稳定版：停止时完全不报错
 (function() {
     'use strict';
 
     let _isPlaying = false;
-    let _isStopping = false;
     let audioEl = null;
     let _onEndCallback = null;
     let _onErrorCallback = null;
@@ -25,16 +24,14 @@
         
         // 播放结束
         audioEl.onended = () => {
-            if (_isStopping) return;
             _isPlaying = false;
             const cb = _onEndCallback;
             _onEndCallback = null;
             if (cb) cb();
         };
 
-        // 播放错误
+        // 播放错误（只有真正的加载失败才会触发）
         audioEl.onerror = (e) => {
-            if (_isStopping) return; // 主动停止导致的，忽略
             console.warn('[OnlineTTS] 播放错误', e);
             _isPlaying = false;
             const cb = _onErrorCallback;
@@ -67,10 +64,8 @@
         initAudio();
         
         // 先停止之前的播放
-        stopInternal();
+        stop();
         
-        // 重置停止标志，准备新播放
-        _isStopping = false;
         _isPlaying = false;
         
         const url = getTTSUrl(text, lang, speed);
@@ -91,10 +86,8 @@
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    if (_isStopping) return;
                     _isPlaying = true;
                 }).catch(e => {
-                    if (_isStopping) return;
                     // 忽略正常的暂停中断
                     if (e.message && e.message.indexOf('interrupted by a call to pause') !== -1) {
                         return;
@@ -110,16 +103,14 @@
                 _isPlaying = true;
             }
         } catch (e) {
-            if (_isStopping) return;
             console.warn('[OnlineTTS] 播放异常:', e.message);
             _isPlaying = false;
             if (onError) onError(e);
         }
     }
 
-    // 内部停止（供 speak 内部调用）
-    function stopInternal() {
-        _isStopping = true;
+    // 停止
+    function stop() {
         _onEndCallback = null;
         _onErrorCallback = null;
         if (!audioEl) {
@@ -129,18 +120,10 @@
         try {
             audioEl.pause();
             audioEl.currentTime = 0;
-            audioEl.src = ''; // 直接清空，有 _isStopping 保护不会报错
+            // 不再清空 src，避免触发 error 事件
+            // 下次播放时会设置新的 src，自动替换
         } catch (e) {}
         _isPlaying = false;
-    }
-
-    // 对外停止接口
-    function stop() {
-        stopInternal();
-        // 对外调用的 stop，保持停止状态一小会儿，避免误触发
-        setTimeout(() => {
-            _isStopping = false;
-        }, 100);
     }
 
     // 状态
