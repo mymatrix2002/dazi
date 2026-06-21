@@ -1,4 +1,4 @@
-// js/core/typing-mode.js 完整代码（修复短语朗读+高亮问题）
+// js/core/typing-mode.js 完整代码（短语停顿加长版）
 // ========== 工具函数：提取说话人前缀和正文 ==========
 function extractSpeakerAndContent(line) {
     if (!line || typeof line !== 'string' || line.length === 0) {
@@ -135,21 +135,24 @@ function runTypingFullMode(text){
     targetFullText = combinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 修复：逐行生成句子地图，行与行之间天然分隔 ==========
+    // ========== 短语/单词行尾加长停顿 ==========
     if (allContentLines.length > 0 && allCharSpans.length > 0) {
         let currentNodeIndex = 0;
         allContentLines.forEach((lineText) => {
             if (!lineText || lineText.trim() === '') return;
             const lineSentences = splitSentences(lineText);
-            lineSentences.forEach(sent => {
+            lineSentences.forEach((sent, sIdx) => {
                 const sentenceText = sent.text;
                 const nodeCount = sentenceText.length;
                 const start = currentNodeIndex;
                 const end = currentNodeIndex + nodeCount - 1;
                 const realEnd = Math.min(end, allCharSpans.length - 1);
+                // 行尾句子 → 用句号级长停顿（约800ms）
+                const isLastInLine = sIdx === lineSentences.length - 1;
+                const pauseType = isLastInLine ? 'period' : sent.pauseType;
                 speechSentenceMap.push({
                     text: sent.text,
-                    pauseType: sent.pauseType,
+                    pauseType: pauseType,
                     startNode: start,
                     endNode: realEnd
                 });
@@ -267,21 +270,24 @@ function runTypingBilingualMode(text){
     targetFullText = enCombinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 修复：逐行生成句子地图，行与行之间天然分隔 ==========
+    // ========== 短语/单词行尾加长停顿 ==========
     if (allContentLines.length > 0 && allCharSpans.length > 0) {
         let currentNodeIndex = 0;
         allContentLines.forEach((lineText) => {
             if (!lineText || lineText.trim() === '') return;
             const lineSentences = splitSentences(lineText);
-            lineSentences.forEach(sent => {
+            lineSentences.forEach((sent, sIdx) => {
                 const sentenceText = sent.text;
                 const nodeCount = sentenceText.length;
                 const start = currentNodeIndex;
                 const end = currentNodeIndex + nodeCount - 1;
                 const realEnd = Math.min(end, allCharSpans.length - 1);
+                // 行尾句子 → 用句号级长停顿（约800ms）
+                const isLastInLine = sIdx === lineSentences.length - 1;
+                const pauseType = isLastInLine ? 'period' : sent.pauseType;
                 speechSentenceMap.push({
                     text: sent.text,
-                    pauseType: sent.pauseType,
+                    pauseType: pauseType,
                     startNode: start,
                     endNode: realEnd
                 });
