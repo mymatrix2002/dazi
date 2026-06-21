@@ -182,7 +182,7 @@
     <script src="js/core/typing-mode.js?v=2.0.14"></script>
     <script src="js/core/typing-input.js?v=2.0.14"></script>
     <script src="js/feature/online-tts.js?v=2.1.0-test"></script>
-    <script src="js/core/event-base.js?v=2.0.15"></script>
+    <script src="js/core/event-base.js?v=2.0.14"></script>
     <script src="js/feature/virtual-keyboard.js?v=2.0.14"></script>
     <script src="js/main.js?v=2.0.14"></script>
     <!-- 题库数据文件 -->
