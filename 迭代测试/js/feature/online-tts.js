@@ -1,6 +1,6 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（通过 Cloudflare Workers 代理有道翻译接口）
-// 移动端兼容优化版 - 复用 Audio 元素
+// 移动端兼容优化版 - 复用 Audio 元素 + 跨域支持
 (function() {
     'use strict';
 
@@ -8,7 +8,6 @@
     let audioEl = null;
 
     // ========== 配置：你的 Cloudflare Worker 地址 ==========
-    // 把下面的地址换成你自己的 Worker 地址
     const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
     // ======================================================
 
@@ -20,6 +19,7 @@
         audioEl.setAttribute('playsinline', '');
         audioEl.setAttribute('webkit-playsinline', '');
         audioEl.setAttribute('preload', 'auto');
+        audioEl.crossOrigin = 'anonymous';  // 解决跨域音频问题
         
         // 播放结束
         audioEl.onended = () => {
@@ -35,8 +35,7 @@
 
     // 生成 TTS 地址
     function getTTSUrl(text, lang, speed) {
-        // type=1 美音，type=2 英音
-        const type = 2;
+        const type = 2; // type=1 美音，type=2 英音
         const encoded = encodeURIComponent(text);
         return `${WORKER_URL}?text=${encoded}&type=${type}`;
     }
@@ -58,6 +57,7 @@
 
         // 设置新地址并播放
         audioEl.src = url;
+        audioEl.load(); // 显式加载
         
         const playPromise = audioEl.play();
         
