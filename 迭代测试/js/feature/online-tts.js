@@ -1,10 +1,11 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（百度翻译版）
-// 最终版：电脑/移动端都能播 + 停止零报错 + 控制台干干净净
+// 稳定版：基于能工作的版本，只去日志，不改逻辑
 (function() {
     'use strict';
 
     let _isPlaying = false;
+    let _isStopping = false;
     let currentAudio = null;
     let _onEndCallback = null;
     let _onErrorCallback = null;
@@ -18,6 +19,9 @@
         if (audioContainer) return;
         audioContainer = document.createElement('div');
         audioContainer.style.display = 'none';
+        audioContainer.style.position = 'absolute';
+        audioContainer.style.left = '-9999px';
+        audioContainer.style.top = '-9999px';
         document.body.appendChild(audioContainer);
     }
 
@@ -42,6 +46,7 @@
         initContainer();
         stop();
         
+        _isStopping = false;
         _isPlaying = true;
         _onEndCallback = onEnd || null;
         _onErrorCallback = onError || null;
@@ -52,7 +57,7 @@
             audio.setAttribute('webkit-playsinline', '');
             audio.setAttribute('x5-playsinline', '');
             audio.setAttribute('preload', 'auto');
-            audio.crossOrigin = 'anonymous'; // CORS 加载，电脑端必须
+            audio.crossOrigin = 'anonymous'; // 电脑端 CORS 必须
             
             const vol = volume || 1;
             audio.volume = Math.min(1, Math.max(0, vol));
@@ -62,21 +67,21 @@
 
             // 播放结束
             audio.onended = () => {
-                if (audio !== currentAudio) return;
+                if (_isStopping || audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onEndCallback;
                 _onEndCallback = null;
-                safeRemove(audio);
+                if (audio.parentNode) audio.parentNode.removeChild(audio);
                 if (cb) cb();
             };
 
-            // 播放错误（只有真正的错误才会到这里）
+            // 播放错误（只有真正的错误才会调用回调，不打日志）
             audio.onerror = () => {
-                if (audio !== currentAudio) return;
+                if (_isStopping || audio !== currentAudio) return;
                 _isPlaying = false;
                 const cb = _onErrorCallback;
                 _onErrorCallback = null;
-                safeRemove(audio);
+                if (audio.parentNode) audio.parentNode.removeChild(audio);
                 if (cb) cb(new Error('播放失败'));
             };
 
@@ -87,11 +92,12 @@
             
             if (playPromise !== undefined) {
                 playPromise.catch(e => {
-                    if (audio !== currentAudio) return;
-                    // 忽略所有中断类错误
+                    if (_isStopping || audio !== currentAudio) return;
+                    // 忽略所有中断类错误，不打日志
                     if (e.message && (
                         e.message.indexOf('interrupted') !== -1 ||
-                        e.message.indexOf('abort') !== -1
+                        e.message.indexOf('abort') !== -1 ||
+                        e.message.indexOf('pause') !== -1
                     )) {
                         return;
                     }
@@ -107,29 +113,9 @@
         }
     }
 
-    // 安全移除 audio 元素（避免触发残留事件）
-    function safeRemove(audio) {
-        if (!audio) return;
-        try {
-            audio.onended = null;
-            audio.onerror = null;
-            audio.oncanplay = null;
-            audio.onloadstart = null;
-            audio.pause();
-            audio.src = '';
-            audio.load();
-        } catch (e) {}
-        setTimeout(() => {
-            if (audio.parentNode) {
-                try {
-                    audio.parentNode.removeChild(audio);
-                } catch (e) {}
-            }
-        }, 0);
-    }
-
     // 停止
     function stop() {
+        _isStopping = true;
         _onEndCallback = null;
         _onErrorCallback = null;
         _isPlaying = false;
@@ -137,7 +123,26 @@
         if (currentAudio) {
             const oldAudio = currentAudio;
             currentAudio = null;
-            safeRemove(oldAudio);
+            try {
+                // 先清空所有回调，再操作，避免触发事件
+                oldAudio.onended = null;
+                oldAudio.onerror = null;
+                oldAudio.oncanplay = null;
+                oldAudio.onloadstart = null;
+                oldAudio.pause();
+                oldAudio.currentTime = 0;
+            } catch (e) {}
+            // 延迟清理 DOM，等事件都过去
+            setTimeout(() => {
+                if (oldAudio.parentNode) {
+                    try {
+                        oldAudio.parentNode.removeChild(oldAudio);
+                    } catch (e) {}
+                }
+                _isStopping = false;
+            }, 200);
+        } else {
+            _isStopping = false;
         }
     }
 
