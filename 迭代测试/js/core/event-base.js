@@ -1,5 +1,16 @@
 // js/core/event-base.js 优化版
-// 新增：播放失败自动停止，避免无限报错
+// 修复：高亮不移除 + 短语停顿短 + 播放失败自动停止
+// ========== 停顿时间配置（覆盖原有配置，短语之间停顿加长）==========
+window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
+    period: 1000,    // 句号 / 行尾长停顿（1秒）
+    mark: 800,       // 问号 / 感叹号
+    newline: 1000,   // 换行 / 短语之间（1秒）
+    comma: 350,      // 逗号
+    semicolon: 450,  // 分号
+    colon: 450,      // 冒号
+    none: 150        // 其他短停顿
+};
+
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
@@ -29,9 +40,13 @@ function forceStopSpeech() {
             window.speechSynthesis.cancel();
         } catch(e) {}
     }
-    document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
-        el.classList.remove('sentence-read-highlight');
-    });
+    // 清除所有高亮（双重保险）
+    try {
+        const highlights = document.querySelectorAll('.sentence-read-highlight');
+        for (let i = 0; i < highlights.length; i++) {
+            highlights[i].classList.remove('sentence-read-highlight');
+        }
+    } catch(e) {}
     if(readAllBtnEl) {
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent = '🔊 朗读全文';
@@ -41,9 +56,15 @@ function forceStopSpeech() {
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
     if(!speechState.running) return;
-    document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
-        el.classList.remove('sentence-read-highlight');
-    });
+    
+    // ========== 先清除所有旧高亮（双重保险，确保清干净）==========
+    try {
+        const oldHighlights = document.querySelectorAll('.sentence-read-highlight');
+        for (let i = 0; i < oldHighlights.length; i++) {
+            oldHighlights[i].classList.remove('sentence-read-highlight');
+        }
+    } catch(e) {}
+    
     speechState.idx++;
     if(speechState.idx >= speechSentenceMap.length){
         speechState.running = false;
@@ -61,20 +82,27 @@ function nextSpeak(lastPause){
         setTimeout(() => nextSpeak(senPause), PAUSE_CONFIG[senPause]);
         return;
     }
-    // 获取所有字符 span
+    
+    // 获取所有字符 span（确保和生成时的顺序一致）
     let allSpans = [];
     if (isBilingualMode) {
-        allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full .char-span, .paragraph-en .char-span');
+        // 全文模式 + 双语模式都在 paragraphContainer 里
+        allSpans = paragraphContainerEl.querySelectorAll('.char-span');
     } else {
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
-    // 只高亮英文字符
-    for(let i = startIdx; i <= endIdx && i < allSpans.length; i++){
-        const ch = allSpans[i].textContent;
+    
+    // 只高亮英文字符（严格按索引范围）
+    const safeEnd = Math.min(endIdx, allSpans.length - 1);
+    for(let i = startIdx; i <= safeEnd; i++){
+        const span = allSpans[i];
+        if (!span) continue;
+        const ch = span.textContent;
         if(!isChineseChar(ch)) {
-            allSpans[i].classList.add('sentence-read-highlight');
+            span.classList.add('sentence-read-highlight');
         }
     }
+    
     // 滚动到第一个高亮
     let firstHighlight = null;
     if (isBilingualMode) {
@@ -85,6 +113,7 @@ function nextSpeak(lastPause){
     if(firstHighlight){
         firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    
     // 延迟后播放
     setTimeout(() => {
         if(!speechState.running) return;
