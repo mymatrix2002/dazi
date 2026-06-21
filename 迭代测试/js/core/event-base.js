@@ -92,13 +92,14 @@ function nextSpeak(lastPause){
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     
-    // 只高亮英文字符（严格按索引范围）
+    // 只高亮可见英文字符，排除中文和所有空白字符（空格、&nbsp;等）
     const safeEnd = Math.min(endIdx, allSpans.length - 1);
     for(let i = startIdx; i <= safeEnd; i++){
         const span = allSpans[i];
         if (!span) continue;
         const ch = span.textContent;
-        if(!isChineseChar(ch)) {
+        // 判断条件：不是中文 且 不是空白字符（trim后不为空）
+        if(!isChineseChar(ch) && ch.trim() !== '') {
             span.classList.add('sentence-read-highlight');
         }
     }
