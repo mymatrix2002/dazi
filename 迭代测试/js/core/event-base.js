@@ -1,13 +1,10 @@
 // js/core/event-base.js 完整代码
-// 彻底删除所有回车相关代码，回车逻辑完全由 typing-input.js 处理
+// 在线语音版 - 逐句播放 + 高亮滚动
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
-    // ========== 新增：没有语音API直接返回，不报错 ==========
-    if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
-    
     if(!speechState.running) return;
     document.querySelectorAll('.sentence-read-highlight').forEach(el=>{
         el.classList.remove('sentence-read-highlight');
@@ -47,14 +44,22 @@ function nextSpeak(lastPause){
     if(firstHighlight){
         firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    // 延迟后播放（模拟原停顿效果）
     setTimeout(() => {
-        const ut = window.createUtterance(senText, speechState.rate);
-        if(ut) {
-            ut.onend = () => nextSpeak(senPause);
-            ut.onerror = () => nextSpeak(senPause);
-            window.speechSynthesis.speak(ut);
+        // 用在线语音播放当前句子
+        if(window.onlineTTS) {
+            window.onlineTTS.speak(
+                senText, 
+                'en', 
+                speechState.rate, 
+                speechState.volume,
+                // 播放结束回调
+                () => nextSpeak(senPause),
+                // 播放错误回调
+                () => nextSpeak(senPause)
+            );
         } else {
-            // 没有语音API，直接跳过这句，继续下一句
+            // 没有在线语音，跳过这句继续下一句
             setTimeout(() => nextSpeak(senPause), 100);
         }
     }, PAUSE_CONFIG[lastPause]);
@@ -143,9 +148,18 @@ function bindBaseEvents() {
         if(firstHighlight){
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        // 用在线语音播放整段（通过 Cloudflare Workers 代理）
+        // 用在线语音播放第一句
         if(window.onlineTTS) {
-            window.onlineTTS.speak(txt, 'en', speechState.rate, speechState.volume);
+            window.onlineTTS.speak(
+                firstItem.text, 
+                'en', 
+                speechState.rate, 
+                speechState.volume,
+                // 播放结束回调
+                () => nextSpeak(firstItem.pauseType),
+                // 播放错误回调
+                () => nextSpeak(firstItem.pauseType)
+            );
         } else {
             alert('语音模块加载失败');
         }
@@ -208,7 +222,7 @@ function bindBaseEvents() {
     clearBtnEl.addEventListener('click',()=>{
         sourceTextEl.value=''; updateCharCount();
         clearTimeout(pauseTimer); 
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        if(window.onlineTTS) window.onlineTTS.stop();
         speechState.running=false;
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent='🔊 朗读全文';
@@ -323,11 +337,14 @@ function bindBaseEvents() {
         // 重置自动朗读去重标记
         lastSpokenLineIndex = -1;
         finishModalAutoShown = false;
+        
+        // 停止在线语音
+        if(window.onlineTTS) window.onlineTTS.stop();
     });
     // 页面关闭前清理
     window.addEventListener('beforeunload',()=>{
         clearTimeout(pauseTimer); 
-        if(window.speechSynthesis) window.speechSynthesis.cancel();
+        if(window.onlineTTS) window.onlineTTS.stop();
         speechState.running=false; clearInterval(timerId);
     });
     // 帮助弹窗
