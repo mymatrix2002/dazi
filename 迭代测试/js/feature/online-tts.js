@@ -1,11 +1,11 @@
 // js/feature/online-tts.js
 // 在线 TTS 语音引擎（百度翻译版）
-// 优化版：停止时不报错，更稳定
+// 稳定版：修复停止后立即播放的报错问题
 (function() {
     'use strict';
 
     let _isPlaying = false;
-    let _isStopping = false; // 主动停止标志位
+    let _isStopping = false;
     let audioEl = null;
     let _onEndCallback = null;
     let _onErrorCallback = null;
@@ -14,7 +14,7 @@
     const WORKER_URL = 'https://green-forest-10ba.mymatrix2002-ae86.workers.dev/';
     // ======================================================
 
-    // 初始化 Audio 元素（只创建一次）
+    // 初始化 Audio 元素
     function initAudio() {
         if (audioEl) return;
         
@@ -34,7 +34,7 @@
 
         // 播放错误
         audioEl.onerror = (e) => {
-            if (_isStopping) return; // 主动停止导致的错误，忽略
+            if (_isStopping) return; // 主动停止导致的，忽略
             console.warn('[OnlineTTS] 播放错误', e);
             _isPlaying = false;
             const cb = _onErrorCallback;
@@ -43,7 +43,7 @@
         };
     }
 
-    // 语速转换：把 0.25-1.5 的倍率转换成百度的 1-9 语速
+    // 语速转换
     function convertRateToBaiduSpeed(rate) {
         const baseSpeed = 3;
         const speed = Math.round(baseSpeed * rate);
@@ -66,12 +66,13 @@
 
         initAudio();
         
-        // 重置停止标志
-        _isStopping = false;
+        // 先停止之前的播放
+        stopInternal();
         
-        // 先停止之前的
-        stop();
-
+        // 重置停止标志，准备新播放
+        _isStopping = false;
+        _isPlaying = false;
+        
         const url = getTTSUrl(text, lang, speed);
         
         // 保存回调
@@ -93,8 +94,8 @@
                     if (_isStopping) return;
                     _isPlaying = true;
                 }).catch(e => {
-                    if (_isStopping) return; // 主动停止导致的中断，忽略
-                    // 忽略 "interrupted by pause" 这种正常中断
+                    if (_isStopping) return;
+                    // 忽略正常的暂停中断
                     if (e.message && e.message.indexOf('interrupted by a call to pause') !== -1) {
                         return;
                     }
@@ -116,8 +117,8 @@
         }
     }
 
-    // 停止
-    function stop() {
+    // 内部停止（供 speak 内部调用）
+    function stopInternal() {
         _isStopping = true;
         _onEndCallback = null;
         _onErrorCallback = null;
@@ -128,16 +129,18 @@
         try {
             audioEl.pause();
             audioEl.currentTime = 0;
-            // 延迟一点再清空 src，避免触发不必要的 error
-            setTimeout(() => {
-                if (_isStopping && audioEl) {
-                    try {
-                        audioEl.src = '';
-                    } catch(e) {}
-                }
-            }, 50);
+            audioEl.src = ''; // 直接清空，有 _isStopping 保护不会报错
         } catch (e) {}
         _isPlaying = false;
+    }
+
+    // 对外停止接口
+    function stop() {
+        stopInternal();
+        // 对外调用的 stop，保持停止状态一小会儿，避免误触发
+        setTimeout(() => {
+            _isStopping = false;
+        }, 100);
     }
 
     // 状态
