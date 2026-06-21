@@ -1,8 +1,30 @@
 // js/core/event-base.js 完整代码
-// 在线语音版 - 逐句播放 + 高亮滚动
+// 在线语音版 - 逐句播放 + 高亮滚动（修复角色名前缀+全文模式中文问题）
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
+
+// ========== 工具函数：提取英文文本 ==========
+function extractEnglishText(text) {
+    if (!text) return '';
+    // 去掉中文字符，保留英文、数字、常见标点和空格
+    return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// ========== 工具函数：获取英文字符 span 列表 ==========
+function getEnglishCharSpans(container) {
+    const allSpans = container.querySelectorAll('.char-span');
+    const result = [];
+    const enPattern = /[a-zA-Z0-9\s\.,\?!'":;\-\(\)]/;
+    for(let i = 0; i < allSpans.length; i++) {
+        const ch = allSpans[i].textContent;
+        if(enPattern.test(ch)) {
+            result.push(allSpans[i]);
+        }
+    }
+    return result;
+}
+
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
     if(!speechState.running) return;
@@ -26,11 +48,13 @@ function nextSpeak(lastPause){
         setTimeout(() => nextSpeak(senPause), PAUSE_CONFIG[senPause]);
         return;
     }
+    // ========== 修复：只选择英文字符 span ==========
     let allSpans = [];
     if (isBilingualMode) {
-        allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full span, .paragraph-en span');
+        allSpans = Array.from(paragraphContainerEl.querySelectorAll('.paragraph-full .char-span, .paragraph-en .char-span'));
     } else {
-        allSpans = displayAreaEl.querySelectorAll('span');
+        // 全文模式下，只收集英文字符的 span，跳过中文
+        allSpans = getEnglishCharSpans(displayAreaEl);
     }
     for(let i = startIdx; i <= endIdx && i < allSpans.length; i++){
         allSpans[i].classList.add('sentence-read-highlight');
@@ -46,10 +70,11 @@ function nextSpeak(lastPause){
     }
     // 延迟后播放（模拟原停顿效果）
     setTimeout(() => {
-        // 用在线语音播放当前句子
+        // 用在线语音播放当前句子（只播放英文部分）
         if(window.onlineTTS) {
+            const enText = extractEnglishText(senText);
             window.onlineTTS.speak(
-                senText, 
+                enText, 
                 'en', 
                 speechState.rate, 
                 speechState.volume,
@@ -130,11 +155,13 @@ function bindBaseEvents() {
         this.textContent = '⏹ 停止朗读';
         const firstItem = speechSentenceMap[0];
         if(!firstItem) return;
+        // ========== 修复：只选择英文字符 span ==========
         let allSpans = [];
         if (isBilingualMode) {
-            allSpans = paragraphContainerEl.querySelectorAll('.paragraph-full span, .paragraph-en span');
+            allSpans = Array.from(paragraphContainerEl.querySelectorAll('.paragraph-full .char-span, .paragraph-en .char-span'));
         } else {
-            allSpans = displayAreaEl.querySelectorAll('span');
+            // 全文模式下，只收集英文字符的 span，跳过中文
+            allSpans = getEnglishCharSpans(displayAreaEl);
         }
         for(let i = firstItem.startNode; i <= firstItem.endNode && i < allSpans.length; i++){
             allSpans[i].classList.add('sentence-read-highlight');
@@ -148,10 +175,11 @@ function bindBaseEvents() {
         if(firstHighlight){
             firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        // 用在线语音播放第一句
+        // 用在线语音播放第一句（只播放英文部分）
         if(window.onlineTTS) {
+            const enText = extractEnglishText(firstItem.text);
             window.onlineTTS.speak(
-                firstItem.text, 
+                enText, 
                 'en', 
                 speechState.rate, 
                 speechState.volume,
