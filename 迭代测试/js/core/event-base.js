@@ -235,8 +235,8 @@ function bindBaseEvents() {
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);
     // ========== 4 档音量按钮 ==========
     const VOLUME_LEVELS = {
-        soft:   { value: 0.4, icon: '🔊', label: '轻柔' },  // 轻柔：40% 音量
-        normal: { value: 0.7, icon: '🔊', label: '标准' },  // 标准：70% 音量
+        soft:   { value: 0.4, icon: '🔈', label: '轻柔' },  // 轻柔：40% 音量
+        normal: { value: 0.7, icon: '🔉', label: '标准' },  // 标准：70% 音量
         loud:   { value: 1.0, icon: '🔊', label: '响亮' },  // 响亮：100% 音量
         boost:  { value: 1.5, icon: '📢', label: '增强' }   // 增强：150% 音量（仅在线语音生效）
     };
@@ -336,7 +336,7 @@ function bindBaseEvents() {
     }
     // 语音选择
     const voiceSelect = document.getElementById('voiceSelect');
-    if(voiceSelect && window.speechSynthesis) {
+    if(voiceSelect) {
         initVoiceSelection();
         voiceSelect.addEventListener('change', function() {
             selectedVoiceURI = this.value;
