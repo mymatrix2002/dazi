@@ -76,9 +76,14 @@
                 <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
 
 
-                <div style="display: flex;align-items: center;gap: 4px;">
+                <div style="display: flex;align-items: center;gap: 6px;">
                     <span style="font-size: 12px;color: var(--text-sub);">音量</span>
-                    <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" style="width: 80px;">
+                    <div class="volume-segmented" id="volumeSegmented">
+                        <button class="seg-btn" data-level="soft">🔇 轻柔</button>
+                        <button class="seg-btn" data-level="normal">🔉 标准</button>
+                        <button class="seg-btn" data-level="loud">🔊 响亮</button>
+                        <button class="seg-btn" data-level="boost">📢 增强</button>
+                    </div>
                 </div>
 
                 <button id="settingToggleBtn" class="btn-normal px-3 py-1.5 text-sm">⚙️ 更多设置</button>
