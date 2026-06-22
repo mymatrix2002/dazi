@@ -1,4 +1,4 @@
-/* css/main.css v2.0.12 完整代码（已合并题库样式） */
+/* css/main.css v2.1.0 完整代码（已合并题库样式） */
 /* ========== 全局主题变量 ========== */
 :root[data-theme="light"] {
     --bg-page: #f0f9ff;
@@ -803,7 +803,7 @@ textarea::placeholder {
     }
 }
 
-/* ========== 4 档音量按钮 ========== */
+/* ========== 3 档音量按钮 ========== */
 .volume-btn {
     padding: 6px 12px;
     font-size: 14px;
@@ -815,7 +815,7 @@ textarea::placeholder {
     transition: all 0.2s ease;
     white-space: nowrap;
     line-height: 1.5;
-    min-width: 120px;  /* 加这行：固定最小宽度，四个档位宽度一致 */
+    min-width: 100px;  /* 固定最小宽度，三个档位宽度一致 */
 }
 
 .volume-btn:hover {

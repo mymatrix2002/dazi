@@ -117,7 +117,7 @@
   .flex.flex-wrap {
     row-gap: 8px;
   }
-  #fontSizeSlider, #speechVolumeEl, #speechRate {
+  #fontSizeSlider, #speechRate {
     padding: 10px 4px;
     min-width: 90px;
   }
