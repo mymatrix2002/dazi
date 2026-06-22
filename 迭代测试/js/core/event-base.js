@@ -233,15 +233,14 @@ function bindBaseEvents() {
     });
     // 朗读语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);
-    // ========== 4 档音量按钮 ==========
+    // ========== 3 档音量按钮 ==========
     const VOLUME_LEVELS = {
-        soft:   { value: 0.4, icon: '🔈', label: '轻柔' },  // 轻柔：40% 音量
-        normal: { value: 0.7, icon: '🔉', label: '标准' },  // 标准：70% 音量
-        loud:   { value: 1.0, icon: '🔊', label: '响亮' },  // 响亮：100% 音量
-        boost:  { value: 1.5, icon: '📢', label: '增强' }   // 增强：150% 音量（仅在线语音生效）
+        soft:   { value: 0.4, icon: '🔈', label: '轻柔' },  // 轻柔：40% 音量（小喇叭）
+        normal: { value: 0.7, icon: '🔉', label: '标准' },  // 标准：70% 音量（中喇叭）
+        loud:   { value: 1.0, icon: '🔊', label: '响亮' }   // 响亮：100% 音量（大喇叭）
     };
-    const VOLUME_ORDER = ['soft', 'normal', 'loud', 'boost'];
-    
+    const VOLUME_ORDER = ['soft', 'normal', 'loud'];
+        
     // 读取保存的档位，默认响亮
     let currentVolumeLevel = localStorage.getItem('volumeLevel') || 'loud';
     
@@ -251,25 +250,14 @@ function bindBaseEvents() {
         if (!btn) return;
         
         const level = VOLUME_LEVELS[currentVolumeLevel];
-        // 生成小点：前面几个亮，后面几个暗
+        // 生成小点：前面几个亮，后面几个暗（共 3 档）
         const idx = VOLUME_ORDER.indexOf(currentVolumeLevel);
         let dots = '';
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 3; i++) {
             dots += i <= idx ? '●' : '○';
         }
         
-        // 增强档：判断是否支持音量放大
-        let displayLabel = level.label;
-        if (currentVolumeLevel === 'boost') {
-            const boostSupported = window.onlineTTS 
-                && typeof window.onlineTTS.isBoostSupported === 'function'
-                && window.onlineTTS.isBoostSupported();
-            if (!boostSupported) {
-                displayLabel = '增强（不支持）';
-            }
-        }
-        
-        btn.textContent = level.icon + ' ' + displayLabel + ' ' + dots;
+        btn.textContent = level.icon + ' ' + level.label + ' ' + dots;
     }
     
     // 设置音量
@@ -279,10 +267,9 @@ function bindBaseEvents() {
         localStorage.setItem('volumeLevel', levelKey);
         
         const level = VOLUME_LEVELS[levelKey];
-        // 系统语音最大 100%（浏览器限制）
-        speechState.volume = Math.min(1.0, level.value);
+        speechState.volume = level.value;
         
-        // 同步在线语音音量（支持超过 100% 放大）
+        // 同步在线语音音量
         if (window.onlineTTS && typeof window.onlineTTS.setVolume === 'function') {
             window.onlineTTS.setVolume(level.value);
         }
