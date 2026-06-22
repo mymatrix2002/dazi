@@ -231,24 +231,6 @@ body {
 .btn-normal:hover {
     filter: brightness(1.15);
 }
-/* ========== 3 档音量按钮 ========== */
-.volume-btn {
-    padding: 6px 12px;
-    font-size: 14px;
-    border: 1px solid var(--border-normal);
-    border-radius: 12px;
-    background: var(--bg-gray);
-    color: var(--text-main);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    line-height: 1.5;
-    min-width: 100px;  /* 固定最小宽度，三个档位宽度一致 */
-}
-
-.volume-btn:hover {
-    filter: brightness(1.15);
-}
 /* ========== 对照区容器样式（v2.0.6原版换行） ========== */
 .paragraph-container {
     width: 100%;
@@ -518,6 +500,7 @@ textarea::placeholder {
 .hidden {
     display: none !important;
 }
+
 /* ============================================
    题库弹窗样式（已合并，变量名已统一）
    ============================================ */
@@ -704,4 +687,137 @@ textarea::placeholder {
     font-size: 12px;
     color: var(--text-sub);
     font-weight: normal;
+}
+.bank-unit.active .bank-unit-cn {
+    color: var(--color-primary);
+}
+/* 右侧内容区 */
+.bank-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+.bank-unit-info h4 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: var(--text-main);
+}
+.bank-unit-subtitle {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--text-sub);
+}
+.bank-unit-difficulty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-sub);
+}
+.bank-empty {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-sub);
+}
+/* 练习类型卡片 */
+.bank-practice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+.bank-practice-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--bg-gray-deep);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bank-practice-item:hover {
+    background: rgba(59, 130, 246, 0.12);
+    transform: translateX(3px);
+}
+.bank-practice-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.bank-practice-info {
+    flex: 1;
+}
+.bank-practice-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-main);
+}
+.bank-practice-desc {
+    font-size: 13px;
+    color: var(--text-sub);
+}
+.bank-practice-arrow {
+    font-size: 18px;
+    color: var(--text-sub);
+}
+.bank-practice-item:hover .bank-practice-arrow {
+    color: var(--color-primary);
+}
+/* 暗色模式适配 */
+[data-theme="dark"] .bank-unit.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-primary-dark);
+}
+[data-theme="dark"] .bank-unit.active .bank-unit-cn {
+    color: var(--color-primary-dark);
+}
+[data-theme="dark"] .bank-practice-item:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+/* 移动端适配 宽度≤768px */
+@media (max-width:768px) {
+    .bank-modal-content {
+        width: 96%;
+        max-height: 90vh;
+    }
+    .bank-main {
+        flex-direction: column;
+    }
+    .bank-sidebar {
+        width: 100%;
+        max-height: 180px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-normal);
+    }
+    .bank-content {
+        padding: 16px;
+    }
+    .bank-modal-header,
+    .bank-tabs {
+        padding-inline: 16px;
+    }
+}
+
+/* ========== 3 档音量按钮 ========== */
+.volume-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border-normal);
+    border-radius: 12px;
+    background: var(--bg-gray);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.5;
+    min-width: 100px;  /* 固定最小宽度，三个档位宽度一致 */
+}
+
+.volume-btn:hover {
+    filter: brightness(1.15);
 }
