@@ -1,12 +1,68 @@
-// js/core/typing-input.js 完整代码（修复字符索引错位）
-
+// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读）
 // ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
+if (!window.onlineTTS) window.onlineTTS = null;
 
 // ========== 自动朗读去重标记 ==========
 if (typeof lastSpokenLineIndex === 'undefined') var lastSpokenLineIndex = -1;
 if (typeof finishModalAutoShown === 'undefined') var finishModalAutoShown = false;
+
+// ========== 工具：提取纯英文（用于行朗读）==========
+function getPureEnglishForLine(text) {
+    if (!text) return '';
+    return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// ========== 工具：停止所有语音（在线+系统）==========
+function stopAllSpeech() {
+    if(window.onlineTTS) {
+        try {
+            window.onlineTTS.stop();
+        } catch(e) {}
+    }
+    if(window.speechSynthesis) {
+        try {
+            window.speechSynthesis.cancel();
+        } catch(e) {}
+    }
+}
+
+// ========== 工具：朗读文本（根据用户选择切换引擎）==========
+function speakText(text, lang) {
+    if (!text || !text.trim()) return;
+    
+    // 先停止之前的
+    stopAllSpeech();
+    
+    // 根据用户选择决定用哪个语音引擎
+    if(window.isUsingOnlineVoice && window.isUsingOnlineVoice()) {
+        // ===== 在线语音 =====
+        if(window.onlineTTS) {
+            try {
+                window.onlineTTS.speak(
+                    text,
+                    lang || 'en',
+                    speechState.rate,
+                    speechState.volume,
+                    null, // 结束回调（不需要）
+                    null  // 错误回调（静默失败）
+                );
+                return;
+            } catch(e) {
+                // 在线语音失败，静默
+            }
+        }
+    } else {
+        // ===== 系统语音 =====
+        if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
+            try {
+                const utter = window.createUtterance(text, speechState.rate);
+                if(utter) window.speechSynthesis.speak(utter);
+            } catch(e) {}
+        }
+    }
+}
 
 // ========== 【关键修复1】函数挂载提前到文件最顶部 ==========
 window.doHandleTypingEnter = function() {
@@ -14,7 +70,6 @@ window.doHandleTypingEnter = function() {
     const val = inputAreaEl.value;
     const activeChars = entryCharsList[currentEntryIndex];
     const entryLen = activeChars.length;
-
     // 标记本行完成
     if(!finishedWordSet.has(currentEntryIndex)){
         finishedWordSet.add(currentEntryIndex);
@@ -30,7 +85,6 @@ window.doHandleTypingEnter = function() {
         }
         s.classList.remove('char-current');
     });
-
     if(currentEntryIndex < entryCharsList.length - 1){
         // 切换下一行
         currentEntryIndex++;
@@ -79,7 +133,6 @@ function bindInputEvent() {
     inputAreaEl.addEventListener('paste', function(e) {
         e.preventDefault();
     });
-
     // 电脑键盘回车监听
     inputAreaEl.addEventListener('keydown', function(e){
         if(e.key === 'Enter' || e.keyCode === 13 || e.code === 'Enter'){
@@ -91,7 +144,6 @@ function bindInputEvent() {
             }
         }
     });
-
     // 主输入监听（整合移动端换行兼容）
     inputAreaEl.addEventListener('input',function(e){
         const val = this.value;
@@ -105,11 +157,9 @@ function bindInputEvent() {
             }
             return;
         }
-
         if(!typingRunning) return;
         const activeChars = entryCharsList[currentEntryIndex];
         const entryLen = activeChars.length;
-
         // 统计有效击键，过滤换行符
         if(val.length > prevInputValue.length) {
             const startIdx = prevInputValue.length;
@@ -135,8 +185,8 @@ function bindInputEvent() {
                 }
             }
         }
-
-        // ========== 自动触发单词朗读（输到空格前最后一个字符时） ==========
+        
+        // ========== 自动触发单词朗读（输到空格前最后一个字符时）==========
         if(wordSpeakEnable === 'true' && val.length > prevInputValue.length) {
             // 下一个字符是空格，说明这个单词刚输完
             if(val.length < entryLen && activeChars[val.length] === ' ') {
@@ -149,31 +199,26 @@ function bindInputEvent() {
                 const targetWord = activeChars.slice(wordStart, val.length).join('');
                 
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    if(window.speechSynthesis && window.SpeechSynthesisUtterance){
-                        window.speechSynthesis.cancel();
-                        const utter = window.createUtterance(targetWord, speechState.rate);
-                        if(utter) window.speechSynthesis.speak(utter);
-                    }
+                    speakText(targetWord, 'en');
                 }
             }
         }
         
-        // ========== 自动触发行朗读（输完整行最后一个字符时） ==========
+        // ========== 自动触发行朗读（输完整行最后一个字符时）==========
         if(wordSpeakEnable === 'true' && val.length === entryLen) {
             const currentLineText = activeChars.join('');
-            if(/[a-zA-Z]/.test(currentLineText) && window.speechSynthesis && window.SpeechSynthesisUtterance) {
-                window.speechSynthesis.cancel();
-                const utter = window.createUtterance(currentLineText, speechState.rate);
-                if(utter) window.speechSynthesis.speak(utter);
+            const enText = getPureEnglishForLine(currentLineText);
+            if(enText && /[a-zA-Z]/.test(enText)) {
+                speakText(enText, 'en');
             }
         }
-
+        
         // ========== 最后一行输完自动弹出成绩弹窗 ==========
         if(val.length === entryLen && currentEntryIndex === entryCharsList.length - 1 && !finishModalAutoShown) {
             finishModalAutoShown = true;
             // 延迟500ms，让用户看到最后一个字符变绿
             setTimeout(() => {
-                if(window.speechSynthesis) window.speechSynthesis.cancel();
+                stopAllSpeech();
                 currentPos = targetChars.length;
                 clearInterval(timerId);
                 showFinishModal();
@@ -184,27 +229,23 @@ function bindInputEvent() {
         }
         
         prevInputValue = val;
-
         // 限制输入长度
         if(val.length > entryLen){
             this.value = val.slice(0, entryLen);
             prevInputValue = this.value;
             return;
         }
-
         // 逐字符样式渲染
         // 1. 全局清除所有行的光标，彻底杜绝光标跑到其他行
         paragraphContainerEl.querySelectorAll('.char-current').forEach(el => {
             el.classList.remove('char-current');
         });
-
         // ========== 修复：只选择 .char-span，排除说话人前缀 ==========
         const allSpans = paragraphContainerEl.querySelectorAll(`[data-segment-index="${currentEntryIndex}"] .char-span`);
         // ========== 修复：保留 char-span 类，避免被覆盖 ==========
         allSpans.forEach(s => s.className = 'char-span char-pending');
         let hasError = false;
         let currentSpan = null;
-
         for(let i=0;i<val.length;i++){
             const span = allSpans[i];
             if(val[i] === activeChars[i]){
@@ -216,7 +257,6 @@ function bindInputEvent() {
                 hasError = true;
             }
         }
-
         // 2. 只有未输满时，才显示光标；输满后光标消失，等待回车
         if(val.length < entryLen){
             // ========== 修复：保留 char-span 类 ==========
@@ -234,11 +274,9 @@ function bindInputEvent() {
                 window.virtualKeyboard.updateHighlight('\n');
             }
         }
-
         // 触屏坐标
         let posX = e.clientX || window.innerWidth / 2;
         let posY = e.clientY || window.innerHeight / 2;
-
         // 错误/连击逻辑
         if(hasError){
             comboCount = 0;
@@ -249,7 +287,7 @@ function bindInputEvent() {
                 wrongContinuous=0;
             }
         }else{
-            wrongContinuous=0;
+            wrongContinuous = 0;
             comboCount++;
             if(comboCount===5){
                 unlockSticker(0);
@@ -267,7 +305,6 @@ function bindInputEvent() {
                 createStar(posX, posY);
             }
         }
-
         // 滚动定位
         function scrollToCurrentChar(span) {
           const container = document.querySelector('.paragraph-container');
@@ -305,9 +342,7 @@ function bindInputEvent() {
           }
           // 光标在可视范围内，不滚动，避免跳动
         }
-
         scrollToCurrentChar(currentSpan);
-
         updateStat();
     });
 }

@@ -802,3 +802,22 @@ textarea::placeholder {
         padding-inline: 16px;
     }
 }
+
+/* ========== 4 档音量按钮 ========== */
+.volume-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border-normal);
+    border-radius: 12px;
+    background: var(--bg-gray);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.5;
+    min-width: 120px;  /* 加这行：固定最小宽度，四个档位宽度一致 */
+}
+
+.volume-btn:hover {
+    filter: brightness(1.15);
+}

@@ -1,4 +1,4 @@
-// js/core/utils.js 完整代码（已加音效开关 + 优化语音优选）
+// js/core/utils.js 完整代码（已加音效开关 + 优化语音优选 + 修复语音选择加载中问题）
 
 // ========== 文本预处理函数 ==========
 function preprocessText(text) {
@@ -307,6 +307,12 @@ function splitSentences(text){
 // ========== 语音选择相关 ==========
 let selectedVoiceURI = localStorage.getItem('selectedVoiceURI') || '';
 
+// 判断当前是否使用在线语音
+function isUsingOnlineVoice() {
+    return selectedVoiceURI === 'online';
+}
+window.isUsingOnlineVoice = isUsingOnlineVoice;
+
 // 获取所有可用语音列表
 function getVoiceList() {
     if(!window.speechSynthesis) return [];
@@ -362,85 +368,102 @@ function getPreferredVoice(lang) {
 }
 
 // 初始化语音选择（页面加载时调用）
-function initVoiceSelection() {
-    if(!window.speechSynthesis) return;
-    
+function initVoiceSelection() {  
     const loadVoices = () => {
         const voices = getVoiceList();
         const selectEl = document.getElementById('voiceSelect');
-        if(!selectEl || voices.length === 0) return;
+        if(!selectEl) return;
         
         // 清空下拉框
         selectEl.innerHTML = '';
         
-        // 按语言分组
-        const cnVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
-        const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-        const otherVoices = voices.filter(v => !v.lang || (!v.lang.toLowerCase().startsWith('zh') && !v.lang.toLowerCase().startsWith('en')));
+        // ===== 1. 在线语音选项（放在最前面，推荐）=====
+        const onlineOpt = document.createElement('option');
+        onlineOpt.value = 'online';
+        onlineOpt.textContent = '在线女声（推荐）';
+        selectEl.appendChild(onlineOpt);
         
-        // 添加中文语音
-        if(cnVoices.length > 0) {
-            const cnGroup = document.createElement('optgroup');
-            cnGroup.label = '中文语音';
-            cnVoices.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.voiceURI;
-                opt.textContent = v.name;
-                cnGroup.appendChild(opt);
-            });
-            selectEl.appendChild(cnGroup);
-        }
+        // 分隔线（系统语音和在线语音分开）
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '———— 系统语音 ————';
+        selectEl.appendChild(separator);
         
-        // 添加英文语音
-        if(enVoices.length > 0) {
-            const enGroup = document.createElement('optgroup');
-            enGroup.label = '英文语音';
-            enVoices.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.voiceURI;
-                opt.textContent = v.name;
-                enGroup.appendChild(opt);
-            });
-            selectEl.appendChild(enGroup);
-        }
+        // ===== 2. 系统语音列表（如果有的话）=====
+        if (voices && voices.length > 0) {
+            // 按语言分组
+            const cnVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+            const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+            const otherVoices = voices.filter(v => !v.lang || (!v.lang.toLowerCase().startsWith('zh') && !v.lang.toLowerCase().startsWith('en')));
+            
+            // 添加中文语音
+            if(cnVoices.length > 0) {
+                const cnGroup = document.createElement('optgroup');
+                cnGroup.label = '中文语音';
+                cnVoices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.voiceURI;
+                    opt.textContent = v.name;
+                    cnGroup.appendChild(opt);
+                });
+                selectEl.appendChild(cnGroup);
+            }
+            
+            // 添加英文语音
+            if(enVoices.length > 0) {
+                const enGroup = document.createElement('optgroup');
+                enGroup.label = '英文语音';
+                enVoices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.voiceURI;
+                    opt.textContent = v.name;
+                    enGroup.appendChild(opt);
+                });
+                selectEl.appendChild(enGroup);
+            }
+            
+            // 添加其他语音
+            if(otherVoices.length > 0) {
+                const otherGroup = document.createElement('optgroup');
+                otherGroup.label = '其他语音';
+                otherVoices.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.voiceURI;
+                    opt.textContent = v.name + ' (' + v.lang + ')';
+                    otherGroup.appendChild(opt);
+                });
+                selectEl.appendChild(otherGroup);
+            }
+        } // 系统语音列表 if 结束
         
-        // 添加其他语音
-        if(otherVoices.length > 0) {
-            const otherGroup = document.createElement('optgroup');
-            otherGroup.label = '其他语音';
-            otherVoices.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.voiceURI;
-                opt.textContent = v.name + ' (' + v.lang + ')';
-                otherGroup.appendChild(opt);
-            });
-            selectEl.appendChild(otherGroup);
-        }
-        
-        // 设置选中的语音
+        // ===== 3. 设置选中的语音（不管有没有系统语音都要设置）=====
         if(selectedVoiceURI) {
-            // 检查用户保存的语音是否还存在
-            const exists = voices.find(v => v.voiceURI === selectedVoiceURI);
-            if(exists) {
-                selectEl.value = selectedVoiceURI;
+            // 如果是在线语音，直接选中
+            if(selectedVoiceURI === 'online') {
+                selectEl.value = 'online';
                 return;
+            }
+            // 检查用户保存的系统语音是否还存在
+            if (voices && voices.length > 0) {
+                const exists = voices.find(v => v.voiceURI === selectedVoiceURI);
+                if(exists) {
+                    selectEl.value = selectedVoiceURI;
+                    return;
+                }
             }
         }
         
-        // 用户没选过或语音不存在，自动优选
-        const prefVoice = getPreferredVoice('zh');
-        if(prefVoice) {
-            selectEl.value = prefVoice.voiceURI;
-            selectedVoiceURI = prefVoice.voiceURI;
-            localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
-        }
+        // 用户没选过或语音不存在 → 默认选在线语音（推荐）
+        selectEl.value = 'online';
+        selectedVoiceURI = 'online';
+        localStorage.setItem('selectedVoiceURI', selectedVoiceURI);
     };
     
     // 先尝试立即获取
     loadVoices();
     
-    // 如果列表为空，等事件触发
-    if(getVoiceList().length === 0) {
+    // 如果有系统语音且列表为空，等事件触发
+    if(window.speechSynthesis && getVoiceList().length === 0) {
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 }
