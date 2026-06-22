@@ -815,9 +815,24 @@ textarea::placeholder {
     transition: all 0.2s ease;
     white-space: nowrap;
     line-height: 1.5;
-    min-width: 100px;  /* 固定最小宽度，三个档位宽度一致 */
+    min-width: 110px;  /* 固定最小宽度，三个档位宽度一致 */
+    line-height: 1.6;  /* 把行高调小一点 */
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
 .volume-btn:hover {
     filter: brightness(1.15);
+}
+
+
+/* ========== 朗读中按钮：深酒红 ========== */
+.btn-speaking {
+    background-color: #EF4444 !important;
+    color: #ffffff !important;
+    border-color: #C53030 !important;
+}
+
+.btn-speaking:hover {
+    background-color: #C53030 !important;
 }

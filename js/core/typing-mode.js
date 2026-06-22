@@ -1,4 +1,4 @@
-// js/core/typing-mode.js 完整代码（修复短语朗读+高亮+行尾停顿）
+// js/core/typing-mode.js 完整代码（新增预览模式支持）
 // ========== 工具函数：提取说话人前缀和正文 ==========
 function extractSpeakerAndContent(line) {
     if (!line || typeof line !== 'string' || line.length === 0) {
@@ -55,9 +55,8 @@ function extractSpeakerAndContent(line) {
         hasSpeaker: true
     };
 }
-
 // ========== 全文练习模式 ========== 
-function runTypingFullMode(text){
+function runTypingFullMode(text, startTyping = true){
     lastSpokenLineIndex = -1;
     finishModalAutoShown = false;
     
@@ -165,20 +164,28 @@ function runTypingFullMode(text){
     }
     
     currentPos = 0;
-    typingRunning = true;
     comboCount = 0;
     wrongContinuous = 0;
-    startTime = Date.now();
-    if(timerId) clearInterval(timerId);
-    inputAreaEl.disabled = false;
-    inputAreaEl.value = '';
-    inputAreaEl.focus();
-    resetBtnEl.disabled = false;
-    timerId = setInterval(updateStat, 1000);
     accuracyEl.textContent = "0%";
     accBar.style.width = "0%";
-    updateStat();
     paragraphContainerEl.scrollTop = 0;
+    
+    if (startTyping) {
+        // ===== 正式练习模式：启用输入框、开始计时 =====
+        typingRunning = true;
+        startTime = Date.now();
+        if(timerId) clearInterval(timerId);
+        inputAreaEl.disabled = false;
+        inputAreaEl.value = '';
+        inputAreaEl.focus();
+        resetBtnEl.disabled = false;
+        timerId = setInterval(updateStat, 1000);
+        updateStat();
+    } else {
+        // ===== 预览模式：只渲染内容，不开始练习 =====
+        typingRunning = false;
+        inputAreaEl.disabled = true;
+    }
     
     if (window.virtualKeyboard && window.virtualKeyboard.isEnabled()) {
         window.virtualKeyboard.reset();
@@ -187,9 +194,8 @@ function runTypingFullMode(text){
         }
     }
 }
-
 // ========== 双语对照练习模式 ==========    
-function runTypingBilingualMode(text){
+function runTypingBilingualMode(text, startTyping = true){
     lastSpokenLineIndex = -1;
     finishModalAutoShown = false;
     
@@ -303,20 +309,28 @@ function runTypingBilingualMode(text){
     }
     
     currentPos = 0;
-    typingRunning = true;
     comboCount = 0;
     wrongContinuous = 0;
-    startTime = Date.now();
-    if(timerId) clearInterval(timerId);
-    inputAreaEl.disabled = false;
-    inputAreaEl.value = '';
-    inputAreaEl.focus();
-    resetBtnEl.disabled = false;
-    timerId = setInterval(updateStat, 1000);
     accuracyEl.textContent = "0%";
     accBar.style.width = "0%";
-    updateStat();
     paragraphContainerEl.scrollTop = 0;
+    
+    if (startTyping) {
+        // ===== 正式练习模式：启用输入框、开始计时 =====
+        typingRunning = true;
+        startTime = Date.now();
+        if(timerId) clearInterval(timerId);
+        inputAreaEl.disabled = false;
+        inputAreaEl.value = '';
+        inputAreaEl.focus();
+        resetBtnEl.disabled = false;
+        timerId = setInterval(updateStat, 1000);
+        updateStat();
+    } else {
+        // ===== 预览模式：只渲染内容，不开始练习 =====
+        typingRunning = false;
+        inputAreaEl.disabled = true;
+    }
     
     if (window.virtualKeyboard && window.virtualKeyboard.isEnabled()) {
         window.virtualKeyboard.reset();
