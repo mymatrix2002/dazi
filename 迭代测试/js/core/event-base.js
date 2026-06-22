@@ -204,11 +204,89 @@ function bindBaseEvents() {
     });
     // 朗读语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);
-    // 音量调节
-    speechVolumeEl.addEventListener('input', function(){
-        speechState.volume = parseFloat(this.value);
-        localStorage.setItem('speechVolume', this.value);
-    });
+    // ========== 音量档位控制（4档分段）==========
+    const volumeLevels = {
+        soft:   { value: 0.4, label: '轻柔' },  // 轻柔：40% 音量
+        normal: { value: 0.7, label: '标准' },  // 标准：70% 音量
+        loud:   { value: 1.0, label: '响亮' },  // 响亮：100% 音量
+        boost:  { value: 1.5, label: '增强' }   // 增强：150% 音量（仅在线语音支持）
+    };
+
+    // 初始化音量档位
+    function initVolumeLevel() {
+        const savedLevel = localStorage.getItem('volumeLevel') || 'normal';
+        setVolumeLevel(savedLevel, false); // 初始化不触发事件
+    }
+
+    // 设置音量档位
+    function setVolumeLevel(level, save) {
+        const levelConfig = volumeLevels[level];
+        if (!levelConfig) return;
+        
+        // 更新全局音量变量
+        speechState.volume = levelConfig.value;
+        
+        // 保存到本地存储
+        if (save !== false) {
+            localStorage.setItem('volumeLevel', level);
+        }
+        
+        // 更新在线语音音量
+        if (window.onlineTTS && window.onlineTTS.setVolume) {
+            window.onlineTTS.setVolume(levelConfig.value);
+        }
+        
+        // 更新按钮状态
+        updateVolumeButtons();
+    }
+
+    // 更新音量按钮状态（高亮 + 禁用增强档）
+    function updateVolumeButtons() {
+        const buttons = document.querySelectorAll('#volumeSegmented .seg-btn');
+        if (!buttons || buttons.length === 0) return;
+        
+        const currentLevel = localStorage.getItem('volumeLevel') || 'normal';
+        const hasOnlineVoice = !!window.onlineTTS; // 是否有在线语音可用
+        
+        buttons.forEach(btn => {
+            const level = btn.dataset.level;
+            
+            // 选中状态
+            if (level === currentLevel) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            
+            // 增强档：没有在线语音时禁用
+            if (level === 'boost' && !hasOnlineVoice) {
+                btn.disabled = true;
+                btn.title = '仅在线语音支持增强';
+            } else {
+                btn.disabled = false;
+                btn.title = volumeLevels[level] ? volumeLevels[level].label : '';
+            }
+        });
+    }
+
+    // 绑定音量按钮点击事件
+    const volumeSegEl = document.getElementById('volumeSegmented');
+    if (volumeSegEl) {
+        volumeSegEl.addEventListener('click', function(e) {
+            const btn = e.target.closest('.seg-btn');
+            if (!btn || btn.disabled) return;
+            
+            const level = btn.dataset.level;
+            setVolumeLevel(level, true);
+        });
+    }
+
+    // 页面加载完成后初始化音量
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVolumeLevel);
+    } else {
+        initVolumeLevel();
+    }
     // 字号滑块调节
     fontSizeSlider.addEventListener('input', function () {
         fontScale = parseFloat(this.value);
