@@ -1,4 +1,4 @@
-<!-- index.html v2.1.0 完整代码 -->
+<!-- index.html v2.1.1 完整代码 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
@@ -26,7 +26,7 @@
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
             <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
-            <span class="version-info whitespace-nowrap">v2.1.0</span>
+            <span class="version-info whitespace-nowrap">v2.1.1</span>
         </div>
         <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
             <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
@@ -73,12 +73,11 @@
                     📁 上传TXT文件
                     <input type="file" id="fileInput" accept=".txt" class="hidden">
                 </label>
-                <button id="readAllBtn" class="btn-success px-3 py-1.5 text-sm">🔊 朗读全文</button>
 
 
-                <button class="volume-btn" id="volumeBtn">🔊 响亮 ●●●</button>
+                <button class="btn-normal volume-btn" id="volumeBtn">🔊 响亮 ●●●</button>
 
-                <button id="settingToggleBtn" class="btn-normal px-3 py-1.5 text-sm">⚙️ 更多设置</button>
+                <button id="settingToggleBtn" class="btn-normal btn-setting px-3 py-1.5 text-sm">⚙️ 更多设置</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
@@ -120,7 +119,10 @@
         <textarea id="sourceText" class="w-full h-28 p-3 border rounded-xl text-sm resize-none" placeholder="粘贴练习内容，或上传TXT文件，自带音标[xxx]会自动删除"></textarea>
         <div class="flex justify-between items-center mt-3">
             <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
-            <button id="startBtn" class="btn-primary px-5 py-2 text-sm font-medium">开始练习</button>
+            <div class="flex items-center gap-2">
+                <button id="readAllBtn" class="btn-success px-4 py-2 text-sm">🔊 朗读全文</button>
+                <button id="startBtn" class="btn-primary px-5 py-2 text-sm font-medium">开始练习</button>
+            </div>
         </div>
     </div>
 
@@ -193,33 +195,33 @@
     </div>
 
     <!-- JS 引入：严格按依赖顺序加载 -->
-    <script src="js/core/config.js?v=2.1.0"></script>
-    <script src="js/core/utils.js?v=2.1.0"></script>
-    <script src="js/core/typing-mode.js?v=2.1.0"></script>
-    <script src="js/core/typing-input.js?v=2.1.0"></script>
-    <script src="js/feature/online-tts.js?v=2.1.0"></script>
-    <script src="js/core/event-base.js?v=2.1.0"></script>
-    <script src="js/feature/virtual-keyboard.js?v=2.1.0"></script>
-    <script src="js/main.js?v=2.1.0"></script>
+    <script src="js/core/config.js?v=2.1.1"></script>
+    <script src="js/core/utils.js?v=2.1.1"></script>
+    <script src="js/core/typing-mode.js?v=2.1.1"></script>
+    <script src="js/core/typing-input.js?v=2.1.1"></script>
+    <script src="js/feature/online-tts.js?v=2.1.1"></script>
+    <script src="js/core/event-base.js?v=2.1.1"></script>
+    <script src="js/feature/virtual-keyboard.js?v=2.1.1"></script>
+    <script src="js/main.js?v=2.1.1"></script>
     <!-- 题库数据文件 -->
-    <script src="js/data/practice-bank.js?v=2.1.0"></script>
+    <script src="js/data/practice-bank.js?v=2.1.1"></script>
     <!-- 五年级下册 -->
-    <script src="js/data/p5l-m1.js?v=2.1.0"></script>
-    <script src="js/data/p5l-m2.js?v=2.1.0"></script>
-    <script src="js/data/p5l-m3.js?v=2.1.0"></script>
-    <script src="js/data/p5l-m4.js?v=2.1.0"></script>
-    <script src="js/data/p5l-m5.js?v=2.1.0"></script>
-    <script src="js/data/p5l-m6.js?v=2.1.0"></script>
+    <script src="js/data/p5l-m1.js?v=2.1.1"></script>
+    <script src="js/data/p5l-m2.js?v=2.1.1"></script>
+    <script src="js/data/p5l-m3.js?v=2.1.1"></script>
+    <script src="js/data/p5l-m4.js?v=2.1.1"></script>
+    <script src="js/data/p5l-m5.js?v=2.1.1"></script>
+    <script src="js/data/p5l-m6.js?v=2.1.1"></script>
     <!-- 五年级上册 -->
-    <script src="js/data/p5u-m1.js?v=2.1.0"></script>
-    <script src="js/data/p5u-m2.js?v=2.1.0"></script>
-    <script src="js/data/p5u-m3.js?v=2.1.0"></script>
-    <script src="js/data/p5u-m4.js?v=2.1.0"></script>
-    <script src="js/data/p5u-m5.js?v=2.1.0"></script>
-    <script src="js/data/p5u-m6.js?v=2.1.0"></script>
+    <script src="js/data/p5u-m1.js?v=2.1.1"></script>
+    <script src="js/data/p5u-m2.js?v=2.1.1"></script>
+    <script src="js/data/p5u-m3.js?v=2.1.1"></script>
+    <script src="js/data/p5u-m4.js?v=2.1.1"></script>
+    <script src="js/data/p5u-m5.js?v=2.1.1"></script>
+    <script src="js/data/p5u-m6.js?v=2.1.1"></script>
     
     <!-- 题库 UI 功能 -->
-    <script src="js/feature/practice-bank-ui.js?v=2.1.0"></script>
+    <script src="js/feature/practice-bank-ui.js?v=2.1.1"></script>
     
     <!-- vConsole移动端调试面板，线上排查问题专用 -->
     <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.0/vconsole.min.js"></script>

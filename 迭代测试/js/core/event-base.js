@@ -1,4 +1,4 @@
-// js/core/event-base.js 优化版
+// js/core/event-base.js 优化版（新增预览模式支持）
 // 修复：高亮不移除 + 短语停顿短 + 播放失败自动停止
 // ========== 停顿时间配置（覆盖原有配置，短语之间停顿加长）==========
 window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
@@ -10,22 +10,18 @@ window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
     colon: 450,      // 冒号
     none: 150        // 其他短停顿
 };
-
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
-
 // ========== 工具函数 ==========
 function getPureEnglish(text) {
     if (!text) return '';
     return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
 }
-
 function isChineseChar(ch) {
     if (!ch || ch.length === 0) return false;
     return /[\u4e00-\u9fa5]/.test(ch);
 }
-
 function forceStopSpeech() {
     clearTimeout(pauseTimer);
     speechState.running = false;
@@ -52,7 +48,6 @@ function forceStopSpeech() {
         readAllBtnEl.textContent = '🔊 朗读全文';
     }
 }
-
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
     if(!speechState.running) return;
@@ -215,10 +210,25 @@ function bindBaseEvents() {
     // 全文朗读/停止按钮
     readAllBtnEl.addEventListener('click',function(){
         let txt = targetFullText.trim();
+        
+        // ===== 如果还没开始练习，先进入预览模式 =====
         if(!txt){
-            alert('展示区暂无文字，请先点击【开始练习】');
+            const sourceTxt = sourceTextEl.value.trim();
+            if(!sourceTxt){
+                alert('请先粘贴练习内容或选择题库');
+                return;
+            }
+            // 进入预览模式（只渲染内容，不开始练习）
+            runTypingFullMode(sourceTxt, false);
+            // 重新获取渲染后的文本
+            txt = targetFullText.trim();
+        }
+        
+        if(!txt){
+            alert('暂无内容可朗读');
             return;
         }
+        
         if(speechState.running){
             forceStopSpeech();
             return;
@@ -307,17 +317,12 @@ function bindBaseEvents() {
     if(vkToggleBtn) {
         const vkEnabled = localStorage.getItem('virtualKeyboardEnabled') === 'true';
         vkToggleBtn.textContent = vkEnabled ? '虚拟键盘：已开启' : '虚拟键盘：已关闭';
-        if(vkEnabled) vkToggleBtn.classList.add('btn-success');
+            
         vkToggleBtn.addEventListener('click', () => {
             if(window.virtualKeyboard) {
                 window.virtualKeyboard.toggle();
                 const isOn = window.virtualKeyboard.isEnabled();
-                vkToggleBtn.textContent = isOn ? '虚拟键盘：已开启' : '虚拟键盘：已关闭';
-                if(isOn) {
-                    vkToggleBtn.classList.add('btn-success');
-                } else {
-                    vkToggleBtn.classList.remove('btn-success');
-                }
+                vkToggleBtn.textContent = isOn ? '虚拟键盘：已开启' : '虚拟键盘：已关闭';                
             }
         });
     }

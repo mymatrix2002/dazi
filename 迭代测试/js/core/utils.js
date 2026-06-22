@@ -64,10 +64,12 @@ function toggleSound() {
     const btn = document.getElementById('soundToggleBtn');
     if (btn) {
         if (soundEnabled) {
-            btn.classList.add('btn-sound-active');
+            btn.classList.remove('btn-normal');
+            btn.classList.add('btn-primary');
             btn.textContent = '🔊 音效：已开启';
         } else {
-            btn.classList.remove('btn-sound-active');
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-normal');
             btn.textContent = '🔇 音效：已关闭';
         }
     }
@@ -78,10 +80,12 @@ function initSoundToggleBtn() {
     const btn = document.getElementById('soundToggleBtn');
     if (!btn) return;
     if (soundEnabled) {
-        btn.classList.add('btn-sound-active');
+        btn.classList.remove('btn-normal');
+        btn.classList.add('btn-primary');
         btn.textContent = '🔊 音效：已开启';
     } else {
-        btn.classList.remove('btn-sound-active');
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-normal');
         btn.textContent = '🔇 音效：已关闭';
     }
 }

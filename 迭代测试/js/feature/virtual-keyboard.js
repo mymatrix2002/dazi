@@ -369,7 +369,8 @@
         // 按钮激活状态
         const vkBtn = document.getElementById('vkToggleBtn');
         if (vkBtn) {
-            vkBtn.classList.add('btn-vk-active');
+            vkBtn.classList.remove('btn-normal');  // 先移除灰色
+            vkBtn.classList.add('btn-primary');    // 再加蓝色
             vkBtn.textContent = '虚拟键盘：已开启';
         }
     }
@@ -394,7 +395,8 @@
         // 按钮恢复默认状态
         const vkBtn = document.getElementById('vkToggleBtn');
         if (vkBtn) {
-            vkBtn.classList.remove('btn-vk-active');
+            vkBtn.classList.remove('btn-primary');  // 移除蓝色
+            vkBtn.classList.add('btn-normal');      // 加回灰色
             vkBtn.textContent = '虚拟键盘：已关闭';
         }
     }
