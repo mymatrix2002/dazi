@@ -803,49 +803,21 @@ textarea::placeholder {
     }
 }
 
-/* ========== 音量分段控件 ========== */
-.volume-segmented {
-    display: flex;
+/* ========== 4 档音量按钮 ========== */
+.volume-btn {
+    padding: 6px 12px;
+    font-size: 14px;
     border: 1px solid var(--border-normal);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.seg-btn {
-    padding: 4px 8px;
-    font-size: 11px;
-    border: none;
+    border-radius: 12px;
     background: var(--bg-gray);
     color: var(--text-main);
     cursor: pointer;
-    border-right: 1px solid var(--border-normal);
     transition: all 0.2s ease;
     white-space: nowrap;
-    line-height: 1.4;
+    line-height: 1.5;
+    min-width: 120px;  /* 加这行：固定最小宽度，四个档位宽度一致 */
 }
 
-.seg-btn:last-child {
-    border-right: none;
-}
-
-.seg-btn:hover:not(:disabled) {
+.volume-btn:hover {
     filter: brightness(1.15);
-}
-
-.seg-btn.active {
-    background-color: var(--color-primary) !important;
-    color: white !important;
-}
-
-.seg-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-
-/* 移动端适配：按钮更小一点 */
-@media (max-width: 768px) {
-    .seg-btn {
-        padding: 5px 4px;
-        font-size: 10px;
-    }
 }

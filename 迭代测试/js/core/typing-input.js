@@ -28,36 +28,39 @@ function stopAllSpeech() {
     }
 }
 
-// ========== 工具：朗读文本（优先在线语音，系统语音兜底）==========
+// ========== 工具：朗读文本（根据用户选择切换引擎）==========
 function speakText(text, lang) {
     if (!text || !text.trim()) return;
     
     // 先停止之前的
     stopAllSpeech();
     
-    // 优先用在线语音
-    if(window.onlineTTS) {
-        try {
-            window.onlineTTS.speak(
-                text,
-                lang || 'en',
-                speechState.rate,
-                speechState.volume,
-                null, // 结束回调（不需要）
-                null  // 错误回调（静默失败）
-            );
-            return;
-        } catch(e) {
-            // 在线语音失败，继续尝试系统语音
+    // 根据用户选择决定用哪个语音引擎
+    if(window.isUsingOnlineVoice && window.isUsingOnlineVoice()) {
+        // ===== 在线语音 =====
+        if(window.onlineTTS) {
+            try {
+                window.onlineTTS.speak(
+                    text,
+                    lang || 'en',
+                    speechState.rate,
+                    speechState.volume,
+                    null, // 结束回调（不需要）
+                    null  // 错误回调（静默失败）
+                );
+                return;
+            } catch(e) {
+                // 在线语音失败，静默
+            }
         }
-    }
-    
-    // 兜底：系统语音
-    if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
-        try {
-            const utter = window.createUtterance(text, speechState.rate);
-            if(utter) window.speechSynthesis.speak(utter);
-        } catch(e) {}
+    } else {
+        // ===== 系统语音 =====
+        if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
+            try {
+                const utter = window.createUtterance(text, speechState.rate);
+                if(utter) window.speechSynthesis.speak(utter);
+            } catch(e) {}
+        }
     }
 }
 

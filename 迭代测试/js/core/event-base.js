@@ -2,9 +2,9 @@
 // 修复：高亮不移除 + 短语停顿短 + 播放失败自动停止
 // ========== 停顿时间配置（覆盖原有配置，短语之间停顿加长）==========
 window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
-    period: 1000,    // 句号 / 行尾长停顿（1秒）
-    mark: 800,       // 问号 / 感叹号
-    newline: 1000,   // 换行 / 短语之间（1秒）
+    period: 700,    // 句号 / 行尾长停顿（0.7秒）
+    mark: 400,       // 问号 / 感叹号
+    newline: 700,   // 换行 / 短语之间（0.7秒）
     comma: 350,      // 逗号
     semicolon: 450,  // 分号
     colon: 450,      // 冒号
@@ -119,27 +119,56 @@ function nextSpeak(lastPause){
     // 延迟后播放
     setTimeout(() => {
         if(!speechState.running) return;
-        if(window.onlineTTS) {
-            const enText = getPureEnglish(senText);
-            window.onlineTTS.speak(
-                enText,
-                'en',
-                speechState.rate,
-                speechState.volume,
-                // 播放成功结束 → 继续下一句
-                () => {
-                    if(speechState.running) {
-                        nextSpeak(senPause);
+        
+        const enText = getPureEnglish(senText);
+        
+        // 根据用户选择决定用哪个语音引擎
+        if(window.isUsingOnlineVoice && window.isUsingOnlineVoice()) {
+            // ===== 在线语音 =====
+            if(window.onlineTTS) {
+                window.onlineTTS.speak(
+                    enText,
+                    'en',
+                    speechState.rate,
+                    speechState.volume,
+                    // 播放成功结束 → 继续下一句
+                    () => {
+                        if(speechState.running) {
+                            nextSpeak(senPause);
+                        }
+                    },
+                    // 播放失败 → 停止朗读
+                    () => {
+                        console.warn('在线语音播放失败，已停止');
+                        forceStopSpeech();
                     }
-                },
-                // 播放失败 → 停止朗读
-                () => {
-                    console.warn('语音播放失败，已停止');
-                    forceStopSpeech();
-                }
-            );
+                );
+            } else {
+                // 在线语音不可用，跳过这句
+                setTimeout(() => nextSpeak(senPause), 100);
+            }
         } else {
-            setTimeout(() => nextSpeak(senPause), 100);
+            // ===== 系统语音 =====
+            if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
+                const utter = window.createUtterance(enText, speechState.rate);
+                if(utter) {
+                    utter.onend = function() {
+                        if(speechState.running) {
+                            nextSpeak(senPause);
+                        }
+                    };
+                    utter.onerror = function() {
+                        console.warn('系统语音播放失败，已停止');
+                        forceStopSpeech();
+                    };
+                    window.speechSynthesis.speak(utter);
+                } else {
+                    setTimeout(() => nextSpeak(senPause), 100);
+                }
+            } else {
+                // 系统语音不可用，跳过这句
+                setTimeout(() => nextSpeak(senPause), 100);
+            }
         }
     }, PAUSE_CONFIG[lastPause]);
 }
@@ -204,89 +233,75 @@ function bindBaseEvents() {
     });
     // 朗读语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);
-    // ========== 音量档位控制（4档分段）==========
-    const volumeLevels = {
-        soft:   { value: 0.4, label: '轻柔' },  // 轻柔：40% 音量
-        normal: { value: 0.7, label: '标准' },  // 标准：70% 音量
-        loud:   { value: 1.0, label: '响亮' },  // 响亮：100% 音量
-        boost:  { value: 1.5, label: '增强' }   // 增强：150% 音量（仅在线语音支持）
+    // ========== 4 档音量按钮 ==========
+    const VOLUME_LEVELS = {
+        soft:   { value: 0.4, icon: '🔊', label: '轻柔' },  // 轻柔：40% 音量
+        normal: { value: 0.7, icon: '🔊', label: '标准' },  // 标准：70% 音量
+        loud:   { value: 1.0, icon: '🔊', label: '响亮' },  // 响亮：100% 音量
+        boost:  { value: 1.5, icon: '📢', label: '增强' }   // 增强：150% 音量（仅在线语音生效）
     };
-
-    // 初始化音量档位
-    function initVolumeLevel() {
-        const savedLevel = localStorage.getItem('volumeLevel') || 'normal';
-        setVolumeLevel(savedLevel, false); // 初始化不触发事件
-    }
-
-    // 设置音量档位
-    function setVolumeLevel(level, save) {
-        const levelConfig = volumeLevels[level];
-        if (!levelConfig) return;
+    const VOLUME_ORDER = ['soft', 'normal', 'loud', 'boost'];
+    
+    // 读取保存的档位，默认响亮
+    let currentVolumeLevel = localStorage.getItem('volumeLevel') || 'loud';
+    
+    // 更新音量按钮显示
+    function updateVolumeUI() {
+        const btn = document.getElementById('volumeBtn');
+        if (!btn) return;
         
-        // 更新全局音量变量
-        speechState.volume = levelConfig.value;
-        
-        // 保存到本地存储
-        if (save !== false) {
-            localStorage.setItem('volumeLevel', level);
+        const level = VOLUME_LEVELS[currentVolumeLevel];
+        // 生成小点：前面几个亮，后面几个暗
+        const idx = VOLUME_ORDER.indexOf(currentVolumeLevel);
+        let dots = '';
+        for (let i = 0; i < 4; i++) {
+            dots += i <= idx ? '●' : '○';
         }
         
-        // 更新在线语音音量
-        if (window.onlineTTS && window.onlineTTS.setVolume) {
-            window.onlineTTS.setVolume(levelConfig.value);
+        // 增强档：判断是否支持音量放大
+        let displayLabel = level.label;
+        if (currentVolumeLevel === 'boost') {
+            const boostSupported = window.onlineTTS 
+                && typeof window.onlineTTS.isBoostSupported === 'function'
+                && window.onlineTTS.isBoostSupported();
+            if (!boostSupported) {
+                displayLabel = '增强（不支持）';
+            }
         }
         
-        // 更新按钮状态
-        updateVolumeButtons();
+        btn.textContent = level.icon + ' ' + displayLabel + ' ' + dots;
     }
-
-    // 更新音量按钮状态（高亮 + 禁用增强档）
-    function updateVolumeButtons() {
-        const buttons = document.querySelectorAll('#volumeSegmented .seg-btn');
-        if (!buttons || buttons.length === 0) return;
+    
+    // 设置音量
+    function setVolumeLevel(levelKey) {
+        if (!VOLUME_LEVELS[levelKey]) return;
+        currentVolumeLevel = levelKey;
+        localStorage.setItem('volumeLevel', levelKey);
         
-        const currentLevel = localStorage.getItem('volumeLevel') || 'normal';
-        const hasOnlineVoice = !!window.onlineTTS; // 是否有在线语音可用
+        const level = VOLUME_LEVELS[levelKey];
+        // 系统语音最大 100%（浏览器限制）
+        speechState.volume = Math.min(1.0, level.value);
         
-        buttons.forEach(btn => {
-            const level = btn.dataset.level;
-            
-            // 选中状态
-            if (level === currentLevel) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-            
-            // 增强档：没有在线语音时禁用
-            if (level === 'boost' && !hasOnlineVoice) {
-                btn.disabled = true;
-                btn.title = '仅在线语音支持增强';
-            } else {
-                btn.disabled = false;
-                btn.title = volumeLevels[level] ? volumeLevels[level].label : '';
-            }
+        // 同步在线语音音量（支持超过 100% 放大）
+        if (window.onlineTTS && typeof window.onlineTTS.setVolume === 'function') {
+            window.onlineTTS.setVolume(level.value);
+        }
+        
+        updateVolumeUI();
+    }
+    
+    // 点击按钮切换档位
+    const volumeBtn = document.getElementById('volumeBtn');
+    if (volumeBtn) {
+        volumeBtn.addEventListener('click', function() {
+            const currentIdx = VOLUME_ORDER.indexOf(currentVolumeLevel);
+            const nextIdx = (currentIdx + 1) % VOLUME_ORDER.length;
+            setVolumeLevel(VOLUME_ORDER[nextIdx]);
         });
     }
-
-    // 绑定音量按钮点击事件
-    const volumeSegEl = document.getElementById('volumeSegmented');
-    if (volumeSegEl) {
-        volumeSegEl.addEventListener('click', function(e) {
-            const btn = e.target.closest('.seg-btn');
-            if (!btn || btn.disabled) return;
-            
-            const level = btn.dataset.level;
-            setVolumeLevel(level, true);
-        });
-    }
-
-    // 页面加载完成后初始化音量
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initVolumeLevel);
-    } else {
-        initVolumeLevel();
-    }
+    
+    // 初始化音量
+    setVolumeLevel(currentVolumeLevel);
     // 字号滑块调节
     fontSizeSlider.addEventListener('input', function () {
         fontScale = parseFloat(this.value);

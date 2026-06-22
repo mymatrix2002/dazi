@@ -1,4 +1,4 @@
-// js/core/typing-mode.js 完整代码（短语停顿加长版）
+// js/core/typing-mode.js 完整代码（修复短语朗读+高亮+行尾停顿）
 // ========== 工具函数：提取说话人前缀和正文 ==========
 function extractSpeakerAndContent(line) {
     if (!line || typeof line !== 'string' || line.length === 0) {
@@ -55,6 +55,7 @@ function extractSpeakerAndContent(line) {
         hasSpeaker: true
     };
 }
+
 // ========== 全文练习模式 ========== 
 function runTypingFullMode(text){
     lastSpokenLineIndex = -1;
@@ -82,6 +83,7 @@ function runTypingFullMode(text){
     speechSentenceMap = [];
     const allCharSpans = [];
     const allContentLines = [];
+    
     fullLines.forEach((lineText, idx) => {
         const lineCol = document.createElement('div');
         lineCol.className = 'paragraph-full';
@@ -131,23 +133,24 @@ function runTypingFullMode(text){
         
         paragraphContainerEl.appendChild(lineCol);
     });
+    
     const combinedText = allContentLines.join(' ').trim();
     targetFullText = combinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 短语/单词行尾加长停顿 ==========
+    // ========== 逐行生成句子地图 + 行尾加长停顿 ==========
     if (allContentLines.length > 0 && allCharSpans.length > 0) {
         let currentNodeIndex = 0;
-        allContentLines.forEach((lineText) => {
+        allContentLines.forEach(function(lineText) {
             if (!lineText || lineText.trim() === '') return;
             const lineSentences = splitSentences(lineText);
-            lineSentences.forEach((sent, sIdx) => {
+            lineSentences.forEach(function(sent, sIdx) {
                 const sentenceText = sent.text;
                 const nodeCount = sentenceText.length;
                 const start = currentNodeIndex;
                 const end = currentNodeIndex + nodeCount - 1;
                 const realEnd = Math.min(end, allCharSpans.length - 1);
-                // 行尾句子 → 用句号级长停顿（约800ms）
+                // 行尾句子 → 用句号级长停顿
                 const isLastInLine = sIdx === lineSentences.length - 1;
                 const pauseType = isLastInLine ? 'period' : sent.pauseType;
                 speechSentenceMap.push({
@@ -184,6 +187,7 @@ function runTypingFullMode(text){
         }
     }
 }
+
 // ========== 双语对照练习模式 ==========    
 function runTypingBilingualMode(text){
     lastSpokenLineIndex = -1;
@@ -212,6 +216,7 @@ function runTypingBilingualMode(text){
     speechSentenceMap = [];
     const allCharSpans = [];
     const allContentLines = [];
+    
     pairs.forEach((pair, idx) => {
         const cnCol = document.createElement('div');
         cnCol.className = 'paragraph-cn';
@@ -266,23 +271,24 @@ function runTypingBilingualMode(text){
         paragraphContainerEl.appendChild(cnCol);
         paragraphContainerEl.appendChild(enCol);
     });
+    
     const enCombinedText = allContentLines.join(' ').trim();
     targetFullText = enCombinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 短语/单词行尾加长停顿 ==========
+    // ========== 逐行生成句子地图 + 行尾加长停顿 ==========
     if (allContentLines.length > 0 && allCharSpans.length > 0) {
         let currentNodeIndex = 0;
-        allContentLines.forEach((lineText) => {
+        allContentLines.forEach(function(lineText) {
             if (!lineText || lineText.trim() === '') return;
             const lineSentences = splitSentences(lineText);
-            lineSentences.forEach((sent, sIdx) => {
+            lineSentences.forEach(function(sent, sIdx) {
                 const sentenceText = sent.text;
                 const nodeCount = sentenceText.length;
                 const start = currentNodeIndex;
                 const end = currentNodeIndex + nodeCount - 1;
                 const realEnd = Math.min(end, allCharSpans.length - 1);
-                // 行尾句子 → 用句号级长停顿（约800ms）
+                // 行尾句子 → 用句号级长停顿
                 const isLastInLine = sIdx === lineSentences.length - 1;
                 const pauseType = isLastInLine ? 'period' : sent.pauseType;
                 speechSentenceMap.push({
@@ -311,6 +317,7 @@ function runTypingBilingualMode(text){
     accBar.style.width = "0%";
     updateStat();
     paragraphContainerEl.scrollTop = 0;
+    
     if (window.virtualKeyboard && window.virtualKeyboard.isEnabled()) {
         window.virtualKeyboard.reset();
         if (allContentLines.length > 0 && allContentLines[0].length > 0) {

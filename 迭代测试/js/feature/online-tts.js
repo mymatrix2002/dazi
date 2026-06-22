@@ -1,109 +1,64 @@
-// js/feature/online-tts.js 完整代码（音量增强版）
-// 在线 TTS 语音引擎（百度翻译接口 + Cloudflare Worker 代理）
-// 支持 Web Audio 音量放大，可超过 100%
+// js/feature/online-tts.js 音量增强版
+// 支持超过 100% 音量放大（Web Audio GainNode）
+// 正常音量(<1.0)走原生 audio.volume，稳定可靠
+// 增强音量(>1.0)才启用 Web Audio，不影响正常档位
 (function() {
     'use strict';
 
-    // ========== 配置 ==========
-    const TTS_BASE_URL = 'https://tts.841231.xyz/'; // 你的自定义域名
+    const TTS_BASE_URL = 'https://tts.841231.xyz/';
 
-    // ========== 状态变量 ==========
-    let audioEl = null;
+    let currentAudio = null;
     let isPlaying = false;
-    let onEndCallback = null;
-    let onErrorCallback = null;
-    let currentVolume = 1.0; // 音量：0.0 - 2.0（0%-200%）
-
-    // ========== Web Audio 音量增强相关 ==========
-    let audioCtx = null;
+    let currentVolume = 1.0;
+    
+    // Web Audio 相关（懒加载，只有增强档才创建）
+    let audioContext = null;
     let gainNode = null;
-    let sourceNode = null;
-    let webAudioEnabled = false;
+    let mediaSource = null;
 
-    // 初始化 Web Audio（用户首次交互后才初始化，避免浏览器限制）
-    function initWebAudio() {
-        if (webAudioEnabled || audioCtx) return;
-        
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) {
-                webAudioEnabled = false;
-                return;
-            }
-            
-            audioCtx = new AudioContext();
-            gainNode = audioCtx.createGain();
-            gainNode.gain.value = currentVolume;
-            gainNode.connect(audioCtx.destination);
-            
-            // 把 audio 元素接到 Web Audio 上
-            if (audioEl) {
-                sourceNode = audioCtx.createMediaElementSource(audioEl);
-                sourceNode.connect(gainNode);
-            }
-            
-            webAudioEnabled = true;
-        } catch (e) {
-            console.warn('Web Audio 初始化失败，使用普通音量控制:', e.message);
-            webAudioEnabled = false;
-        }
-    }
-
-    // 设置音量（支持 0.0 - 2.0）
-    function setVolume(vol) {
-        currentVolume = Math.max(0, Math.min(2.0, vol));
-        
-        // Web Audio 模式：用 GainNode 放大
-        if (webAudioEnabled && gainNode) {
-            gainNode.gain.value = currentVolume;
-        }
-        // 普通模式：audio 元素音量（最大 1.0）
-        else if (audioEl) {
-            audioEl.volume = Math.min(currentVolume, 1.0);
-        }
-    }
-
-    // 初始化音频元素
-    function initAudio() {
-        if (audioEl) return;
-        
-        audioEl = new Audio();
-        audioEl.preload = 'auto';
-        audioEl.volume = Math.min(currentVolume, 1.0);
-        
-        // 播放结束
-        audioEl.addEventListener('ended', function() {
-            isPlaying = false;
-            if (onEndCallback) {
-                const cb = onEndCallback;
-                onEndCallback = null;
-                cb();
-            }
-        });
-        
-        // 播放错误
-        audioEl.addEventListener('error', function() {
-            isPlaying = false;
-            if (onErrorCallback) {
-                const cb = onErrorCallback;
-                onErrorCallback = null;
-                cb();
-            }
-        });
-
-        // 放到 DOM 里，移动端兼容性更好
-        audioEl.style.display = 'none';
-        document.body.appendChild(audioEl);
-    }
-
-    // 语速转换：0.25-1.5 倍率 → 百度 1-9 语速
+    // 语速转速度（0.25-1.5 → 1-9档）
     function convertRateToSpeed(rate) {
-        // 百度语速：3=正常
-        // rate=1.0 → speed=3
-        // rate=0.5 → speed=1.5 → 取整 2
-        // rate=1.5 → speed=4.5 → 取整 5
         const speed = Math.round(rate * 3);
         return Math.max(1, Math.min(9, speed));
+    }
+
+    // 确保 AudioContext 已创建（仅在需要增强时调用）
+    function ensureAudioContext() {
+        if (audioContext) return true;
+        if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') {
+            return false;
+        }
+        
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AC();
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = currentVolume;
+            gainNode.connect(audioContext.destination);
+            return true;
+        } catch (e) {
+            console.warn('Web Audio 不可用，无法使用音量增强');
+            audioContext = null;
+            gainNode = null;
+            return false;
+        }
+    }
+
+    // 设置音量
+    function setVolume(vol) {
+        currentVolume = Math.max(0, vol);
+        
+        // 更新增益节点（如果已创建）
+        if (gainNode) {
+            try {
+                gainNode.gain.value = currentVolume;
+            } catch (e) {}
+        }
+        
+        // 更新当前 audio 的音量（<=1.0 时直接生效）
+        if (currentAudio) {
+            currentAudio.volume = Math.min(1.0, currentVolume);
+        }
     }
 
     // 播放语音
@@ -113,24 +68,13 @@
             return;
         }
 
-        // 停止之前的播放
         stop();
-        
-        // 初始化音频
-        initAudio();
-        
-        // 初始化 Web Audio（首次播放时初始化，需要用户交互）
-        initWebAudio();
-        
-        // 设置音量
+
         if (volume !== undefined && volume !== null) {
-            setVolume(volume);
+            currentVolume = Math.max(0, volume);
         }
 
         isPlaying = true;
-        onEndCallback = onEnd || null;
-        onErrorCallback = onError || null;
-
         const speed = convertRateToSpeed(rate || 1.0);
         const langCode = lang || 'en';
         
@@ -138,16 +82,75 @@
                   + '&lang=' + encodeURIComponent(langCode)
                   + '&speed=' + speed;
 
-        audioEl.src = url;
-        
-        const playPromise = audioEl.play();
+        const audio = new Audio(url);
+        // 普通音量直接设置，超过 1.0 的部分等下用增益节点处理
+        audio.volume = Math.min(1.0, currentVolume);
+        audio.setAttribute('playsinline', '');
+        audio.setAttribute('webkit-playsinline', '');
+        currentAudio = audio;
+
+        // 如果音量超过 1.0，尝试用 Web Audio 放大
+        if (currentVolume > 1.0) {
+            const hasAudioCtx = ensureAudioContext();
+            if (hasAudioCtx && audioContext && gainNode) {
+                try {
+                    // 恢复 AudioContext（浏览器自动播放策略）
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    // 连接音频元素到增益节点
+                    mediaSource = audioContext.createMediaElementSource(audio);
+                    mediaSource.connect(gainNode);
+                    gainNode.gain.value = currentVolume;
+                    // 连接后 audio.volume 会失效，所以设为 1.0，完全由增益控制
+                    audio.volume = 1.0;
+                } catch (e) {
+                    console.warn('Web Audio 连接失败，使用普通音量:', e.message);
+                    // 失败降级：用最大 1.0 音量
+                    audio.volume = 1.0;
+                }
+            } else {
+                // Web Audio 不可用，降级为最大 1.0
+                audio.volume = 1.0;
+            }
+        }
+
+        // 播放结束
+        audio.addEventListener('ended', function() {
+            isPlaying = false;
+            if (currentAudio === audio) {
+                currentAudio = null;
+            }
+            if (onEnd) {
+                const cb = onEnd;
+                onEnd = null;
+                cb();
+            }
+        });
+
+        // 播放错误
+        audio.addEventListener('error', function() {
+            isPlaying = false;
+            if (currentAudio === audio) {
+                currentAudio = null;
+            }
+            console.warn('在线语音播放失败');
+            if (onError) {
+                const cb = onError;
+                onError = null;
+                cb();
+            }
+        });
+
+        // 开始播放
+        const playPromise = audio.play();
         if (playPromise && playPromise.catch) {
             playPromise.catch(function(e) {
                 console.warn('在线语音播放失败:', e.message);
                 isPlaying = false;
-                if (onErrorCallback) {
-                    const cb = onErrorCallback;
-                    onErrorCallback = null;
+                if (onError) {
+                    const cb = onError;
+                    onError = null;
                     cb();
                 }
             });
@@ -156,34 +159,39 @@
 
     // 停止播放
     function stop() {
-        if (audioEl) {
+        if (currentAudio) {
             try {
-                audioEl.pause();
-                audioEl.currentTime = 0;
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
             } catch (e) {}
+            currentAudio = null;
+        }
+        // 断开媒体源连接，避免内存泄漏
+        if (mediaSource) {
+            try {
+                mediaSource.disconnect();
+            } catch (e) {}
+            mediaSource = null;
         }
         isPlaying = false;
-        onEndCallback = null;
-        onErrorCallback = null;
     }
 
-    // 是否正在播放
-    function isPlayingNow() {
-        return isPlaying;
+    function isPlayingNow() { return isPlaying; }
+    function isSupported() { return typeof Audio !== 'undefined'; }
+
+    // 判断是否支持音量增强（Web Audio）
+    function isBoostSupported() {
+        if (audioContext) return true;
+        return !!(window.AudioContext || window.webkitAudioContext);
     }
 
-    // 是否支持在线语音
-    function isSupported() {
-        return typeof Audio !== 'undefined';
-    }
-
-    // 暴露到全局
     window.onlineTTS = {
         speak: speak,
         stop: stop,
         isPlaying: isPlayingNow,
         isSupported: isSupported,
-        setVolume: setVolume
+        setVolume: setVolume,
+        isBoostSupported: isBoostSupported
     };
 
 })();
