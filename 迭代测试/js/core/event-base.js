@@ -1,4 +1,4 @@
-// js/core/event-base.js 优化版（朗读模式选择 + 智能批量预加载 + 在线语音兜底 + 预览模式 + 数字转英文 + 智能提取英文）
+// js/core/event-base.js 优化版（双弹窗卡片式 + 朗读模式选择 + 智能批量预加载 + 在线语音兜底 + 预览模式 + 数字转英文 + 智能提取英文）
 // ========== 停顿时间配置 ==========
 window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
     period: 700,    // 句号 / 行尾长停顿（0.7秒）
@@ -95,7 +95,51 @@ function forceStopSpeech() {
         readAllBtnEl.textContent = '🔊 朗读全文';
     }
 }
-// ========== 朗读模式选择弹窗 ==========
+// ========== 练习模式选择弹窗（卡片式）==========
+function showPracticeModeModal(text, callback) {
+    // 创建弹窗
+    const modal = document.createElement('div');
+    modal.id = 'practiceModeModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 w-80 max-w-[90%]">
+            <h3 class="text-lg font-bold text-center mb-4 dark:text-white">选择练习模式</h3>
+            <div class="space-y-3">
+                <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors" data-mode="full">
+                    <div class="text-2xl mb-1">📝</div>
+                    <div class="font-bold dark:text-white">全文练习</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">整篇文章连续打字练习</div>
+                </div>
+                <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors" data-mode="bilingual">
+                    <div class="text-2xl mb-1">📖</div>
+                    <div class="font-bold dark:text-white">双语对照</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">中英文左右对照，边看边练</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定选项点击事件
+    const cards = modal.querySelectorAll('.mode-card');
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            const mode = card.dataset.mode;
+            document.body.removeChild(modal);
+            if (callback) callback(mode);
+        });
+    });
+    
+    // 点击遮罩关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+// ========== 朗读模式选择弹窗（卡片式）==========
 function showReadModeModal(callback) {
     // 创建弹窗
     const modal = document.createElement('div');
@@ -565,10 +609,23 @@ function bindBaseEvents() {
         if(needReset) {
             resetBtnEl.click();
         }
+        
+        // 如果有中文，弹出卡片式选择弹窗
         if(hasChinese(pendingText)){
-            modeModal.classList.remove('hidden');
+            const text = pendingText;
+            setTimeout(() => {
+                showPracticeModeModal(text, function(mode) {
+                    if(mode === 'full') {
+                        runTypingFullMode(text);
+                    } else {
+                        runTypingBilingualMode(text);
+                    }
+                });
+            }, 50);
             return;
         }
+        
+        // 没有中文，直接全文模式
         if(needReset) {
             setTimeout(() => {
                 runTypingFullMode(pendingText);
@@ -576,25 +633,6 @@ function bindBaseEvents() {
         } else {
             runTypingFullMode(pendingText);
         }
-    });
-    // 模式弹窗按钮
-    modalOkBtn.addEventListener('click',()=>{
-        modeModal.classList.add('hidden');
-        if(typingRunning || entryCharsList.length > 0) {
-            resetBtnEl.click();
-        }
-        setTimeout(() => {
-            runTypingFullMode(pendingText);
-        }, 50);
-    });
-    modalCancelBtn.addEventListener('click',()=>{
-        modeModal.classList.add('hidden');
-        if(typingRunning || entryCharsList.length > 0) {
-            resetBtnEl.click();
-        }
-        setTimeout(() => {
-            runTypingBilingualMode(pendingText);
-        }, 50);
     });
     // 重新开始练习按钮
     resetBtnEl.addEventListener('click',()=>{
