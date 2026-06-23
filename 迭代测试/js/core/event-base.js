@@ -65,6 +65,16 @@ function nextSpeak(lastPause){
         speechState.running = false;
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent = '🔊 朗读全文';
+        
+        // ===== 新增：朗读结束，滚动条回到顶部 =====
+        if (isBilingualMode && paragraphContainerEl) {
+            paragraphContainerEl.scrollTop = 0;
+        }
+        if (displayAreaEl) {
+            displayAreaEl.scrollTop = 0;
+        }
+        // ===== 新增结束 =====
+        
         return;
     }
     const currentItem = speechSentenceMap[speechState.idx];
@@ -74,7 +84,9 @@ function nextSpeak(lastPause){
     const startIdx = currentItem.startNode;
     const endIdx = currentItem.endNode;
     if(!senText.trim()){
-        setTimeout(() => nextSpeak(senPause), PAUSE_CONFIG[senPause]);
+        // ===== 修改：空句子（如纯中文）快速跳过，不额外增加停顿 =====
+        // 保持和双语模式一致的行尾停顿时间
+        setTimeout(() => nextSpeak(senPause), 0);
         return;
     }
     
