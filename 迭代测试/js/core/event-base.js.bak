@@ -35,9 +35,6 @@ function preloadSentences(count) {
     const text = sourceTextEl.value.trim();
     if (!text || text.length < 10) return;
     
-    let pureText = getPureEnglish(text);
-    // 数字转英文单词（1→one, 1st→first）
-    pureText = replaceDigitsToEnglish(pureText);
     const sentences = splitSentences(text);
     if (!sentences || sentences.length === 0) return;
     

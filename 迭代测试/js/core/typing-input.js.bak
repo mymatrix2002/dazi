@@ -28,9 +28,6 @@ function stopAllSpeech() {
 function speakText(text, lang) {
     if (!text || !text.trim()) return;
     
-    // 数字转英文单词（1→one, 1st→first）
-    text = replaceDigitsToEnglish(text);
-    
     // 先停止之前的
     stopAllSpeech();
     

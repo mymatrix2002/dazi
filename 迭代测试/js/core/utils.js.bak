@@ -265,68 +265,8 @@ function numberToEnglish(num) {
     return res;
 }
 
-// ========== 序数词转英文单词（1st→first, 2nd→second...）==========
-function ordinalToEnglish(num) {
-    num = parseInt(num);
-    if (isNaN(num) || num < 0) return String(num);
-    
-    // 常用序数词表（小学英语够用了）
-    const ordinals = {
-        1: 'first',
-        2: 'second',
-        3: 'third',
-        4: 'fourth',
-        5: 'fifth',
-        6: 'sixth',
-        7: 'seventh',
-        8: 'eighth',
-        9: 'ninth',
-        10: 'tenth',
-        11: 'eleventh',
-        12: 'twelfth',
-        13: 'thirteenth',
-        14: 'fourteenth',
-        15: 'fifteenth',
-        16: 'sixteenth',
-        17: 'seventeenth',
-        18: 'eighteenth',
-        19: 'nineteenth',
-        20: 'twentieth',
-        30: 'thirtieth',
-        40: 'fortieth',
-        50: 'fiftieth',
-        60: 'sixtieth',
-        70: 'seventieth',
-        80: 'eightieth',
-        90: 'ninetieth',
-        100: 'hundredth'
-    };
-    
-    // 直接命中的特殊词
-    if (ordinals[num]) {
-        return ordinals[num];
-    }
-    
-    // 两位数（21st → twenty-first）
-    if (num > 20 && num < 100) {
-        const tens = Math.floor(num / 10) * 10;
-        const ones = num % 10;
-        const tensWord = numberToEnglish(tens);
-        const onesOrdinal = ordinals[ones] || (numberToEnglish(ones) + 'th');
-        return tensWord + '-' + onesOrdinal;
-    }
-    
-    // 其他情况，简单加 th
-    return numberToEnglish(num) + 'th';
-}
-
 function replaceDigitsToEnglish(s){
-    // 先处理序数词（1st, 2nd, 3rd, 4th...）
-    s = s.replace(/(\d+)(st|nd|rd|th)/gi, function(match, num, suffix) {
-        return ordinalToEnglish(num);
-    });
-    // 再处理普通数字
-    return s.replace(/\d+/g, m => numberToEnglish(+m));
+    return s.replace(/\d+/g,m=>numberToEnglish(+m));
 }
 
 function fixArticleRead(s){
