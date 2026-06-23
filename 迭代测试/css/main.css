@@ -814,7 +814,7 @@ textarea::placeholder {
 /* ========== 3 档音量按钮 ========== */
 .volume-btn {
     /* 只保留特殊样式，其他都继承 btn-normal */
-    min-width: 110px;  /* 固定最小宽度，三个档位一致 */
+    min-width: 130px;  /* 固定最小宽度，三个档位一致 */
     gap: 4px;          /* 图标、文字、圆点之间的间距 */
 }
 
