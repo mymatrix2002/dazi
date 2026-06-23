@@ -30,7 +30,7 @@ let speechState={
     sentences:[],
     idx:0,
     running:false,
-    rate:1.0,
+    rate:0.75,
     volume: parseFloat(localStorage.getItem('speechVolume')) || 1.0
 };
 
