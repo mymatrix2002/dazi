@@ -1,4 +1,4 @@
-// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读，中文模式）
+// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读，中文模式 + 数字转英文 + 智能提取英文）
 // ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
@@ -9,7 +9,8 @@ if (typeof finishModalAutoShown === 'undefined') var finishModalAutoShown = fals
 // ========== 工具：提取纯英文（用于行朗读）==========
 function getPureEnglishForLine(text) {
     if (!text) return '';
-    return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+    // 改用智能提取：中文行整行跳过，包括中文里的数字
+    return extractEnglishSmart(text);
 }
 // ========== 工具：停止所有语音（在线+系统）==========
 function stopAllSpeech() {
@@ -39,11 +40,9 @@ function speakText(text, lang) {
         // ===== 在线语音 =====
         if(window.onlineTTS) {
             try {
-                // 数字转英文单词（1→one, 1st→first）
-                const speakText = replaceDigitsToEnglish(text);
                 window.onlineTTS.speak(
-                    speakText,
-                    lang || 'zh',  // ← 改成中文模式，支持中英文混合，人名更准
+                    text,
+                    lang || 'zh',  // 中文模式，支持中英文混合，人名更准
                     speechState.rate,
                     speechState.volume,
                     null, // 结束回调（不需要）
@@ -198,7 +197,7 @@ function bindInputEvent() {
                 const targetWord = activeChars.slice(wordStart, val.length).join('');
                 
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    speakText(targetWord, 'zh'); // ← 改成中文模式
+                    speakText(targetWord, 'zh'); // 中文模式
                 }
             }
         }
@@ -206,9 +205,11 @@ function bindInputEvent() {
         // ========== 自动触发行朗读（输完整行最后一个字符时）==========
         if(wordSpeakEnable === 'true' && val.length === entryLen) {
             const currentLineText = activeChars.join('');
-            const enText = getPureEnglishForLine(currentLineText);
+            // 智能提取英文（中文行整行跳过）+ 数字转英文
+            let enText = extractEnglishSmart(currentLineText);
+            enText = replaceDigitsToEnglish(enText);
             if(enText && /[a-zA-Z]/.test(enText)) {
-                speakText(enText, 'zh'); // ← 改成中文模式
+                speakText(enText, 'zh'); // 中文模式
             }
         }
         
