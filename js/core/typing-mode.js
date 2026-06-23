@@ -1,4 +1,4 @@
-// js/core/typing-mode.js 完整代码（新增预览模式支持）
+// js/core/typing-mode.js 完整代码（新增预览模式支持 + 修复高亮错位问题）
 // ========== 工具函数：提取说话人前缀和正文 ==========
 function extractSpeakerAndContent(line) {
     if (!line || typeof line !== 'string' || line.length === 0) {
@@ -129,6 +129,7 @@ function runTypingFullMode(text, startTyping = true){
             lineCol.appendChild(span);
             allCharSpans.push(span);
         });
+
         
         paragraphContainerEl.appendChild(lineCol);
     });
@@ -137,31 +138,32 @@ function runTypingFullMode(text, startTyping = true){
     targetFullText = combinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 逐行生成句子地图 + 行尾加长停顿 ==========
-    if (allContentLines.length > 0 && allCharSpans.length > 0) {
-        let currentNodeIndex = 0;
-        allContentLines.forEach(function(lineText) {
-            if (!lineText || lineText.trim() === '') return;
-            const lineSentences = splitSentences(lineText);
-            lineSentences.forEach(function(sent, sIdx) {
-                const sentenceText = sent.text;
-                const nodeCount = sentenceText.length;
-                const start = currentNodeIndex;
-                const end = currentNodeIndex + nodeCount - 1;
-                const realEnd = Math.min(end, allCharSpans.length - 1);
-                // 行尾句子 → 用句号级长停顿
-                const isLastInLine = sIdx === lineSentences.length - 1;
-                const pauseType = isLastInLine ? 'period' : sent.pauseType;
-                speechSentenceMap.push({
-                    text: sent.text,
-                    pauseType: pauseType,
-                    startNode: start,
-                    endNode: realEnd
-                });
-                currentNodeIndex = realEnd + 1;
+// ========== 逐行生成句子地图 + 行尾加长停顿 ==========
+if (allContentLines.length > 0 && allCharSpans.length > 0) {
+    let currentNodeIndex = 0;
+    allContentLines.forEach(function(lineText) {
+        if (!lineText || lineText.trim() === '') return;
+        const lineSentences = splitSentences(lineText);
+        lineSentences.forEach(function(sent, sIdx) {
+            const sentenceText = sent.text;
+            // ===== 修改：用原始长度计算，不要用 trim 后的长度 =====
+            const nodeCount = sent.rawLength || sentenceText.length;
+            const start = currentNodeIndex;
+            const end = currentNodeIndex + nodeCount - 1;
+            const realEnd = Math.min(end, allCharSpans.length - 1);
+            // 行尾句子 → 用句号级长停顿
+            const isLastInLine = sIdx === lineSentences.length - 1;
+            const pauseType = isLastInLine ? 'period' : sent.pauseType;
+            speechSentenceMap.push({
+                text: sentenceText,
+                pauseType: pauseType,
+                startNode: start,
+                endNode: realEnd
             });
+            currentNodeIndex = realEnd + 1;
         });
-    }
+    });
+}
     
     currentPos = 0;
     comboCount = 0;
@@ -273,6 +275,7 @@ function runTypingBilingualMode(text, startTyping = true){
             enCol.appendChild(span);
             allCharSpans.push(span);
         });
+
         
         paragraphContainerEl.appendChild(cnCol);
         paragraphContainerEl.appendChild(enCol);
@@ -282,31 +285,32 @@ function runTypingBilingualMode(text, startTyping = true){
     targetFullText = enCombinedText;
     targetChars = targetFullText.split('');
     
-    // ========== 逐行生成句子地图 + 行尾加长停顿 ==========
-    if (allContentLines.length > 0 && allCharSpans.length > 0) {
-        let currentNodeIndex = 0;
-        allContentLines.forEach(function(lineText) {
-            if (!lineText || lineText.trim() === '') return;
-            const lineSentences = splitSentences(lineText);
-            lineSentences.forEach(function(sent, sIdx) {
-                const sentenceText = sent.text;
-                const nodeCount = sentenceText.length;
-                const start = currentNodeIndex;
-                const end = currentNodeIndex + nodeCount - 1;
-                const realEnd = Math.min(end, allCharSpans.length - 1);
-                // 行尾句子 → 用句号级长停顿
-                const isLastInLine = sIdx === lineSentences.length - 1;
-                const pauseType = isLastInLine ? 'period' : sent.pauseType;
-                speechSentenceMap.push({
-                    text: sent.text,
-                    pauseType: pauseType,
-                    startNode: start,
-                    endNode: realEnd
-                });
-                currentNodeIndex = realEnd + 1;
+// ========== 逐行生成句子地图 + 行尾加长停顿 ==========
+if (allContentLines.length > 0 && allCharSpans.length > 0) {
+    let currentNodeIndex = 0;
+    allContentLines.forEach(function(lineText) {
+        if (!lineText || lineText.trim() === '') return;
+        const lineSentences = splitSentences(lineText);
+        lineSentences.forEach(function(sent, sIdx) {
+            const sentenceText = sent.text;
+            // ===== 修改：用原始长度计算，不要用 trim 后的长度 =====
+            const nodeCount = sent.rawLength || sentenceText.length;
+            const start = currentNodeIndex;
+            const end = currentNodeIndex + nodeCount - 1;
+            const realEnd = Math.min(end, allCharSpans.length - 1);
+            // 行尾句子 → 用句号级长停顿
+            const isLastInLine = sIdx === lineSentences.length - 1;
+            const pauseType = isLastInLine ? 'period' : sent.pauseType;
+            speechSentenceMap.push({
+                text: sentenceText,
+                pauseType: pauseType,
+                startNode: start,
+                endNode: realEnd
             });
+            currentNodeIndex = realEnd + 1;
         });
-    }
+    });
+}
     
     currentPos = 0;
     comboCount = 0;

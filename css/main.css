@@ -227,6 +227,14 @@ body {
     color: var(--text-main);
     border-radius: 12px;
     transition: background-color 0.2s;
+    /* 新增：固定高度，垂直居中 */
+    height: 33px;
+    line-height: 33px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .btn-normal:hover {
     filter: brightness(1.15);
@@ -805,26 +813,10 @@ textarea::placeholder {
 
 /* ========== 3 档音量按钮 ========== */
 .volume-btn {
-    padding: 6px 12px;
-    font-size: 14px;
-    border: 1px solid var(--border-normal);
-    border-radius: 12px;
-    background: var(--bg-gray);
-    color: var(--text-main);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    line-height: 1.5;
-    min-width: 110px;  /* 固定最小宽度，三个档位宽度一致 */
-    line-height: 1.6;  /* 把行高调小一点 */
-    padding-top: 4px;
-    padding-bottom: 4px;
+    /* 只保留特殊样式，其他都继承 btn-normal */
+    min-width: 130px;  /* 固定最小宽度，三个档位一致 */
+    gap: 4px;          /* 图标、文字、圆点之间的间距 */
 }
-
-.volume-btn:hover {
-    filter: brightness(1.15);
-}
-
 
 /* ========== 朗读中按钮：深酒红 ========== */
 .btn-speaking {

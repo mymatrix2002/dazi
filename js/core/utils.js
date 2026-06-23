@@ -278,7 +278,6 @@ function fixArticleRead(s){
 function splitSentences(text){
     const map = new Map();
     let idx = 0;
-    // 限制占位符长度，避免冲突
     const tempPrefix = '__SENT_TMP_';
     text = text.replace(/\w+'(ll|re|s|t|ve|d)/g,m=>{
         const k = `${tempPrefix}${idx}__`;
@@ -295,15 +294,23 @@ function splitSentences(text){
         const trimSeg = seg.trim();
         // 过滤空句子
         if(!trimSeg) continue;
-
         let ptype = "newline";
         const last = trimSeg.slice(-1);
         if(last === ".") ptype = "period";
         else if(last === "!" || last === "?") ptype = "mark";
-        arr.push({text: trimSeg, pauseType: ptype});
+        arr.push({
+            text: trimSeg, 
+            pauseType: ptype,
+            // ===== 新增：保存原始未 trim 的长度，用于索引计算 =====
+            rawLength: seg.length
+        });
     }
     if(arr.length === 0 && text.trim()){
-        arr.push({text: text.trim(), pauseType:"newline"});
+        arr.push({
+            text: text.trim(), 
+            pauseType:"newline",
+            rawLength: text.length
+        });
     }
     return arr;
 }

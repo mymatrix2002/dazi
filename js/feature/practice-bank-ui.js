@@ -149,34 +149,43 @@
         listEl.innerHTML = html;
     }
 
-    // ========== 手风琴：展开模块，自动收起其他模块 ==========
-    function toggleModule(moduleId) {
-        const allModules = document.querySelectorAll('.bank-module');
-        allModules.forEach(moduleEl => {
-            const mid = moduleEl.dataset.moduleId;
-            const unitWrap = document.getElementById(`unitList-${mid}`);
-            const arrow = moduleEl.querySelector('.bank-module-arrow');
-            if (mid === moduleId) {
-                // 当前点击模块切换展开/收起
-                if (unitWrap.style.display === 'none') {
-                    unitWrap.style.display = 'block';
-                    moduleEl.classList.add('active');
-                    arrow.textContent = '▼';
-                    currentState.moduleId = moduleId;
-                } else {
-                    unitWrap.style.display = 'none';
-                    moduleEl.classList.remove('active');
-                    arrow.textContent = '▶';
-                    if (currentState.moduleId === moduleId) currentState.moduleId = null;
+// ========== 手风琴：展开模块，自动收起其他模块 ==========
+function toggleModule(moduleId) {
+    const allModules = document.querySelectorAll('.bank-module');
+    allModules.forEach(moduleEl => {
+        const mid = moduleEl.dataset.moduleId;
+        const unitWrap = document.getElementById(`unitList-${mid}`);
+        const arrow = moduleEl.querySelector('.bank-module-arrow');
+        if (mid === moduleId) {
+            // 当前点击模块切换展开/收起
+            if (unitWrap.style.display === 'none') {
+                unitWrap.style.display = 'block';
+                moduleEl.classList.add('active');
+                arrow.textContent = '▼';
+                currentState.moduleId = moduleId;
+                
+                // ===== 新增：自动选中第一个 Unit =====
+                const firstUnit = unitWrap.querySelector('.bank-unit');
+                if (firstUnit) {
+                    const firstUnitId = firstUnit.dataset.unitId;
+                    selectUnit(moduleId, firstUnitId);
                 }
+                // ===== 新增结束 =====
+                
             } else {
-                // 其他模块全部收起
                 unitWrap.style.display = 'none';
                 moduleEl.classList.remove('active');
                 arrow.textContent = '▶';
+                if (currentState.moduleId === moduleId) currentState.moduleId = null;
             }
-        });
-    }
+        } else {
+            // 其他模块全部收起
+            unitWrap.style.display = 'none';
+            moduleEl.classList.remove('active');
+            arrow.textContent = '▶';
+        }
+    });
+}
 
     // ========== 选择单元 ==========
     function selectUnit(moduleId, unitId) {

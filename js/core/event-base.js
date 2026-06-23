@@ -212,7 +212,7 @@ function bindBaseEvents() {
         let txt = targetFullText.trim();
         
         // ===== 如果还没开始练习，先进入预览模式 =====
-        if(!txt){
+        if(!typingRunning){
             const sourceTxt = sourceTextEl.value.trim();
             if(!sourceTxt){
                 alert('请先粘贴练习内容或选择题库');
@@ -222,6 +222,11 @@ function bindBaseEvents() {
             runTypingFullMode(sourceTxt, false);
             // 重新获取渲染后的文本
             txt = targetFullText.trim();
+        }
+
+        if(!txt){
+            alert('暂无内容可朗读');
+            return;
         }
         
         if(!txt){
