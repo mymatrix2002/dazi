@@ -1,6 +1,5 @@
-// js/core/event-base.js 优化版（新增预览模式支持）
-// 修复：高亮不移除 + 短语停顿短 + 播放失败自动停止
-// ========== 停顿时间配置（覆盖原有配置，短语之间停顿加长）==========
+// js/core/event-base.js 优化版（智能批量预加载 + 在线语音兜底 + 预览模式）
+// ========== 停顿时间配置 ==========
 window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
     period: 700,    // 句号 / 行尾长停顿（0.7秒）
     mark: 400,       // 问号 / 感叹号
@@ -13,10 +12,45 @@ window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
 // ========== 全局语音API兜底 ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
+// ========== 预加载相关 ==========
+let preloadTimer = null;
+let lastTextLength = 0; // 上一次的文本长度，用于判断输入类型
+// 预加载数量配置
+const PRELOAD_CONFIG = {
+    batch: 5,       // 批量输入时预加载前 5 句
+    manual: 1,      // 手动输入时只预加载第 1 句
+    threshold: 5,   // 字符变化阈值，超过算批量输入
+    debounce: 1000  // 防抖时间（毫秒）
+};
 // ========== 工具函数 ==========
 function getPureEnglish(text) {
     if (!text) return '';
     return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+}
+// ========== 批量预加载语音 ==========
+function preloadSentences(count) {
+    if (!window.onlineTTS || typeof window.onlineTTS.preload !== 'function') return;
+    if (!window.isUsingOnlineVoice || !window.isUsingOnlineVoice()) return;
+    
+    const text = sourceTextEl.value.trim();
+    if (!text || text.length < 10) return;
+    
+    const sentences = splitSentences(text);
+    if (!sentences || sentences.length === 0) return;
+    
+    const rate = speechState.rate || 0.75;
+    let loadedCount = 0;
+    
+    for (let i = 0; i < sentences.length && loadedCount < count; i++) {
+        const sen = sentences[i];
+        if (!sen || !sen.text || !sen.text.trim()) continue;
+        
+        const enText = getPureEnglish(sen.text);
+        if (!enText || enText.length < 2) continue;
+        
+        window.onlineTTS.preload(enText, 'en', rate);
+        loadedCount++;
+    }
 }
 function isChineseChar(ch) {
     if (!ch || ch.length === 0) return false;
@@ -26,6 +60,7 @@ function forceStopSpeech() {
     clearTimeout(pauseTimer);
     speechState.running = false;
     speechState.idx = 0;
+    speechState.fallbackToSystem = false;
     if(window.onlineTTS) {
         try {
             window.onlineTTS.stop();
@@ -36,7 +71,7 @@ function forceStopSpeech() {
             window.speechSynthesis.cancel();
         } catch(e) {}
     }
-    // 清除所有高亮（双重保险）
+    // 清除所有高亮
     try {
         const highlights = document.querySelectorAll('.sentence-read-highlight');
         for (let i = 0; i < highlights.length; i++) {
@@ -52,7 +87,7 @@ function forceStopSpeech() {
 function nextSpeak(lastPause){
     if(!speechState.running) return;
     
-    // ========== 先清除所有旧高亮（双重保险，确保清干净）==========
+    // 先清除所有旧高亮
     try {
         const oldHighlights = document.querySelectorAll('.sentence-read-highlight');
         for (let i = 0; i < oldHighlights.length; i++) {
@@ -66,14 +101,13 @@ function nextSpeak(lastPause){
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent = '🔊 朗读全文';
         
-        // ===== 新增：朗读结束，滚动条回到顶部 =====
+        // 朗读结束，滚动条回到顶部
         if (isBilingualMode && paragraphContainerEl) {
             paragraphContainerEl.scrollTop = 0;
         }
         if (displayAreaEl) {
             displayAreaEl.scrollTop = 0;
         }
-        // ===== 新增结束 =====
         
         return;
     }
@@ -84,28 +118,24 @@ function nextSpeak(lastPause){
     const startIdx = currentItem.startNode;
     const endIdx = currentItem.endNode;
     if(!senText.trim()){
-        // ===== 修改：空句子（如纯中文）快速跳过，不额外增加停顿 =====
-        // 保持和双语模式一致的行尾停顿时间
         setTimeout(() => nextSpeak(senPause), 0);
         return;
     }
     
-    // 获取所有字符 span（确保和生成时的顺序一致）
+    // 获取所有字符 span
     let allSpans = [];
     if (isBilingualMode) {
-        // 全文模式 + 双语模式都在 paragraphContainer 里
         allSpans = paragraphContainerEl.querySelectorAll('.char-span');
     } else {
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     
-    // 只高亮 ASCII 可见字符（英文/数字/英文标点），排除空格、中文、中文标点
+    // 只高亮英文/数字/英文标点
     const safeEnd = Math.min(endIdx, allSpans.length - 1);
     for(let i = startIdx; i <= safeEnd; i++){
         const span = allSpans[i];
         if (!span) continue;
         const ch = span.textContent;
-        // 判断标准：ASCII 可见字符（33=! 到 126=~），自动排除空格(32)和所有中文
         const code = ch.charCodeAt(0);
         if(code >= 33 && code <= 126) {
             span.classList.add('sentence-read-highlight');
@@ -129,8 +159,7 @@ function nextSpeak(lastPause){
         
         const enText = getPureEnglish(senText);
         
-        // 根据用户选择决定用哪个语音引擎
-        if(window.isUsingOnlineVoice && window.isUsingOnlineVoice()) {
+        if(window.isUsingOnlineVoice && window.isUsingOnlineVoice() && !speechState.fallbackToSystem) {
             // ===== 在线语音 =====
             if(window.onlineTTS) {
                 window.onlineTTS.speak(
@@ -144,14 +173,47 @@ function nextSpeak(lastPause){
                             nextSpeak(senPause);
                         }
                     },
-                    // 播放失败 → 停止朗读
+                    // 播放失败 → 切换到系统语音兜底
                     () => {
-                        console.warn('在线语音播放失败，已停止');
-                        forceStopSpeech();
+                        console.warn('在线语音播放失败，切换到系统语音兜底');
+                        speechState.fallbackToSystem = true;
+                        
+                        if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
+                            const utter = window.createUtterance(enText, speechState.rate);
+                            if(utter) {
+                                utter.onend = function() {
+                                    if(speechState.running) {
+                                        nextSpeak(senPause);
+                                    }
+                                };
+                                utter.onerror = function() {
+                                    console.warn('系统语音也播放失败，已停止');
+                                    forceStopSpeech();
+                                };
+                                window.speechSynthesis.speak(utter);
+                            } else {
+                                forceStopSpeech();
+                            }
+                        } else {
+                            forceStopSpeech();
+                        }
                     }
                 );
+                
+                // ===== 修改：播放当前句的同时，预加载后面第 5 句（保持 5 句缓冲）=====
+                const preloadTargetIdx = speechState.idx + 5;
+                if (preloadTargetIdx < speechSentenceMap.length) {
+                    const nextItem = speechSentenceMap[preloadTargetIdx];
+                    if (nextItem && nextItem.text && nextItem.text.trim()) {
+                        const nextEnText = getPureEnglish(nextItem.text);
+                        if (window.onlineTTS && typeof window.onlineTTS.preload === 'function') {
+                            window.onlineTTS.preload(nextEnText, 'en', speechState.rate);
+                        }
+                    }
+                }
+                // ===== 修改结束 =====
+                
             } else {
-                // 在线语音不可用，跳过这句
                 setTimeout(() => nextSpeak(senPause), 100);
             }
         } else {
@@ -173,7 +235,6 @@ function nextSpeak(lastPause){
                     setTimeout(() => nextSpeak(senPause), 100);
                 }
             } else {
-                // 系统语音不可用，跳过这句
                 setTimeout(() => nextSpeak(senPause), 100);
             }
         }
@@ -198,8 +259,27 @@ function bindBaseEvents() {
             updateWordSpeakBtnText();
         });
     }
-    // 文本字符实时计数
-    function updateCharCount(){ charCountEl.textContent=sourceTextEl.value.length; }
+    // 文本字符实时计数 + 智能预加载
+    function updateCharCount(){ 
+        const currentLength = sourceTextEl.value.length;
+        charCountEl.textContent = currentLength;
+        
+        // 计算字符变化量
+        const diff = Math.abs(currentLength - lastTextLength);
+        lastTextLength = currentLength;
+        
+        // 判断预加载数量
+        let preloadCount = PRELOAD_CONFIG.manual; // 默认手动输入，只预加载 1 句
+        if (diff >= PRELOAD_CONFIG.threshold) {
+            preloadCount = PRELOAD_CONFIG.batch; // 批量输入，预加载 5 句
+        }
+        
+        // 防抖预加载
+        if (preloadTimer) clearTimeout(preloadTimer);
+        preloadTimer = setTimeout(() => {
+            preloadSentences(preloadCount);
+        }, PRELOAD_CONFIG.debounce);
+    }
     sourceTextEl.addEventListener('input',updateCharCount);
     // TXT文件上传读取
     fileInputEl.addEventListener('change',e=>{
@@ -223,24 +303,16 @@ function bindBaseEvents() {
     readAllBtnEl.addEventListener('click',function(){
         let txt = targetFullText.trim();
         
-        // ===== 如果还没开始练习，先进入预览模式 =====
+        // 如果还没开始练习，先进入预览模式
         if(!typingRunning){
             const sourceTxt = sourceTextEl.value.trim();
             if(!sourceTxt){
                 alert('请先粘贴练习内容或选择题库');
                 return;
             }
-            // 进入预览模式（只渲染内容，不开始练习）
             runTypingFullMode(sourceTxt, false);
-            // 重新获取渲染后的文本
             txt = targetFullText.trim();
         }
-
-        if(!txt){
-            alert('暂无内容可朗读');
-            return;
-        }
-        
         if(!txt){
             alert('暂无内容可朗读');
             return;
@@ -251,33 +323,30 @@ function bindBaseEvents() {
             return;
         }
         speechState.rate = +speechRateEl.value;
-        speechState.idx = -1; // 从 -1 开始，nextSpeak 里 ++ 变成 0
+        speechState.idx = -1;
         speechState.running = true;
+        speechState.fallbackToSystem = false;
         this.classList.add('btn-speaking');
         this.textContent = '⏹ 停止朗读';
-        // 直接调用 nextSpeak，统一处理第一句
         nextSpeak('period');
     });
     // 朗读语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);
     // ========== 3 档音量按钮 ==========
     const VOLUME_LEVELS = {
-        soft:   { value: 0.4, icon: '🔈', label: '轻柔' },  // 轻柔：40% 音量（小喇叭）
-        normal: { value: 0.7, icon: '🔉', label: '标准' },  // 标准：70% 音量（中喇叭）
-        loud:   { value: 1.0, icon: '🔊', label: '响亮' }   // 响亮：100% 音量（大喇叭）
+        soft:   { value: 0.4, icon: '🔈', label: '轻柔' },
+        normal: { value: 0.7, icon: '🔉', label: '标准' },
+        loud:   { value: 1.0, icon: '🔊', label: '响亮' }
     };
     const VOLUME_ORDER = ['soft', 'normal', 'loud'];
         
-    // 读取保存的档位，默认响亮
     let currentVolumeLevel = localStorage.getItem('volumeLevel') || 'loud';
     
-    // 更新音量按钮显示
     function updateVolumeUI() {
         const btn = document.getElementById('volumeBtn');
         if (!btn) return;
         
         const level = VOLUME_LEVELS[currentVolumeLevel];
-        // 生成小点：前面几个亮，后面几个暗（共 3 档）
         const idx = VOLUME_ORDER.indexOf(currentVolumeLevel);
         let dots = '';
         for (let i = 0; i < 3; i++) {
@@ -287,7 +356,6 @@ function bindBaseEvents() {
         btn.textContent = level.icon + ' ' + level.label + ' ' + dots;
     }
     
-    // 设置音量
     function setVolumeLevel(levelKey) {
         if (!VOLUME_LEVELS[levelKey]) return;
         currentVolumeLevel = levelKey;
@@ -296,7 +364,6 @@ function bindBaseEvents() {
         const level = VOLUME_LEVELS[levelKey];
         speechState.volume = level.value;
         
-        // 同步在线语音音量
         if (window.onlineTTS && typeof window.onlineTTS.setVolume === 'function') {
             window.onlineTTS.setVolume(level.value);
         }
@@ -304,7 +371,6 @@ function bindBaseEvents() {
         updateVolumeUI();
     }
     
-    // 点击按钮切换档位
     const volumeBtn = document.getElementById('volumeBtn');
     if (volumeBtn) {
         volumeBtn.addEventListener('click', function() {
@@ -314,7 +380,6 @@ function bindBaseEvents() {
         });
     }
     
-    // 初始化音量
     setVolumeLevel(currentVolumeLevel);
     // 字号滑块调节
     fontSizeSlider.addEventListener('input', function () {
@@ -356,7 +421,9 @@ function bindBaseEvents() {
     // 清空全部内容按钮
     clearBtnEl.addEventListener('click',()=>{
         forceStopSpeech();
-        sourceTextEl.value=''; updateCharCount();
+        sourceTextEl.value=''; 
+        lastTextLength = 0; // 重置长度记录
+        updateCharCount();
         bilingualAreaEl.classList.add('hidden');
         displayAreaEl.classList.remove('hidden');
         displayAreaEl.style.display = 'flex';
@@ -456,13 +523,11 @@ function bindBaseEvents() {
         if(mask) mask.remove();
         inputAreaEl.placeholder = "在这里打字...";
         
-        // 重置虚拟键盘（加 try-catch 保护）
+        // 重置虚拟键盘
         if (window.virtualKeyboard && typeof window.virtualKeyboard.reset === 'function') {
             try {
                 window.virtualKeyboard.reset();
-            } catch(e) {
-                // 忽略虚拟键盘重置错误，不影响主功能
-            }
+            } catch(e) {}
         }
         
         lastSpokenLineIndex = -1;
