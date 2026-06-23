@@ -107,14 +107,14 @@ function showPracticeModeModal(text, callback) {
             <h3 class="text-lg font-bold text-center mb-4 dark:text-white">选择练习模式</h3>
             <div class="space-y-3">
                 <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors" data-mode="full">
-                    <div class="text-2xl mb-1">📝</div>
+                    <div class="text-2xl mb-1">🌐</div>
                     <div class="font-bold dark:text-white">全文练习</div>
                     <div class="text-sm text-slate-500 dark:text-slate-400">整篇文章连续打字练习</div>
                 </div>
                 <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors" data-mode="bilingual">
                     <div class="text-2xl mb-1">📖</div>
                     <div class="font-bold dark:text-white">双语对照</div>
-                    <div class="text-sm text-slate-500 dark:text-slate-400">中英文左右对照，边看边练</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">左右对照，边看中文边练英文</div>
                 </div>
             </div>
         </div>
