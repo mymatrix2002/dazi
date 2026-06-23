@@ -815,11 +815,8 @@ textarea::placeholder {
 .volume-btn {
     /* 只保留特殊样式，其他都继承 btn-normal */
     min-width: 110px;  /* 固定最小宽度，三个档位一致 */
-   /* height: 40px;   */   /* 和普通按钮一样高 */
-    /*line-height: 40px;*/
     gap: 4px;          /* 图标、文字、圆点之间的间距 */
 }
-
 
 /* ========== 朗读中按钮：深酒红 ========== */
 .btn-speaking {
