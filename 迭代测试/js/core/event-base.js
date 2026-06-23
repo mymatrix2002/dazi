@@ -48,7 +48,7 @@ function preloadSentences(count) {
         const enText = getPureEnglish(sen.text);
         if (!enText || enText.length < 2) continue;
         
-        window.onlineTTS.preload(enText, 'en', rate);
+        window.onlineTTS.preload(enText, 'zh', rate);
         loadedCount++;
     }
 }
@@ -164,7 +164,7 @@ function nextSpeak(lastPause){
             if(window.onlineTTS) {
                 window.onlineTTS.speak(
                     enText,
-                    'en',
+                    'zh',  // 改成中文模式，支持中英文混合，人名更准
                     speechState.rate,
                     speechState.volume,
                     // 播放成功结束 → 继续下一句
@@ -207,7 +207,7 @@ function nextSpeak(lastPause){
                     if (nextItem && nextItem.text && nextItem.text.trim()) {
                         const nextEnText = getPureEnglish(nextItem.text);
                         if (window.onlineTTS && typeof window.onlineTTS.preload === 'function') {
-                            window.onlineTTS.preload(nextEnText, 'en', speechState.rate);
+                            window.onlineTTS.preload(nextEnText, 'zh', speechState.rate);
                         }
                     }
                 }

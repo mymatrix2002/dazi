@@ -1,19 +1,16 @@
-// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读）
+// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读，中文模式）
 // ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 if (!window.onlineTTS) window.onlineTTS = null;
-
 // ========== 自动朗读去重标记 ==========
 if (typeof lastSpokenLineIndex === 'undefined') var lastSpokenLineIndex = -1;
 if (typeof finishModalAutoShown === 'undefined') var finishModalAutoShown = false;
-
 // ========== 工具：提取纯英文（用于行朗读）==========
 function getPureEnglishForLine(text) {
     if (!text) return '';
     return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
 }
-
 // ========== 工具：停止所有语音（在线+系统）==========
 function stopAllSpeech() {
     if(window.onlineTTS) {
@@ -27,7 +24,6 @@ function stopAllSpeech() {
         } catch(e) {}
     }
 }
-
 // ========== 工具：朗读文本（根据用户选择切换引擎）==========
 function speakText(text, lang) {
     if (!text || !text.trim()) return;
@@ -42,7 +38,7 @@ function speakText(text, lang) {
             try {
                 window.onlineTTS.speak(
                     text,
-                    lang || 'en',
+                    lang || 'zh',  // ← 改成中文模式，支持中英文混合，人名更准
                     speechState.rate,
                     speechState.volume,
                     null, // 结束回调（不需要）
@@ -63,7 +59,6 @@ function speakText(text, lang) {
         }
     }
 }
-
 // ========== 【关键修复1】函数挂载提前到文件最顶部 ==========
 window.doHandleTypingEnter = function() {
     if (!typingRunning) return;
@@ -126,7 +121,6 @@ window.doHandleTypingEnter = function() {
     }
     updateStat();
 }
-
 // ========== 输入框核心逻辑 ==========
 function bindInputEvent() {
     // 禁止粘贴
@@ -199,7 +193,7 @@ function bindInputEvent() {
                 const targetWord = activeChars.slice(wordStart, val.length).join('');
                 
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    speakText(targetWord, 'en');
+                    speakText(targetWord, 'zh'); // ← 改成中文模式
                 }
             }
         }
@@ -209,7 +203,7 @@ function bindInputEvent() {
             const currentLineText = activeChars.join('');
             const enText = getPureEnglishForLine(currentLineText);
             if(enText && /[a-zA-Z]/.test(enText)) {
-                speakText(enText, 'en');
+                speakText(enText, 'zh'); // ← 改成中文模式
             }
         }
         
