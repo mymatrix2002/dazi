@@ -136,13 +136,42 @@ function nextSpeak(lastPause){
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     
-    // 只高亮英文/数字/英文标点
+    // 智能高亮：英文部分高亮（包括英文里的数字），中文里的数字不高亮
     const safeEnd = Math.min(endIdx, allSpans.length - 1);
+    
+    // 先找到这一段里第一个中文字符的位置（英文在前，中文在后）
+    let firstCnIndex = -1;
+    for(let i = startIdx; i <= safeEnd; i++){
+        const span = allSpans[i];
+        if (!span) continue;
+        const ch = span.textContent;
+        if(/[\u4e00-\u9fa5]/.test(ch)) {
+            firstCnIndex = i;
+            break;
+        }
+    }
+    
     for(let i = startIdx; i <= safeEnd; i++){
         const span = allSpans[i];
         if (!span) continue;
         const ch = span.textContent;
         const code = ch.charCodeAt(0);
+        
+        // 中文字符：不高亮
+        if(/[\u4e00-\u9fa5]/.test(ch)) {
+            continue;
+        }
+        
+        // 数字字符：判断在英文区域还是中文区域
+        if(code >= 48 && code <= 57) { // 0-9 的 ASCII 码
+            if(firstCnIndex > 0 && i > firstCnIndex) {
+                // 数字在第一个中文字符之后 → 中文里的数字 → 不高亮
+                continue;
+            }
+            // 数字在第一个中文字符之前 → 英文里的数字 → 高亮
+        }
+        
+        // 英文、英文标点、英文里的数字 → 高亮
         if(code >= 33 && code <= 126) {
             span.classList.add('sentence-read-highlight');
         }
