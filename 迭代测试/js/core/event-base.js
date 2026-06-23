@@ -1,4 +1,4 @@
-// js/core/event-base.js 优化版（智能批量预加载 + 在线语音兜底 + 预览模式 + 数字转英文 + 智能提取英文）
+// js/core/event-base.js 优化版（朗读模式选择 + 智能批量预加载 + 在线语音兜底 + 预览模式 + 数字转英文 + 智能提取英文）
 // ========== 停顿时间配置 ==========
 window.PAUSE_CONFIG = window.PAUSE_CONFIG || {
     period: 700,    // 句号 / 行尾长停顿（0.7秒）
@@ -22,6 +22,9 @@ const PRELOAD_CONFIG = {
     threshold: 5,   // 字符变化阈值，超过算批量输入
     debounce: 1000  // 防抖时间（毫秒）
 };
+// ========== 朗读模式配置 ==========
+// 'both' = 中英文都读，'english' = 只读英文
+let readMode = localStorage.getItem('readMode') || 'english';
 // ========== 工具函数 ==========
 function getPureEnglish(text) {
     if (!text) return '';
@@ -35,10 +38,6 @@ function preloadSentences(count) {
     const text = sourceTextEl.value.trim();
     if (!text || text.length < 10) return;
     
-    // 智能提取英文（中文行整行跳过，包括中文里的数字）
-    let pureText = extractEnglishSmart(text);
-    // 数字转英文单词（1→one, 1st→first）
-    pureText = replaceDigitsToEnglish(pureText);
     const sentences = splitSentences(text);
     if (!sentences || sentences.length === 0) return;
     
@@ -49,12 +48,19 @@ function preloadSentences(count) {
         const sen = sentences[i];
         if (!sen || !sen.text || !sen.text.trim()) continue;
         
-        // 智能提取英文 + 数字转英文
-        let enText = extractEnglishSmart(sen.text);
-        enText = replaceDigitsToEnglish(enText);
-        if (!enText || enText.length < 2) continue;
+        let preloadText;
+        if (readMode === 'english') {
+            // 只读英文模式：智能提取英文 + 全部数字转英文
+            preloadText = extractEnglishSmart(sen.text);
+            preloadText = replaceDigitsToEnglish(preloadText);
+        } else {
+            // 中英文都读模式：保留全部 + 数字智能识别
+            preloadText = replaceDigitsSmart(sen.text);
+        }
         
-        window.onlineTTS.preload(enText, 'zh', rate);
+        if (!preloadText || preloadText.length < 2) continue;
+        
+        window.onlineTTS.preload(preloadText, 'zh', rate);
         loadedCount++;
     }
 }
@@ -88,6 +94,52 @@ function forceStopSpeech() {
         readAllBtnEl.classList.remove('btn-speaking');
         readAllBtnEl.textContent = '🔊 朗读全文';
     }
+}
+// ========== 朗读模式选择弹窗 ==========
+function showReadModeModal(callback) {
+    // 创建弹窗
+    const modal = document.createElement('div');
+    modal.id = 'readModeModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 w-80 max-w-[90%]">
+            <h3 class="text-lg font-bold text-center mb-4 dark:text-white">选择朗读模式</h3>
+            <div class="space-y-3">
+                <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors ${readMode === 'both' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''}" data-mode="both">
+                    <div class="text-2xl mb-1">🌐</div>
+                    <div class="font-bold dark:text-white">中英文都读</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">中英文都朗读，数字智能识别</div>
+                </div>
+                <div class="mode-card p-4 border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors ${readMode === 'english' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''}" data-mode="english">
+                    <div class="text-2xl mb-1">📖</div>
+                    <div class="font-bold dark:text-white">只读英文（推荐）</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">只朗读英文部分，中文自动跳过</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定选项点击事件
+    const cards = modal.querySelectorAll('.mode-card');
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            const mode = card.dataset.mode;
+            readMode = mode;
+            localStorage.setItem('readMode', mode);
+            document.body.removeChild(modal);
+            if (callback) callback(mode);
+        });
+    });
+    
+    // 点击遮罩关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
 }
 // ========== 朗读滚动高亮逻辑 ==========
 function nextSpeak(lastPause){
@@ -136,43 +188,46 @@ function nextSpeak(lastPause){
         allSpans = displayAreaEl.querySelectorAll('.char-span');
     }
     
-    // 智能高亮：英文部分高亮（包括英文里的数字），中文里的数字不高亮
+    // 根据朗读模式决定高亮范围
     const safeEnd = Math.min(endIdx, allSpans.length - 1);
     
-    // 先找到这一段里第一个中文字符的位置（英文在前，中文在后）
-    let firstCnIndex = -1;
-    for(let i = startIdx; i <= safeEnd; i++){
-        const span = allSpans[i];
-        if (!span) continue;
-        const ch = span.textContent;
-        if(/[\u4e00-\u9fa5]/.test(ch)) {
-            firstCnIndex = i;
-            break;
+    if (readMode === 'english') {
+        // ========== 只读英文模式：只高亮英文部分（包括英文里的数字）==========
+        let firstCnIndex = -1;
+        for(let i = startIdx; i <= safeEnd; i++){
+            const span = allSpans[i];
+            if (!span) continue;
+            const ch = span.textContent;
+            if(/[\u4e00-\u9fa5]/.test(ch)) {
+                firstCnIndex = i;
+                break;
+            }
         }
-    }
-    
-    for(let i = startIdx; i <= safeEnd; i++){
-        const span = allSpans[i];
-        if (!span) continue;
-        const ch = span.textContent;
-        const code = ch.charCodeAt(0);
-        
-        // 中文字符：不高亮
-        if(/[\u4e00-\u9fa5]/.test(ch)) {
-            continue;
-        }
-        
-        // 数字字符：判断在英文区域还是中文区域
-        if(code >= 48 && code <= 57) { // 0-9 的 ASCII 码
-            if(firstCnIndex > 0 && i > firstCnIndex) {
-                // 数字在第一个中文字符之后 → 中文里的数字 → 不高亮
+        for(let i = startIdx; i <= safeEnd; i++){
+            const span = allSpans[i];
+            if (!span) continue;
+            const ch = span.textContent;
+            const code = ch.charCodeAt(0);
+            // 中文字符：不高亮
+            if(/[\u4e00-\u9fa5]/.test(ch)) {
                 continue;
             }
-            // 数字在第一个中文字符之前 → 英文里的数字 → 高亮
+            // 数字字符：判断在英文区域还是中文区域
+            if(code >= 48 && code <= 57) {
+                if(firstCnIndex > 0 && i > firstCnIndex) {
+                    continue; // 中文里的数字不高亮
+                }
+            }
+            // 英文、英文标点、英文里的数字 → 高亮
+            if(code >= 33 && code <= 126) {
+                span.classList.add('sentence-read-highlight');
+            }
         }
-        
-        // 英文、英文标点、英文里的数字 → 高亮
-        if(code >= 33 && code <= 126) {
+    } else {
+        // ========== 中英文都读模式：全部高亮 ==========
+        for(let i = startIdx; i <= safeEnd; i++){
+            const span = allSpans[i];
+            if (!span) continue;
             span.classList.add('sentence-read-highlight');
         }
     }
@@ -192,12 +247,19 @@ function nextSpeak(lastPause){
     setTimeout(() => {
         if(!speechState.running) return;
         
-        // 智能提取英文（中文行整行跳过）+ 数字转英文单词
-        let enText = extractEnglishSmart(senText);
-        enText = replaceDigitsToEnglish(enText);
+        let speakText;
+        
+        if (readMode === 'english') {
+            // 只读英文模式：智能提取英文 + 全部数字转英文
+            speakText = extractEnglishSmart(senText);
+            speakText = replaceDigitsToEnglish(speakText);
+        } else {
+            // 中英文都读模式：保留全部 + 数字智能识别
+            speakText = replaceDigitsSmart(senText);
+        }
         
         // 如果提取后为空，直接跳过
-        if (!enText || !enText.trim()) {
+        if (!speakText || !speakText.trim()) {
             nextSpeak(senPause);
             return;
         }
@@ -206,7 +268,7 @@ function nextSpeak(lastPause){
             // ===== 在线语音 =====
             if(window.onlineTTS) {
                 window.onlineTTS.speak(
-                    enText,
+                    speakText,
                     'zh',  // 中文模式，支持中英文混合，人名更准
                     speechState.rate,
                     speechState.volume,
@@ -222,7 +284,7 @@ function nextSpeak(lastPause){
                         speechState.fallbackToSystem = true;
                         
                         if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
-                            const utter = window.createUtterance(enText, speechState.rate);
+                            const utter = window.createUtterance(speakText, speechState.rate);
                             if(utter) {
                                 utter.onend = function() {
                                     if(speechState.running) {
@@ -248,12 +310,16 @@ function nextSpeak(lastPause){
                 if (preloadTargetIdx < speechSentenceMap.length) {
                     const nextItem = speechSentenceMap[preloadTargetIdx];
                     if (nextItem && nextItem.text && nextItem.text.trim()) {
-                        // 智能提取英文 + 数字转英文
-                        let nextEnText = extractEnglishSmart(nextItem.text);
-                        nextEnText = replaceDigitsToEnglish(nextEnText);
-                        if (nextEnText && nextEnText.trim()) {
+                        let nextPreloadText;
+                        if (readMode === 'english') {
+                            nextPreloadText = extractEnglishSmart(nextItem.text);
+                            nextPreloadText = replaceDigitsToEnglish(nextPreloadText);
+                        } else {
+                            nextPreloadText = replaceDigitsSmart(nextItem.text);
+                        }
+                        if (nextPreloadText && nextPreloadText.trim()) {
                             if (window.onlineTTS && typeof window.onlineTTS.preload === 'function') {
-                                window.onlineTTS.preload(nextEnText, 'zh', speechState.rate);
+                                window.onlineTTS.preload(nextPreloadText, 'zh', speechState.rate);
                             }
                         }
                     }
@@ -265,7 +331,7 @@ function nextSpeak(lastPause){
         } else {
             // ===== 系统语音 =====
             if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
-                const utter = window.createUtterance(enText, speechState.rate);
+                const utter = window.createUtterance(speakText, speechState.rate);
                 if(utter) {
                     utter.onend = function() {
                         if(speechState.running) {
@@ -368,13 +434,18 @@ function bindBaseEvents() {
             forceStopSpeech();
             return;
         }
-        speechState.rate = +speechRateEl.value;
-        speechState.idx = -1;
-        speechState.running = true;
-        speechState.fallbackToSystem = false;
-        this.classList.add('btn-speaking');
-        this.textContent = '⏹ 停止朗读';
-        nextSpeak('period');
+        
+        // 没在朗读，弹出模式选择弹窗
+        const btn = this;
+        showReadModeModal(function(mode) {
+            speechState.rate = +speechRateEl.value;
+            speechState.idx = -1;
+            speechState.running = true;
+            speechState.fallbackToSystem = false;
+            btn.classList.add('btn-speaking');
+            btn.textContent = '⏹ 停止朗读';
+            nextSpeak('period');
+        });
     });
     // 朗读语速切换
     speechRateEl.addEventListener('change',()=>speechState.rate=+speechRateEl.value);

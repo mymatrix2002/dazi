@@ -332,6 +332,60 @@ function ordinalToEnglish(num) {
     // 其他情况，简单加 th
     return numberToEnglish(num) + 'th';
 }
+
+// ========== 智能数字转换（英文环境的数字转英文，中文环境的数字保持原样）==========
+function replaceDigitsSmart(s) {
+    if (!s) return s;
+    
+    // 先处理序数词（1st, 2nd, 3rd...），序数词一般都是英文的，直接转
+    s = s.replace(/(\d+)(st|nd|rd|th)/gi, function(match, num, suffix) {
+        return ordinalToEnglish(num);
+    });
+    
+    // 再处理普通数字
+    s = s.replace(/\d+/g, function(match, offset, str) {
+        const num = parseInt(match);
+        
+        // 往前找最近的非空格、非数字字符
+        let beforeChar = '';
+        for (let i = offset - 1; i >= 0; i--) {
+            const ch = str[i];
+            if (ch !== ' ' && ch !== '\t' && ch !== '\n' && !/\d/.test(ch)) {
+                beforeChar = ch;
+                break;
+            }
+        }
+        
+        // 往后找最近的非空格、非数字字符
+        let afterChar = '';
+        for (let i = offset + match.length; i < str.length; i++) {
+            const ch = str[i];
+            if (ch !== ' ' && ch !== '\t' && ch !== '\n' && !/\d/.test(ch)) {
+                afterChar = ch;
+                break;
+            }
+        }
+        
+        // 判断前后字符是不是中文
+        const beforeIsCn = beforeChar && /[\u4e00-\u9fa5]/.test(beforeChar);
+        const afterIsCn = afterChar && /[\u4e00-\u9fa5]/.test(afterChar);
+        
+        // 如果前后都是中文 → 中文环境 → 保持数字原样（读成中文）
+        if (beforeIsCn && afterIsCn) {
+            return match;
+        }
+        // 如果一边是中文，另一边没有字符 → 也算中文环境
+        if ((beforeIsCn && !afterChar) || (!beforeChar && afterIsCn)) {
+            return match;
+        }
+        
+        // 其他情况 → 英文环境 → 转成英文单词
+        return numberToEnglish(num);
+    });
+    
+    return s;
+}
+
 function replaceDigitsToEnglish(s){
     // 先处理序数词（1st, 2nd, 3rd, 4th...）
     s = s.replace(/(\d+)(st|nd|rd|th)/gi, function(match, num, suffix) {
