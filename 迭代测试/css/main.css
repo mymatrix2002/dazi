@@ -227,6 +227,14 @@ body {
     color: var(--text-main);
     border-radius: 12px;
     transition: background-color 0.2s;
+    /* 新增：固定高度，垂直居中 */
+    height: 40px;
+    line-height: 40px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .btn-normal:hover {
     filter: brightness(1.15);
@@ -807,7 +815,9 @@ textarea::placeholder {
 .volume-btn {
     /* 只保留特殊样式，其他都继承 btn-normal */
     min-width: 110px;  /* 固定最小宽度，三个档位一致 */
-    text-align: center; /* 文字居中 */
+    height: 40px;      /* 和普通按钮一样高 */
+    line-height: 40px;
+    gap: 4px;          /* 图标、文字、圆点之间的间距 */
 }
 
 
