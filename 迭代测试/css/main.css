@@ -805,22 +805,9 @@ textarea::placeholder {
 
 /* ========== 3 档音量按钮 ========== */
 .volume-btn {
-    padding: 6px 12px;
-    font-size: 14px;
-    /* 去掉边框，和 btn-normal 保持一致 */
-    /* border: 1px solid var(--border-normal); */
-    border-radius: 12px;
-    background: var(--bg-gray);
-    color: var(--text-main);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    line-height: 1.5;
-    /* 只保留这个特殊样式：三个档位宽度一致 */
-    min-width: 110px;
-}
-.volume-btn:hover {
-    filter: brightness(1.15);
+    /* 只保留特殊样式，其他都继承 btn-normal */
+    min-width: 110px;  /* 固定最小宽度，三个档位一致 */
+    text-align: center; /* 文字居中 */
 }
 
 
