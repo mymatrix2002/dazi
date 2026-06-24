@@ -222,8 +222,11 @@ typing-practice/
 - 🛠️ **工程优化**
     - CSS 文件补齐版本号，避免发布后样式缓存不更新
     - 所有静态资源版本号统一管理
+- 🐛 **Bug 修复**
+    - 修复只读英文模式下短单词（如 I、a、an 等）被跳过的问题
+    - 优化智能提取英文判断逻辑，只要有英文就读取，更符合"只读英文"语义
 
-**修改文件：** 4 个（event-base.js、online-tts.js、practice-bank-ui.js、index.html）
+**修改文件：** 5 个（event-base.js、online-tts.js、practice-bank-ui.js、index.html、utils.js）
 
 ### v2.2.4
 **发布日期：** 2026-06-25
