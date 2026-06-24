@@ -46,8 +46,8 @@ function extractEnglishSmart(text) {
         const cnCount = (trimmed.match(/[\u4e00-\u9fa5]/g) || []).length;
         const enCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
         
-        // 如果这行主要是英文（英文字符多于中文字符）
-        if (enCount > cnCount) {
+        // 如果这行有英文字符，就保留英文部分
+        if (enCount > 0) {
             // 只保留英文部分，去掉中文字符
             let enOnly = trimmed.replace(/[\u4e00-\u9fa5]/g, '');
             // 去掉多余空格
@@ -56,7 +56,7 @@ function extractEnglishSmart(text) {
                 englishLines.push(enOnly);
             }
         }
-        // 如果主要是中文，整行跳过（包括里面的数字）
+        // 如果完全没有英文字符（纯中文），整行跳过
     }
     
     return englishLines.join('\n').trim();
