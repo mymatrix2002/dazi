@@ -128,21 +128,20 @@
                         <span class="bank-module-cn">${module.nameCn}</span>
                     </div>
                     <div class="bank-unit-list" id="unitList-${module.id}" style="${isActive ? '' : 'display:none'}">
-                        <!-- ===== 新增：全部单元（合并练习）选项 ===== -->
-                        <div class="bank-unit bank-unit-all ${isAllActive ? 'active' : ''}" 
+                        ${module.units.map(unit => `
+                        <div class="bank-unit ${currentState.unitId === unit.id ? 'active' : ''}"
+                             data-unit-id="${unit.id}"
+                             onclick="selectUnit('${module.id}', '${unit.id}')">
+                            <span>${unit.name}</span>
+                            <span class="bank-unit-cn">${unit.nameCn}</span>
+                        </div>
+                        `).join('')}
+                        <!-- ===== 全部单元（合并练习）选项 ===== -->
+                        <div class="bank-unit bank-unit-all ${isAllActive ? 'active' : ''}"
                              onclick="selectAllUnitsInModule('${module.id}')">
                             <span>📚 全部单元（合并练习）</span>
                             <span class="bank-unit-cn">${module.units.length} 个单元合并</span>
                         </div>
-                        <!-- ===== 新增结束 ===== -->
-                        ${module.units.map(unit => `
-                            <div class="bank-unit ${currentState.unitId === unit.id ? 'active' : ''}" 
-                                 data-unit-id="${unit.id}"
-                                 onclick="selectUnit('${module.id}', '${unit.id}')">
-                                <span>${unit.name}</span>
-                                <span class="bank-unit-cn">${unit.nameCn}</span>
-                            </div>
-                        `).join('')}
                     </div>
                 </div>
             `;
