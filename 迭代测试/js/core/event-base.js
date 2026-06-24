@@ -14,6 +14,7 @@ if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 // ========== 预加载相关 ==========
 let preloadTimer = null;
+let charSpanCache = null; // 字符 span 缓存，避免每次朗读都查询 DOM
 let lastTextLength = 0; // 上一次的文本长度，用于判断输入类型
 // 预加载数量配置
 const PRELOAD_CONFIG = {
@@ -69,6 +70,7 @@ function isChineseChar(ch) {
     return /[\u4e00-\u9fa5]/.test(ch);
 }
 function forceStopSpeech() {
+    charSpanCache = null; // 清除字符 span 缓存
     clearTimeout(pauseTimer);
     speechState.running = false;
     speechState.idx = 0;
@@ -224,12 +226,17 @@ function nextSpeak(lastPause){
         return;
     }
     
-    // 获取所有字符 span
-    let allSpans = [];
-    if (isBilingualMode) {
-        allSpans = paragraphContainerEl.querySelectorAll('.char-span');
-    } else {
-        allSpans = displayAreaEl.querySelectorAll('.char-span');
+    // 获取所有字符 span（优先用缓存）
+    let allSpans = charSpanCache;
+    if (!allSpans || allSpans.length === 0) {
+        if (isBilingualMode && paragraphContainerEl) {
+            allSpans = paragraphContainerEl.querySelectorAll('.char-span');
+        } else if (displayAreaEl) {
+            allSpans = displayAreaEl.querySelectorAll('.char-span');
+        } else {
+            allSpans = [];
+        }
+        charSpanCache = allSpans;
     }
     
     // 根据朗读模式决定高亮范围
@@ -543,9 +550,10 @@ function bindBaseEvents() {
     
     setVolumeLevel(currentVolumeLevel);
     // 字号滑块调节
+    let fontScaleTimer = null; // 字号防抖定时器
+
     fontSizeSlider.addEventListener('input', function () {
         fontScale = parseFloat(this.value);
-        localStorage.setItem('fontScale', fontScale);
         document.documentElement.style.setProperty('--practice-font-scale', fontScale);
         let tip = "标准";
         if (fontScale <= 0.8) tip = "偏小";
@@ -554,6 +562,12 @@ function bindBaseEvents() {
         else if (fontScale <= 1.4) tip = "很大";
         else tip = "超大";
         if(fontSizeText) fontSizeText.textContent = tip;
+        
+        // 防抖：拖动停止 300ms 后再写 localStorage
+        if (fontScaleTimer) clearTimeout(fontScaleTimer);
+        fontScaleTimer = setTimeout(() => {
+            localStorage.setItem('fontScale', fontScale);
+        }, 300);
     });
     // 虚拟键盘开关
     const vkToggleBtn = document.getElementById('vkToggleBtn');
