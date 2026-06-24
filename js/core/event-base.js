@@ -519,6 +519,7 @@ function bindBaseEvents() {
             speechState.idx = -1;
             speechState.running = true;
             speechState.fallbackToSystem = false;
+            onlineFailCount = 0; // 开始新朗读，重置在线语音失败计数
             btn.classList.add('btn-speaking');
             btn.textContent = '⏹ 停止朗读';
             nextSpeak('period');

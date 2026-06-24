@@ -377,21 +377,43 @@
         if (!window.onlineTTS || typeof window.onlineTTS.preload !== 'function') return;
         if (!text || !text.trim()) return;
         
-        // 简单分句，取前 2 句预加载
-        const sentences = text.split(/[.?!。？！\n]/).filter(s => s.trim().length > 2);
-        if (sentences.length === 0) return;
+        // 优先用全局的 splitSentences（和实际朗读一致），没有就用简单分句兜底
+        let sentences;
+        if (window.splitSentences && typeof window.splitSentences === 'function') {
+            const rawSentences = window.splitSentences(text);
+            sentences = rawSentences.map(s => s.text).filter(s => s && s.trim().length > 2);
+        } else {
+            sentences = text.split(/[.?!。？！\n]/).filter(s => s.trim().length > 2);
+        }
         
-        const rate = 1.0; // 默认语速
+        // 从语速下拉框读取当前设置，没有就默认 1.0
+        const speechRateEl = document.getElementById('speechRate');
+        const rate = speechRateEl ? +speechRateEl.value : 1.0;
+
         const preloadCount = Math.min(2, sentences.length); // 预加载 2 句
         
+        // 读取当前朗读模式
+        const readMode = localStorage.getItem('readMode') || 'both';
+        
         for (let i = 0; i < preloadCount; i++) {
-            const sen = sentences[i].trim();
-            if (sen && sen.length > 2) {
-                // 延迟一点再预加载，避免和其他请求冲突
-                setTimeout(() => {
-                    window.onlineTTS.preload(sen, 'zh', rate);
-                }, 200 * (i + 1));
+            let sen = sentences[i].trim();
+            if (!sen || sen.length <= 2) continue;
+            
+            // 只读英文模式：提取英文部分再预加载
+            if (readMode === 'english') {
+                if (window.extractEnglishSmart && typeof window.extractEnglishSmart === 'function') {
+                    sen = window.extractEnglishSmart(sen);
+                } else {
+                    // 简单版：去掉中文字符
+                    sen = sen.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+                }
+                if (!sen || sen.length <= 2) continue;
             }
+            
+            // 延迟一点再预加载，避免和其他请求冲突
+            setTimeout(() => {
+                window.onlineTTS.preload(sen, 'zh', rate);
+            }, 200 * (i + 1));
         }
     }
     // ========== 填充内容到输入框 ==========

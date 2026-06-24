@@ -125,6 +125,10 @@
                 if (currentAudio === audio) {
                     currentAudio = null;
                 }
+                // 释放 blob URL，避免内存泄漏
+                if (audio.src && audio.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(audio.src);
+                }
                 if (onEnd) {
                     const cb = onEnd;
                     onEnd = null;
@@ -139,7 +143,10 @@
                 if (currentAudio === audio) {
                     currentAudio = null;
                 }
-                
+                // 释放 blob URL，避免内存泄漏
+                if (audio.src && audio.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(audio.src);
+                }
                 // 用户主动停止的，不重试也不报错
                 if (isStoppedByUser) {
                     return;
@@ -169,6 +176,10 @@
                     if (hasEnded) return;
                     hasError = true;
                     isPlaying = false;
+                    // 释放 blob URL，避免内存泄漏
+                    if (audio.src && audio.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(audio.src);
+                    }
                     
                     // 用户主动停止的，不重试也不报错
                     if (isStoppedByUser) {
