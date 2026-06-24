@@ -16,7 +16,7 @@
     }
     
     function convertRateToSpeed(rate) {
-        const speed = Math.round(rate * 3);
+        const speed = Math.round(rate * 5);  // ← 把 3 改成 5，让1.0x对应百度默认速度
         return Math.max(1, Math.min(9, speed));
     }
     function setVolume(vol) {

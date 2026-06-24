@@ -1,31 +1,25 @@
-// js/core/utils.js 完整代码（已加音效开关 + 优化语音优选 + 修复语音选择加载中问题）
-
+// js/core/utils.js 完整代码（已加音效开关 + 优化语音优选 + 修复语音选择加载中问题 + 数字转英文 + 智能提取英文）
 // ========== 文本预处理函数 ==========
 function preprocessText(text) {
     let processed = text.replace(/[ \t]{3,}/g, '\n');
     return processed;
 }
-
 function removePhoneticSymbols(str) {
     return str.replace(/\[.*?\]/g, '');
 }
-
 function hasNoEnglishLetter(s) {
     return !/[a-zA-Z]/.test(s);
 }
-
 function isChineseDominant(line) {
     const cnCount = (line.match(/[\u4e00-\u9fa5]/g) || []).length;
     const total = line.trim().length;
     return total > 0 && cnCount / total > 0.2;
 }
-
 function extractFullText(str) {
     let clean = removePhoneticSymbols(str).trim();
     clean = clean.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
     return clean;
 }
-
 function extractEnglishText(str) {
     let clean = removePhoneticSymbols(str);
     clean = clean.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
@@ -34,18 +28,49 @@ function extractEnglishText(str) {
     return clean;
 }
 
+// ========== 智能提取纯英文（按行判断，中文行整行跳过；混合行只保留英文部分）==========
+function extractEnglishSmart(text) {
+    if (!text) return '';
+    
+    const lines = text.split('\n');
+    const englishLines = [];
+    
+    for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            englishLines.push(''); // 空行保留，保持段落结构
+            continue;
+        }
+        
+        // 统计中文字符和英文字符的数量
+        const cnCount = (trimmed.match(/[\u4e00-\u9fa5]/g) || []).length;
+        const enCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
+        
+        // 如果这行主要是英文（英文字符多于中文字符）
+        if (enCount > cnCount) {
+            // 只保留英文部分，去掉中文字符
+            let enOnly = trimmed.replace(/[\u4e00-\u9fa5]/g, '');
+            // 去掉多余空格
+            enOnly = enOnly.replace(/\s+/g, ' ').trim();
+            if (enOnly) {
+                englishLines.push(enOnly);
+            }
+        }
+        // 如果主要是中文，整行跳过（包括里面的数字）
+    }
+    
+    return englishLines.join('\n').trim();
+}
+
 function extractChineseText(str) {
     return removePhoneticSymbols(str).trim();
 }
-
 function hasChinese(str) {
     return /[\u4e00-\u9fa5]/.test(str);
 }
-
 function cleanMultiBlankLines(text) {
     return text.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
 }
-
 // ========== 文本解析 ==========
 function parseFullTextLines(text) {
     const processed = preprocessText(text);
@@ -53,10 +78,8 @@ function parseFullTextLines(text) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(l => l);
     return lines;
 }
-
 // ========== 音效开关 ==========
 let soundEnabled = localStorage.getItem('soundEnabled') !== 'false'; // 默认开启
-
 function toggleSound() {
     soundEnabled = !soundEnabled;
     localStorage.setItem('soundEnabled', soundEnabled);
@@ -74,7 +97,6 @@ function toggleSound() {
         }
     }
 }
-
 // 初始化音效按钮状态
 function initSoundToggleBtn() {
     const btn = document.getElementById('soundToggleBtn');
@@ -89,16 +111,12 @@ function initSoundToggleBtn() {
         btn.textContent = '🔇 音效：已关闭';
     }
 }
-
 // 页面加载完成后自动初始化
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSoundToggleBtn);
 } else {
     initSoundToggleBtn();
 }
-
-
-
 // ========== 内置系统波形音效：按键音 / 错误音 / 完成音 ==========
 /**
  * 正常按键清脆音效
@@ -118,7 +136,6 @@ function playKeySound() {
     osc.start();
     osc.stop(ctx.currentTime + 0.08);
 }
-
 /**
  * 输入错误警示音效
  */
@@ -137,7 +154,6 @@ function playErrorSound() {
     osc.start();
     osc.stop(ctx.currentTime + 0.12);
 }
-
 /**
  * 练习完成欢庆提示音（两段音阶）
  */
@@ -170,7 +186,6 @@ function playFinishSound() {
         osc2.stop(ctx.currentTime + 0.22);
     }, 180);
 }
-
 function parseBilingualPairs(text) {
     // ========== 新增：紧凑单词表预处理 ==========
     let workingText = text;
@@ -246,7 +261,6 @@ function parseBilingualPairs(text) {
     
     return pairs;
 }
-
 // ========== 语音朗读工具 ==========
 function numberToEnglish(num) {
     const ones = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
@@ -264,16 +278,126 @@ function numberToEnglish(num) {
     if(rem > 0) res += " " + numberToEnglish(rem);
     return res;
 }
-
-function replaceDigitsToEnglish(s){
-    return s.replace(/\d+/g,m=>numberToEnglish(+m));
+// ========== 序数词转英文单词（1st→first, 2nd→second...）==========
+function ordinalToEnglish(num) {
+    num = parseInt(num);
+    if (isNaN(num) || num < 0) return String(num);
+    
+    // 常用序数词表（小学英语够用了）
+    const ordinals = {
+        1: 'first',
+        2: 'second',
+        3: 'third',
+        4: 'fourth',
+        5: 'fifth',
+        6: 'sixth',
+        7: 'seventh',
+        8: 'eighth',
+        9: 'ninth',
+        10: 'tenth',
+        11: 'eleventh',
+        12: 'twelfth',
+        13: 'thirteenth',
+        14: 'fourteenth',
+        15: 'fifteenth',
+        16: 'sixteenth',
+        17: 'seventeenth',
+        18: 'eighteenth',
+        19: 'nineteenth',
+        20: 'twentieth',
+        30: 'thirtieth',
+        40: 'fortieth',
+        50: 'fiftieth',
+        60: 'sixtieth',
+        70: 'seventieth',
+        80: 'eightieth',
+        90: 'ninetieth',
+        100: 'hundredth'
+    };
+    
+    // 直接命中的特殊词
+    if (ordinals[num]) {
+        return ordinals[num];
+    }
+    
+    // 两位数（21st → twenty-first）
+    if (num > 20 && num < 100) {
+        const tens = Math.floor(num / 10) * 10;
+        const ones = num % 10;
+        const tensWord = numberToEnglish(tens);
+        const onesOrdinal = ordinals[ones] || (numberToEnglish(ones) + 'th');
+        return tensWord + '-' + onesOrdinal;
+    }
+    
+    // 其他情况，简单加 th
+    return numberToEnglish(num) + 'th';
 }
 
+// ========== 智能数字转换（英文环境的数字转英文，中文环境的数字保持原样）==========
+function replaceDigitsSmart(s) {
+    if (!s) return s;
+    
+    // 先处理序数词（1st, 2nd, 3rd...），序数词一般都是英文的，直接转
+    s = s.replace(/(\d+)(st|nd|rd|th)/gi, function(match, num, suffix) {
+        return ordinalToEnglish(num);
+    });
+    
+    // 再处理普通数字
+    s = s.replace(/\d+/g, function(match, offset, str) {
+        const num = parseInt(match);
+        
+        // 往前找最近的非空格、非数字字符
+        let beforeChar = '';
+        for (let i = offset - 1; i >= 0; i--) {
+            const ch = str[i];
+            if (ch !== ' ' && ch !== '\t' && ch !== '\n' && !/\d/.test(ch)) {
+                beforeChar = ch;
+                break;
+            }
+        }
+        
+        // 往后找最近的非空格、非数字字符
+        let afterChar = '';
+        for (let i = offset + match.length; i < str.length; i++) {
+            const ch = str[i];
+            if (ch !== ' ' && ch !== '\t' && ch !== '\n' && !/\d/.test(ch)) {
+                afterChar = ch;
+                break;
+            }
+        }
+        
+        // 判断前后字符是不是中文
+        const beforeIsCn = beforeChar && /[\u4e00-\u9fa5]/.test(beforeChar);
+        const afterIsCn = afterChar && /[\u4e00-\u9fa5]/.test(afterChar);
+        
+        // 如果前后都是中文 → 中文环境 → 保持数字原样（读成中文）
+        if (beforeIsCn && afterIsCn) {
+            return match;
+        }
+        // 如果一边是中文，另一边没有字符 → 也算中文环境
+        if ((beforeIsCn && !afterChar) || (!beforeChar && afterIsCn)) {
+            return match;
+        }
+        
+        // 其他情况 → 英文环境 → 转成英文单词
+        return numberToEnglish(num);
+    });
+    
+    return s;
+}
+
+function replaceDigitsToEnglish(s){
+    // 先处理序数词（1st, 2nd, 3rd, 4th...）
+    s = s.replace(/(\d+)(st|nd|rd|th)/gi, function(match, num, suffix) {
+        return ordinalToEnglish(num);
+    });
+    // 再处理普通数字
+    return s.replace(/\d+/g, m => numberToEnglish(+m));
+}
 function fixArticleRead(s){
     return s.replace(/\b a \b([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/g," uh $1")
             .replace(/^\ba\s+([bcdfghjklmnpqrstvwBCDFGHJKLMNPQRSTVW])/gm,"uh $1");
 }
-
 // 优化分句：限制占位符、过滤空句子
 function splitSentences(text){
     const map = new Map();
@@ -314,22 +438,18 @@ function splitSentences(text){
     }
     return arr;
 }
-
 // ========== 语音选择相关 ==========
 let selectedVoiceURI = localStorage.getItem('selectedVoiceURI') || '';
-
 // 判断当前是否使用在线语音
 function isUsingOnlineVoice() {
     return selectedVoiceURI === 'online';
 }
 window.isUsingOnlineVoice = isUsingOnlineVoice;
-
 // 获取所有可用语音列表
 function getVoiceList() {
     if(!window.speechSynthesis) return [];
     return window.speechSynthesis.getVoices() || [];
 }
-
 // 自动优选语音（优化版：优先选更响亮清晰的）
 function getPreferredVoice(lang) {
     const voices = getVoiceList();
@@ -377,7 +497,6 @@ function getPreferredVoice(lang) {
     
     return scored.length > 0 ? scored[0].voice : null;
 }
-
 // 初始化语音选择（页面加载时调用）
 function initVoiceSelection() {  
     const loadVoices = () => {
@@ -478,7 +597,6 @@ function initVoiceSelection() {
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 }
-
 window.createUtterance = function(rawTxt, rate){
     // 先判断语音API是否存在，不存在直接返回null，不报错
     if(!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
@@ -510,11 +628,9 @@ window.createUtterance = function(rawTxt, rate){
     }
     return ut;
 }
-
 // ========== 动画、提示、贴纸（增强触屏坐标兼容 + 缓存DOM） ==========
 // 缓存贴纸DOM，避免重复查询
 const stickerItems = document.querySelectorAll('.sticker-item');
-
 function createStar(x = 0, y = 0){
     // 触屏兜底：无坐标默认屏幕中心
     const posX = x || window.innerWidth / 2;
@@ -531,7 +647,6 @@ function createStar(x = 0, y = 0){
     },10);
     setTimeout(()=>star.remove(),1000);
 }
-
 function batchStar(x = 0, y = 0, num) {
     const posX = x || window.innerWidth / 2;
     const posY = y || window.innerHeight / 2;
@@ -539,7 +654,6 @@ function batchStar(x = 0, y = 0, num) {
         setTimeout(()=>createStar(posX + (i - 2) * 18, posY - 10), i * 80);
     }
 }
-
 function showComboTip(text, x = 0, y = 0) {
     const posX = x || window.innerWidth / 2;
     const posY = y || window.innerHeight / 2;
@@ -551,7 +665,6 @@ function showComboTip(text, x = 0, y = 0) {
     document.body.appendChild(tip);
     setTimeout(()=>tip.remove(),1200);
 }
-
 function showErrorHint(text) {
     const hint = document.createElement('div');
     hint.className = 'error-hint';
@@ -559,13 +672,11 @@ function showErrorHint(text) {
     document.body.appendChild(hint);
     setTimeout(()=>hint.remove(),3000);
 }
-
 function unlockSticker(idx) {
     if(stickerUnlock[idx]) return;
     stickerUnlock[idx] = true;
     if(stickerItems[idx]) stickerItems[idx].classList.add('unlock');
 }
-
 function revokeLastSticker() {
     let lastIdx = -1;
     for(let i = 2; i >= 0; i--){
@@ -578,7 +689,6 @@ function revokeLastSticker() {
     stickerUnlock[lastIdx] = false;
     if(stickerItems[lastIdx]) stickerItems[lastIdx].classList.remove('unlock');
 }
-
 // ========== 统计 & 完成弹窗 ==========
 function updateStat(){
     if(!typingRunning) return;
@@ -587,14 +697,12 @@ function updateStat(){
     const m = String(Math.floor(sec / 60)).padStart(2,'0');
     const s = String(sec % 60).padStart(2,'0');
     timeUsedEl.textContent = `${m}:${s}`;
-
     let speed = 0;
     if(sec > 0){
         speed = Math.round((correctCnt / 5) / (sec / 60));
     }
     speedEl.textContent = speed;
     speedBar.style.width = Math.min(speed / 300 * 100, 100) + "%";
-
     let acc = 0;
     if (totalInput > 0) {
         acc = Math.round((correctCnt / totalInput) * 100);
@@ -602,23 +710,19 @@ function updateStat(){
     }
     accuracyEl.textContent = acc + "%";
     accBar.style.width = acc + "%";
-
     let prog = 0;
     if(targetChars.length > 0){
         prog = Math.round(currentPos / targetChars.length * 100);
     }
     progressEl.textContent = prog + "%";
     progBar.style.width = prog + "%";
-
 }
-
 function showFinishModal(){
     // 空输入直接返回，不弹出成绩
     if(totalInput === 0) {
         alert('还没有输入任何内容哦～');
         return;
     }
-
     // 已经弹出了就不再重复弹
     if(document.getElementById('finishMask')) {
         return;

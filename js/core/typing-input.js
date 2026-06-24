@@ -1,4 +1,4 @@
-// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读，中文模式）
+// js/core/typing-input.js 完整代码（在线语音版：单词+行自动朗读，中文模式 + 数字智能识别 + 朗读模式适配）
 // ========== 全局语音API兜底：彻底杜绝ReferenceError ==========
 if (!window.speechSynthesis) window.speechSynthesis = null;
 if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
@@ -6,10 +6,15 @@ if (!window.onlineTTS) window.onlineTTS = null;
 // ========== 自动朗读去重标记 ==========
 if (typeof lastSpokenLineIndex === 'undefined') var lastSpokenLineIndex = -1;
 if (typeof finishModalAutoShown === 'undefined') var finishModalAutoShown = false;
+// ========== 获取当前朗读模式 ==========
+function getReadMode() {
+    return localStorage.getItem('readMode') || 'english';
+}
 // ========== 工具：提取纯英文（用于行朗读）==========
 function getPureEnglishForLine(text) {
     if (!text) return '';
-    return text.replace(/[\u4e00-\u9fa5]/g, '').replace(/\s+/g, ' ').trim();
+    // 改用智能提取：中文行整行跳过，包括中文里的数字
+    return extractEnglishSmart(text);
 }
 // ========== 工具：停止所有语音（在线+系统）==========
 function stopAllSpeech() {
@@ -24,9 +29,20 @@ function stopAllSpeech() {
         } catch(e) {}
     }
 }
-// ========== 工具：朗读文本（根据用户选择切换引擎）==========
+// ========== 工具：朗读文本（根据用户选择切换引擎 + 智能数字识别）==========
 function speakText(text, lang) {
     if (!text || !text.trim()) return;
+    
+    const mode = getReadMode();
+    
+    // 根据朗读模式决定数字转换方式
+    if (mode === 'english') {
+        // 只读英文模式：所有数字转成英文单词
+        text = replaceDigitsToEnglish(text);
+    } else {
+        // 中英文都读模式：数字智能识别
+        text = replaceDigitsSmart(text);
+    }
     
     // 先停止之前的
     stopAllSpeech();
@@ -38,7 +54,7 @@ function speakText(text, lang) {
             try {
                 window.onlineTTS.speak(
                     text,
-                    lang || 'zh',  // ← 改成中文模式，支持中英文混合，人名更准
+                    lang || 'zh',  // 中文模式，支持中英文混合，人名更准
                     speechState.rate,
                     speechState.volume,
                     null, // 结束回调（不需要）
@@ -193,7 +209,7 @@ function bindInputEvent() {
                 const targetWord = activeChars.slice(wordStart, val.length).join('');
                 
                 if(/^[a-zA-Z'-]+$/.test(targetWord) && targetWord.length > 0) {
-                    speakText(targetWord, 'zh'); // ← 改成中文模式
+                    speakText(targetWord, 'zh'); // 中文模式
                 }
             }
         }
@@ -201,9 +217,20 @@ function bindInputEvent() {
         // ========== 自动触发行朗读（输完整行最后一个字符时）==========
         if(wordSpeakEnable === 'true' && val.length === entryLen) {
             const currentLineText = activeChars.join('');
-            const enText = getPureEnglishForLine(currentLineText);
-            if(enText && /[a-zA-Z]/.test(enText)) {
-                speakText(enText, 'zh'); // ← 改成中文模式
+            const mode = getReadMode();
+            
+            let lineSpeakText;
+            if (mode === 'english') {
+                // 只读英文模式：智能提取英文 + 数字转英文
+                lineSpeakText = extractEnglishSmart(currentLineText);
+                lineSpeakText = replaceDigitsToEnglish(lineSpeakText);
+            } else {
+                // 中英文都读模式：保留全部 + 数字智能识别
+                lineSpeakText = replaceDigitsSmart(currentLineText);
+            }
+            
+            if(lineSpeakText && lineSpeakText.trim()) {
+                speakText(lineSpeakText, 'zh'); // 中文模式
             }
         }
         
