@@ -1,19 +1,12 @@
 // js/data/p5u-m6.js
-// 五年级上册 Module 6 - Weather 天气
-
+// 五年级上册 Module 6 - 天气
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm6',
-        name: 'Module 6 Weather',
-        nameCn: '天气',
-        units: [
-            // ========== Unit 11 ==========
-            {
-                id: 'u11',
-                name: 'Unit 11 What\'s the weather like today?',
-                nameCn: '今天天气怎么样？',
-                difficulty: 2,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u11': {
                     // 单词
                     words: [
                         { en: 'weather', cn: '天气' },
@@ -89,15 +82,8 @@
                         { speaker: 'Xiaoling', en: 'I won\'t. Thank you for telling me!', cn: '我不会忘的。谢谢你告诉我！' },
                         { en: 'Both girls are happy to know the weather forecast.', cn: '两个女孩都很高兴知道了天气预报。' }
                     ]
-                }
-            },
-            // ========== Unit 12 ==========
-            {
-                id: 'u12',
-                name: 'Unit 12 Four seasons in one day',
-                nameCn: '一天四季',
-                difficulty: 3,
-                content: {
+                },
+        'u12': {
                     // 单词
                     words: [
                         { en: 'season', cn: '季节' },
@@ -176,29 +162,10 @@
                         { en: 'Jiamin finds the weather in England very interesting.', cn: '家民觉得英国的天气很有趣。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.upper) {
-            ver.grades.grade5.volumes.upper = {
-                name: '上册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.upper.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5u', 'm6', moduleContent);
     }
 })();

@@ -1,19 +1,12 @@
 // js/data/p5l-m1.js
-// 五年级下册 Module 1 - Seasons 季节
-
+// 五年级下册 Module 1 - 季节
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm1',
-        name: 'Module 1 Seasons',
-        nameCn: '季节',
-        units: [
-            // ========== Unit 1 ==========
-            {
-                id: 'u1',
-                name: 'Unit 1 What\'s your favourite season?',
-                nameCn: '你最喜欢的季节是什么？',
-                difficulty: 2,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u1': {
                     // 单词
                     words: [
                         { en: 'colourful', cn: '多彩的' },
@@ -82,15 +75,8 @@
                         { speaker: 'Jiamin', en: 'I like all four seasons!', cn: '四个季节我都喜欢！' },
                         { en: 'They have a good time talking about seasons.', cn: '她们谈论季节，聊得很开心。' }
                     ]
-                }
-            },
-            // ========== Unit 2 ==========
-            {
-                id: 'u2',
-                name: 'Unit 2 It\'s the middle of winter',
-                nameCn: '现在是隆冬时节',
-                difficulty: 2,
-                content: {
+                },
+        'u2': {
                     // 单词
                     words: [
                         { en: 'middle', cn: '中间；中部' },
@@ -161,29 +147,10 @@
                         { en: 'Ben is very happy to have a new friend.', cn: '本很高兴认识了新朋友。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.lower) {
-            ver.grades.grade5.volumes.lower = {
-                name: '下册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.lower.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5l', 'm1', moduleContent);
     }
 })();

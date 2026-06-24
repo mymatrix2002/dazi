@@ -1,19 +1,12 @@
 // js/data/p5l-m6.js
-// 五年级下册 Module 6 - Directions 方向
-
+// 五年级下册 Module 6 - 方向
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm6',
-        name: 'Module 6 Directions',
-        nameCn: '方向',
-        units: [
-            // ========== Unit 11 ==========
-            {
-                id: 'u11',
-                name: 'Unit 11 Can you tell me the way?',
-                nameCn: '你能告诉我怎么走吗？',
-                difficulty: 3,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u11': {
                     // 单词
                     words: [
                         { en: 'way', cn: '路；方式' },
@@ -84,15 +77,8 @@
                         { speaker: 'Policeman', en: 'You\'re welcome. Be careful!', cn: '不客气。小心点！' },
                         { en: 'Ben finds the station easily.', cn: '本很容易就找到了车站。' }
                     ]
-                }
-            },
-            // ========== Unit 12 ==========
-            {
-                id: 'u12',
-                name: 'Unit 12 I know a short cut',
-                nameCn: '我知道一条近路',
-                difficulty: 3,
-                content: {
+                },
+        'u12': {
                     // 单词
                     words: [
                         { en: 'short', cn: '短的；矮的' },
@@ -162,29 +148,10 @@
                         { en: 'They take the short cut and arrive at the museum quickly.', cn: '她们走了近路，很快就到达了博物馆。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.lower) {
-            ver.grades.grade5.volumes.lower = {
-                name: '下册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.lower.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5l', 'm6', moduleContent);
     }
 })();

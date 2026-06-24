@@ -1,19 +1,12 @@
 // js/data/p5u-m4.js
-// 五年级上册 Module 4 - Foods and drinks 饮食
-
+// 五年级上册 Module 4 - 饮食
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm4',
-        name: 'Module 4 Foods and drinks',
-        nameCn: '饮食',
-        units: [
-            // ========== Unit 7 ==========
-            {
-                id: 'u7',
-                name: 'Unit 7 Do you want coffee or tea?',
-                nameCn: '你想要咖啡还是茶？',
-                difficulty: 2,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u7': {
                     // 单词
                     words: [
                         { en: 'coffee', cn: '咖啡' },
@@ -90,15 +83,8 @@
                         { speaker: 'Shopkeeper', en: 'You\'re welcome! Enjoy your drinks!', cn: '不客气！祝你们喝得开心！' },
                         { en: 'The children sit under a tree and enjoy their drinks.', cn: '孩子们坐在树下，享受他们的饮料。' }
                     ]
-                }
-            },
-            // ========== Unit 8 ==========
-            {
-                id: 'u8',
-                name: 'Unit 8 Let\'s have both',
-                nameCn: '我们两个都要吧',
-                difficulty: 2,
-                content: {
+                },
+        'u8': {
                     // 单词
                     words: [
                         { en: 'both', cn: '两个都' },
@@ -177,29 +163,10 @@
                         { en: 'All the children are happy and can\'t wait for lunch.', cn: '所有的孩子都很开心，迫不及待地想吃午餐了。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.upper) {
-            ver.grades.grade5.volumes.upper = {
-                name: '上册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.upper.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5u', 'm4', moduleContent);
     }
 })();

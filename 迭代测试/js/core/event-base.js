@@ -16,9 +16,10 @@ if (!window.SpeechSynthesisUtterance) window.SpeechSynthesisUtterance = null;
 let preloadTimer = null;
 let charSpanCache = null; // 字符 span 缓存，避免每次朗读都查询 DOM
 let lastTextLength = 0; // 上一次的文本长度，用于判断输入类型
+let onlineFailCount = 0; // 在线语音连续失败次数，连续失败 2 次才切换到系统语音
 // 预加载数量配置
 const PRELOAD_CONFIG = {
-    batch: 5,       // 批量输入时预加载前 5 句
+    batch: 2,       // 批量输入时预加载前 2 句
     manual: 1,      // 手动输入时只预加载第 1 句
     threshold: 5,   // 字符变化阈值，超过算批量输入
     debounce: 1000  // 防抖时间（毫秒）
@@ -75,6 +76,7 @@ function forceStopSpeech() {
     speechState.running = false;
     speechState.idx = 0;
     speechState.fallbackToSystem = false;
+    onlineFailCount = 0; // 重置在线语音失败计数
     if(window.onlineTTS) {
         try {
             window.onlineTTS.stop();
@@ -295,6 +297,11 @@ function nextSpeak(lastPause){
     }
     
     // 延迟后播放
+    // 在线语音额外增加间隔，降低请求频率，避免被限流
+    let pauseTime = PAUSE_CONFIG[lastPause];
+    if (window.isUsingOnlineVoice && window.isUsingOnlineVoice() && !speechState.fallbackToSystem) {
+        pauseTime += 200; // 在线语音每句额外加 200ms 间隔，可根据需要调整
+    }
     setTimeout(() => {
         if(!speechState.running) return;
         
@@ -325,13 +332,26 @@ function nextSpeak(lastPause){
                     speechState.volume,
                     // 播放成功结束 → 继续下一句
                     () => {
+                        onlineFailCount = 0; // 播放成功，重置失败计数
                         if(speechState.running) {
                             nextSpeak(senPause);
                         }
                     },
-                    // 播放失败 → 切换到系统语音兜底
+                    // 播放失败 → 连续失败 2 次才切换到系统语音
                     () => {
-                        console.warn('在线语音播放失败，切换到系统语音兜底');
+                        onlineFailCount++;
+                        console.warn('在线语音播放失败（第 ' + onlineFailCount + ' 次）');
+                        
+                        // 连续失败 2 次才切换到系统语音，偶尔一次失败继续用在线语音试下一句
+                        if (onlineFailCount < 2) {
+                            if(speechState.running) {
+                                nextSpeak(senPause);
+                            }
+                            return;
+                        }
+                        
+                        // 连续失败 2 次，切换到系统语音兜底
+                        console.warn('在线语音连续失败，切换到系统语音兜底');
                         speechState.fallbackToSystem = true;
                         
                         if(window.speechSynthesis && window.SpeechSynthesisUtterance) {
@@ -356,24 +376,30 @@ function nextSpeak(lastPause){
                     }
                 );
                 
-                // ===== 播放当前句的同时，预加载后面第 5 句（保持 5 句缓冲）=====
-                const preloadTargetIdx = speechState.idx + 5;
-                if (preloadTargetIdx < speechSentenceMap.length) {
-                    const nextItem = speechSentenceMap[preloadTargetIdx];
-                    if (nextItem && nextItem.text && nextItem.text.trim()) {
-                        let nextPreloadText;
-                        if (readMode === 'english') {
-                            nextPreloadText = extractEnglishSmart(nextItem.text);
-                            nextPreloadText = replaceDigitsToEnglish(nextPreloadText);
-                        } else {
-                            nextPreloadText = replaceDigitsSmart(nextItem.text);
-                        }
-                        if (nextPreloadText && nextPreloadText.trim()) {
-                            if (window.onlineTTS && typeof window.onlineTTS.preload === 'function') {
-                                window.onlineTTS.preload(nextPreloadText, 'zh', speechState.rate);
+                // ===== 延迟预加载，避免和播放请求同时发出，降低并发度 =====
+                // 预加载 2 句，每句之间错开 200ms，避免并发
+                const PRELOAD_COUNT = 2; // 预加载数量，可根据需要调整
+                for (let i = 1; i <= PRELOAD_COUNT; i++) {
+                    setTimeout(() => {
+                        const preloadTargetIdx = speechState.idx + i;
+                        if (preloadTargetIdx < speechSentenceMap.length) {
+                            const nextItem = speechSentenceMap[preloadTargetIdx];
+                            if (nextItem && nextItem.text && nextItem.text.trim()) {
+                                let nextPreloadText;
+                                if (readMode === 'english') {
+                                    nextPreloadText = extractEnglishSmart(nextItem.text);
+                                    nextPreloadText = replaceDigitsToEnglish(nextPreloadText);
+                                } else {
+                                    nextPreloadText = replaceDigitsSmart(nextItem.text);
+                                }
+                                if (nextPreloadText && nextPreloadText.trim()) {
+                                    if (window.onlineTTS && typeof window.onlineTTS.preload === 'function') {
+                                        window.onlineTTS.preload(nextPreloadText, 'zh', speechState.rate);
+                                    }
+                                }
                             }
                         }
-                    }
+                    }, 200 * i);
                 }
                 
             } else {
@@ -401,7 +427,7 @@ function nextSpeak(lastPause){
                 setTimeout(() => nextSpeak(senPause), 100);
             }
         }
-    }, PAUSE_CONFIG[lastPause]);
+    }, pauseTime);
 }
 // ========== 全局所有交互事件绑定入口 ==========
 function bindBaseEvents() {

@@ -1,19 +1,12 @@
 // js/data/p5u-m1.js
-// 五年级上册 Module 1 - Hobbies 爱好
-
+// 五年级上册 Module 1 - 爱好
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm1',
-        name: 'Module 1 Hobbies',
-        nameCn: '爱好',
-        units: [
-            // ========== Unit 1 ==========
-            {
-                id: 'u1',
-                name: 'Unit 1 What\'s your hobby?',
-                nameCn: '你的爱好是什么？',
-                difficulty: 2,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u1': {
                     // 单词
                     words: [
                         { en: 'hobby', cn: '爱好' },
@@ -84,15 +77,8 @@
                         { speaker: 'Jiamin', en: 'Taking photos is a great hobby too.', cn: '拍照也是个很棒的爱好。' },
                         { en: 'They all think hobbies are very interesting.', cn: '他们都认为爱好非常有趣。' }
                     ]
-                }
-            },
-            // ========== Unit 2 ==========
-            {
-                id: 'u2',
-                name: 'Unit 2 His hobby is drawing',
-                nameCn: '他的爱好是画画',
-                difficulty: 2,
-                content: {
+                },
+        'u2': {
                     // 单词
                     words: [
                         { en: 'draw', cn: '画' },
@@ -166,29 +152,10 @@
                         { en: 'Both Ben and Mike enjoy their hobbies very much.', cn: '本和迈克都非常享受他们的爱好。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.upper) {
-            ver.grades.grade5.volumes.upper = {
-                name: '上册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.upper.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5u', 'm1', moduleContent);
     }
 })();

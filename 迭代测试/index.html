@@ -15,8 +15,8 @@
     </style>
     
     <script>
-    // 注册 Service Worker（离线缓存）
-    if ('serviceWorker' in navigator) {
+    // 注册 Service Worker（离线缓存）- 本地文件模式下不注册，避免报错
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
@@ -28,15 +28,12 @@
         });
     }
     </script>
-
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/keyboard.css">
     <link rel="stylesheet" href="css/font-size.css">
-
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
-
     <!-- 头部标题、版本、切换按钮同行布局 -->
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
@@ -48,7 +45,6 @@
             <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg flex-shrink-0">❓</button>
         </div>
     </div>
-
     <!-- 数据统计卡片 -->
     <div class="grid grid-cols-4 gap-4 mb-6">
         <div class="card-round p-4 text-center">
@@ -77,7 +73,6 @@
             </div>
         </div>
     </div>
-
     <!-- 练习内容设置区 -->
     <div class="card-round p-5 mb-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -88,15 +83,11 @@
                     📁 上传TXT文件
                     <input type="file" id="fileInput" accept=".txt" class="hidden">
                 </label>
-
-
                 <button id="volumeBtn" class="volume-btn btn-normal">🔊 响亮 ●●●</button>
-
                 <button id="settingToggleBtn" class="btn-normal btn-setting px-3 py-1.5 text-sm">⚙️ 更多设置</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
-
         <!-- 折叠式设置面板 -->
         <div id="settingPanel" class="hidden mb-4 p-4 rounded-xl" style="background: var(--bg-gray-deep);">
             <div class="flex flex-wrap gap-4 items-center">
@@ -111,13 +102,11 @@
                         <option value="1.5">1.5x</option>
                     </select>
                 </div>
-
                 <div style="display: flex;align-items: center;gap: 4px;">
                     <span style="font-size: 12px;color: var(--text-sub);">字号</span>
                     <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
                     <span id="fontSizeText" style="font-size: 12px;color: var(--text-sub);">标准</span>
                 </div>
-
                 <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
                 <button id="soundToggleBtn" onclick="toggleSound()" class="btn-normal px-3 py-1.5 text-sm">🔊 音效：已开启</button>
                 <button id="vkToggleBtn" class="btn-normal px-3 py-1.5 text-sm">虚拟键盘：已关闭</button>
@@ -130,7 +119,6 @@
                 </div>
             </div>
         </div>
-
         <textarea id="sourceText" class="w-full h-28 p-3 border rounded-xl text-sm resize-none" placeholder="💡 可以粘贴内容、上传TXT文件，或者点「选择题库」用教材内容哦～"></textarea>
         <div class="flex justify-between items-center mt-3">
             <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
@@ -140,7 +128,6 @@
             </div>
         </div>
     </div>
-
     <!-- 打字展示区域 -->
     <div class="card-round p-6 mb-4">
         <div id="bilingualArea" class="hidden">
@@ -155,12 +142,10 @@
         </div>
         <textarea id="inputArea" rows="2" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" placeholder="在这里打字..." disabled onkeydown="if(event.key==='Enter'){event.preventDefault();return false;}"></textarea>
     </div>
-
     <!-- 操作按钮：重新开始 -->
     <div class="flex justify-center gap-3 mb-6">
         <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
     </div>
-
     <!-- 快捷链接模块 -->
     <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
         <span class="font-medium whitespace-nowrap">快捷链接：</span>
@@ -169,7 +154,6 @@
             <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州英语1-6年级</button>
         </div>
     </div>
-
     <!-- 侧边贴纸成就 -->
     <div class="sticker-box">
         <div class="sticker-item" data-id="0">🐱</div>
@@ -177,9 +161,7 @@
         <div class="sticker-item" data-id="2">🚀</div>
         <div class="sticker-item" data-id="3">📖</div>
     </div>
-
     <!-- ========== 弹窗统一放最后 ========== -->
-
     <!-- 模式选择弹窗 -->
     <div id="modeModal" class="modal-mask hidden">
         <div class="modal-box">
@@ -192,7 +174,6 @@
             </div>
         </div>
     </div>
-
     <!-- 使用提醒弹窗 -->
     <div id="helpModal" class="modal-mask hidden">
         <div class="modal-box" style="max-width: 480px;">
@@ -208,7 +189,6 @@
             </div>
         </div>
     </div>
-
     <!-- JS 引入：严格按依赖顺序加载 -->
     <script src="js/core/config.js?v=2.2.3"></script>
     <script src="js/core/utils.js?v=2.2.3"></script>
@@ -220,20 +200,6 @@
     <script src="js/main.js?v=2.2.3"></script>
     <!-- 题库数据文件 -->
     <script src="js/data/practice-bank.js?v=2.2.3"></script>
-    <!-- 五年级下册 -->
-    <script src="js/data/p5l-m1.js?v=2.2.3"></script>
-    <script src="js/data/p5l-m2.js?v=2.2.3"></script>
-    <script src="js/data/p5l-m3.js?v=2.2.3"></script>
-    <script src="js/data/p5l-m4.js?v=2.2.3"></script>
-    <script src="js/data/p5l-m5.js?v=2.2.3"></script>
-    <script src="js/data/p5l-m6.js?v=2.2.3"></script>
-    <!-- 五年级上册 -->
-    <script src="js/data/p5u-m1.js?v=2.2.3"></script>
-    <script src="js/data/p5u-m2.js?v=2.2.3"></script>
-    <script src="js/data/p5u-m3.js?v=2.2.3"></script>
-    <script src="js/data/p5u-m4.js?v=2.2.3"></script>
-    <script src="js/data/p5u-m5.js?v=2.2.3"></script>
-    <script src="js/data/p5u-m6.js?v=2.2.3"></script>
     
     <!-- 题库 UI 功能 -->
     <script src="js/feature/practice-bank-ui.js?v=2.2.3"></script>

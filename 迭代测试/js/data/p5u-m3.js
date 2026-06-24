@@ -1,19 +1,12 @@
 // js/data/p5u-m3.js
-// 五年级上册 Module 3 - Daily life 日常生活
-
+// 五年级上册 Module 3 - 日常生活
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm3',
-        name: 'Module 3 Daily life',
-        nameCn: '日常生活',
-        units: [
-            // ========== Unit 5 ==========
-            {
-                id: 'u5',
-                name: 'Unit 5 Where is Ben?',
-                nameCn: '本在哪里？',
-                difficulty: 2,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u5': {
                     // 单词
                     words: [
                         { en: 'where', cn: '在哪里' },
@@ -89,15 +82,8 @@
                         { speaker: 'Jiamin', en: 'Oh right! It\'s Wednesday today!', cn: '哦对！今天是周三！' },
                         { en: 'All the children laugh and play together.', cn: '所有的孩子都笑了，一起玩耍。' }
                     ]
-                }
-            },
-            // ========== Unit 6 ==========
-            {
-                id: 'u6',
-                name: 'Unit 6 At the weekend',
-                nameCn: '在周末',
-                difficulty: 2,
-                content: {
+                },
+        'u6': {
                     // 单词
                     words: [
                         { en: 'weekend', cn: '周末' },
@@ -174,29 +160,10 @@
                         { en: 'All the children agree that weekends are great.', cn: '所有的孩子都认为周末很棒。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.upper) {
-            ver.grades.grade5.volumes.upper = {
-                name: '上册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.upper.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5u', 'm3', moduleContent);
     }
 })();

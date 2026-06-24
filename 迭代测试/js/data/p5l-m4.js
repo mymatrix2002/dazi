@@ -1,19 +1,12 @@
 // js/data/p5l-m4.js
-// 五年级下册 Module 4 - Travel 旅行
-
+// 五年级下册 Module 4 - 旅行
+// 内容数据文件（懒加载用）
 (function() {
-    const moduleData = {
-        id: 'm4',
-        name: 'Module 4 Travel',
-        nameCn: '旅行',
-        units: [
-            // ========== Unit 7 ==========
-            {
-                id: 'u7',
-                name: 'Unit 7 We will go by train',
-                nameCn: '我们要坐火车去',
-                difficulty: 3,
-                content: {
+    'use strict';
+    
+    // 模块内容数据
+    const moduleContent = {
+        'u7': {
                     // 单词
                     words: [
                         { en: 'train', cn: '火车' },
@@ -84,15 +77,8 @@
                         { speaker: 'Ben', en: 'Thank you!', cn: '谢谢你！' },
                         { en: 'Ben is looking forward to the trip to Beijing.', cn: '本期待着北京之旅。' }
                     ]
-                }
-            },
-            // ========== Unit 8 ==========
-            {
-                id: 'u8',
-                name: 'Unit 8 Ben\'s first trip to Beijing',
-                nameCn: '本的第一次北京之旅',
-                difficulty: 3,
-                content: {
+                },
+        'u8': {
                     // 单词
                     words: [
                         { en: 'first', cn: '第一；首次' },
@@ -166,29 +152,10 @@
                         { en: 'Janet decides to go to Beijing with her family next holiday.', cn: '珍妮特决定下个假期和家人一起去北京。' }
                     ]
                 }
-            }
-        ]
     };
-
-    // 注册到全局题库
-    if (window.practiceBank) {
-        const bank = window.practiceBank;
-        const ver = bank.primary.versions.guangzhou;
-        
-        if (!ver.grades.grade5) {
-            ver.grades.grade5 = {
-                name: '五年级',
-                volumes: {}
-            };
-        }
-        
-        if (!ver.grades.grade5.volumes.lower) {
-            ver.grades.grade5.volumes.lower = {
-                name: '下册',
-                modules: []
-            };
-        }
-        
-        ver.grades.grade5.volumes.lower.modules.push(moduleData);
+    
+    // 注册到题库
+    if (window.practiceBank && window.practiceBank.registerModuleContent) {
+        window.practiceBank.registerModuleContent('p5l', 'm4', moduleContent);
     }
 })();
