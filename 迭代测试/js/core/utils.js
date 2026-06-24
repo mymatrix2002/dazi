@@ -61,7 +61,9 @@ function extractEnglishSmart(text) {
     
     return englishLines.join('\n').trim();
 }
-
+// 挂载到全局，供题库预加载使用
+window.splitSentences = splitSentences;
+window.extractEnglishSmart = extractEnglishSmart;
 function extractChineseText(str) {
     return removePhoneticSymbols(str).trim();
 }
@@ -438,6 +440,9 @@ function splitSentences(text){
     }
     return arr;
 }
+// 挂载到全局，供题库预加载使用
+window.splitSentences = splitSentences;
+window.extractEnglishSmart = extractEnglishSmart;
 // ========== 语音选择相关 ==========
 let selectedVoiceURI = localStorage.getItem('selectedVoiceURI') || '';
 // 判断当前是否使用在线语音
