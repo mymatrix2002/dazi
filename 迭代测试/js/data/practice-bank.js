@@ -14,6 +14,258 @@
                     name: '广州版',
                     // 年级
                     grades: {
+                    // 三年级
+                        grade3: {
+                            name: '三年级',
+                            volumes: {
+                                // 上册
+                                upper: {
+                                    name: '上册',
+                                    modules: [
+                                        {
+                                            id: 'm1',
+                                            name: 'Module 1 Greetings',
+                                            nameCn: '问候',
+                                            units: [
+                                                { id: 'u1', name: 'Unit 1 Hello!', nameCn: '你好！', difficulty: 1 },
+                                                { id: 'u2', name: 'Unit 2 How are you?', nameCn: '你好吗？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm2',
+                                            name: 'Module 2 Introductions',
+                                            nameCn: '介绍',
+                                            units: [
+                                                { id: 'u3', name: 'Unit 3 What\'s your name?', nameCn: '你叫什么名字？', difficulty: 1 },
+                                                { id: 'u4', name: 'Unit 4 This is my dad', nameCn: '这是我爸爸', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm3',
+                                            name: 'Module 3 Body',
+                                            nameCn: '身体',
+                                            units: [
+                                                { id: 'u5', name: 'Unit 5 Wash your face', nameCn: '洗你的脸', difficulty: 1 },
+                                                { id: 'u6', name: 'Unit 6 Touch your head', nameCn: '摸你的头', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm4',
+                                            name: 'Module 4 Family',
+                                            nameCn: '家庭',
+                                            units: [
+                                                { id: 'u7', name: 'Unit 7 A picture of my family', nameCn: '我的全家福', difficulty: 1 },
+                                                { id: 'u8', name: 'Unit 8 Who\'s that lady?', nameCn: '那位女士是谁？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm5',
+                                            name: 'Module 5 Toys',
+                                            nameCn: '玩具',
+                                            units: [
+                                                { id: 'u9', name: 'Unit 9 Is it a cat?', nameCn: '它是一只猫吗？', difficulty: 1 },
+                                                { id: 'u10', name: 'Unit 10 I have a ship', nameCn: '我有一艘轮船', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm6',
+                                            name: 'Module 6 School things',
+                                            nameCn: '学习用品',
+                                            units: [
+                                                { id: 'u11', name: 'Unit 11 Do you have a pencil?', nameCn: '你有一支铅笔吗？', difficulty: 1 },
+                                                { id: 'u12', name: 'Unit 12 Put it on the desk', nameCn: '把它放在书桌上', difficulty: 1 }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                // 下册
+                                lower: {
+                                    name: '下册',
+                                    modules: [
+                                        {
+                                            id: 'm1',
+                                            name: 'Module 1 Colours',
+                                            nameCn: '颜色',
+                                            units: [
+                                                { id: 'u1', name: 'Unit 1 I like red', nameCn: '我喜欢红色', difficulty: 1 },
+                                                { id: 'u2', name: 'Unit 2 Let\'s colour it', nameCn: '我们来给它涂色吧', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm2',
+                                            name: 'Module 2 Positions',
+                                            nameCn: '位置',
+                                            units: [
+                                                { id: 'u3', name: 'Unit 3 Where\'s my car?', nameCn: '我的小汽车在哪里？', difficulty: 1 },
+                                                { id: 'u4', name: 'Unit 4 Is it in your bag?', nameCn: '它在你的书包里吗？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm3',
+                                            name: 'Module 3 Personal information',
+                                            nameCn: '个人信息',
+                                            units: [
+                                                { id: 'u5', name: 'Unit 5 Happy birthday!', nameCn: '生日快乐！', difficulty: 1 },
+                                                { id: 'u6', name: 'Unit 6 May I have your telephone number?', nameCn: '我可以要你的电话号码吗？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm4',
+                                            name: 'Module 4 Fruits',
+                                            nameCn: '水果',
+                                            units: [
+                                                { id: 'u7', name: 'Unit 7 May I have some grapes?', nameCn: '我可以吃一些葡萄吗？', difficulty: 1 },
+                                                { id: 'u8', name: 'Unit 8 Apples are good for us', nameCn: '苹果对我们有好处', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm5',
+                                            name: 'Module 5 Relatives',
+                                            nameCn: '亲戚',
+                                            units: [
+                                                { id: 'u9', name: 'Unit 9 Who is this cute baby?', nameCn: '这个可爱的宝宝是谁？', difficulty: 1 },
+                                                { id: 'u10', name: 'Unit 10 How many people are there in your family?', nameCn: '你家有多少人？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm6',
+                                            name: 'Module 6 Pets',
+                                            nameCn: '宠物',
+                                            units: [
+                                                { id: 'u11', name: 'Unit 11 They\'re lovely', nameCn: '它们很可爱', difficulty: 1 },
+                                                { id: 'u12', name: 'Unit 12 Whose rabbits are these?', nameCn: '这些是谁的兔子？', difficulty: 1 }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        // 四年级
+                        grade4: {
+                            name: '四年级',
+                            volumes: {
+                                // 上册
+                                upper: {
+                                    name: '上册',
+                                    modules: [
+                                        {
+                                            id: 'm1',
+                                            name: 'Module 1 My bedroom',
+                                            nameCn: '我的卧室',
+                                            units: [
+                                                { id: 'u1', name: 'Unit 1 What\'s in your room?', nameCn: '你的房间里有什么？', difficulty: 1 },
+                                                { id: 'u2', name: 'Unit 2 They\'re near the window', nameCn: '它们在窗户旁边', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm2',
+                                            name: 'Module 2 My house',
+                                            nameCn: '我的房子',
+                                            units: [
+                                                { id: 'u3', name: 'Unit 3 Welcome to my house', nameCn: '欢迎来我家', difficulty: 1 },
+                                                { id: 'u4', name: 'Unit 4 I live in a big house', nameCn: '我住在一座大房子里', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm3',
+                                            name: 'Module 3 My school',
+                                            nameCn: '我的学校',
+                                            units: [
+                                                { id: 'u5', name: 'Unit 5 Let me show you our new school', nameCn: '让我带你参观我们的新学校', difficulty: 1 },
+                                                { id: 'u6', name: 'Unit 6 How many classrooms are there in your school?', nameCn: '你们学校有多少间教室？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm4',
+                                            name: 'Module 4 My class',
+                                            nameCn: '我的班级',
+                                            units: [
+                                                { id: 'u7', name: 'Unit 7 How many stars does each group have?', nameCn: '每个小组有多少颗星星？', difficulty: 1 },
+                                                { id: 'u8', name: 'Unit 8 I like English best', nameCn: '我最喜欢英语', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm5',
+                                            name: 'Module 5 Clothes',
+                                            nameCn: '衣服',
+                                            units: [
+                                                { id: 'u9', name: 'Unit 9 Look at this T-shirt', nameCn: '看这件T恤衫', difficulty: 1 },
+                                                { id: 'u10', name: 'Unit 10 Can I help you?', nameCn: '我能帮你吗？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm6',
+                                            name: 'Module 6 Occupations',
+                                            nameCn: '职业',
+                                            units: [
+                                                { id: 'u11', name: 'Unit 11 I want to be a painter', nameCn: '我想成为一名画家', difficulty: 1 },
+                                                { id: 'u12', name: 'Unit 12 What\'s your father\'s job?', nameCn: '你爸爸的工作是什么？', difficulty: 1 }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                // 下册
+                                lower: {
+                                    name: '下册',
+                                    modules: [
+                                        {
+                                            id: 'm1',
+                                            name: 'Module 1 People',
+                                            nameCn: '人物',
+                                            units: [
+                                                { id: 'u1', name: 'Unit 1 He looks like a cook', nameCn: '他看起来像个厨师', difficulty: 1 },
+                                                { id: 'u2', name: 'Unit 2 She is very kind', nameCn: '她非常和蔼', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm2',
+                                            name: 'Module 2 Daily routine',
+                                            nameCn: '日常作息',
+                                            units: [
+                                                { id: 'u3', name: 'Unit 3 It\'s time to get up', nameCn: '该起床了', difficulty: 1 },
+                                                { id: 'u4', name: 'Unit 4 When do you have class?', nameCn: '你什么时候上课？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm3',
+                                            name: 'Module 3 Days of the week',
+                                            nameCn: '星期',
+                                            units: [
+                                                { id: 'u5', name: 'Unit 5 What day is it today?', nameCn: '今天星期几？', difficulty: 1 },
+                                                { id: 'u6', name: 'Unit 6 What do you usually do on Sunday?', nameCn: '你星期日通常做什么？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm4',
+                                            name: 'Module 4 Activities',
+                                            nameCn: '活动',
+                                            units: [
+                                                { id: 'u7', name: 'Unit 7 What do you do when you have free time?', nameCn: '你有空的时候做什么？', difficulty: 1 },
+                                                { id: 'u8', name: 'Unit 8 What are you doing?', nameCn: '你正在做什么？', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm5',
+                                            name: 'Module 5 Sports',
+                                            nameCn: '运动',
+                                            units: [
+                                                { id: 'u9', name: 'Unit 9 It looks fun', nameCn: '它看起来很有趣', difficulty: 1 },
+                                                { id: 'u10', name: 'Unit 10 I am very fast', nameCn: '我非常快', difficulty: 1 }
+                                            ]
+                                        },
+                                        {
+                                            id: 'm6',
+                                            name: 'Module 6 Celebrations',
+                                            nameCn: '庆祝',
+                                            units: [
+                                                { id: 'u11', name: 'Unit 11 I was born in January', nameCn: '我出生在一月', difficulty: 1 },
+                                                { id: 'u12', name: 'Unit 12 My favourite festival', nameCn: '我最喜欢的节日', difficulty: 1 }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
                         // 五年级
                         grade5: {
                             name: '五年级',
@@ -328,6 +580,28 @@
     }
     // ========== 工具方法 ==========
     /**
+     * 获取年级列表
+     */
+    function getGrades(stage, version) {
+        try {
+            const gradesObj = practiceBank[stage].versions[version].grades;
+            const grades = [];
+            for (const key in gradesObj) {
+                if (gradesObj.hasOwnProperty(key)) {
+                    const gradeNum = parseInt(key.replace('grade', ''));
+                    grades.push({
+                        id: gradeNum,
+                        name: gradesObj[key].name
+                    });
+                }
+            }
+            return grades;
+        } catch (e) {
+            console.warn('practiceBank.getGrades 查找失败:', e.message);
+            return [];
+        }
+    }
+    /**
      * 获取模块列表
      */
     function getModules(stage, grade, volume, version) {
@@ -416,6 +690,7 @@
         return !!moduleContents[key];
     }
     // ========== 暴露到全局 ==========
+    practiceBank.getGrades = getGrades;
     practiceBank.getModules = getModules;
     practiceBank.getUnitContent = getUnitContent;
     practiceBank.getModuleFullContent = getModuleFullContent;
