@@ -576,12 +576,12 @@
 
         const text = window.practiceBank.getPlainText(content, type, true);
 
-        // 填充到输入框
-        const inputArea = document.getElementById('inputArea');
-        if (inputArea) {
-            inputArea.value = text;
-            // 触发 input 事件，更新显示
-            inputArea.dispatchEvent(new Event('input'));
+        // 填充到练习内容设置输入框
+        const sourceTextEl = document.getElementById('sourceText');
+        if (sourceTextEl) {
+            sourceTextEl.value = text;
+            // 触发 input 事件，更新字符数等
+            sourceTextEl.dispatchEvent(new Event('input'));
         }
 
         // 关闭弹窗
