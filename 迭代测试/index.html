@@ -1,0 +1,236 @@
+<!-- index.html v2.2.5 完整代码 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>儿童趣味打字练习</title>
+    
+    <link rel="stylesheet" href="css/main.css?v=2.2.5">
+    <link rel="stylesheet" href="css/responsive.css?v=2.2.5">
+    <link rel="stylesheet" href="css/keyboard.css?v=2.2.5">
+    <link rel="stylesheet" href="css/font-size.css?v=2.2.5">
+    
+</head>
+<body class="min-h-screen p-4 max-w-5xl mx-auto">
+    <!-- 头部标题、版本、切换按钮同行布局 -->
+    <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
+        <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
+            <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
+            <span class="version-info whitespace-nowrap">v2.2.5</span>
+        </div>
+        <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
+            <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
+            <button id="helpBtn" class="btn-normal text-sm w-8 h-8 flex items-center justify-center p-0 text-lg flex-shrink-0">❓</button>
+        </div>
+    </div>
+    <!-- 数据统计卡片 -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card-round p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="speed">0</div>
+            <div class="text-xs mt-1">打字速度(字/分钟)</div>
+            <div class="progress-wrap mt-2">
+                <div id="speedBar" class="progress-bar bg-blue-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="card-round p-4 text-center">
+            <div class="text-2xl font-bold text-green-600" id="accuracy">0%</div>
+            <div class="text-xs mt-1">准确率</div>
+            <div class="progress-wrap mt-2">
+                <div id="accBar" class="progress-bar bg-green-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="card-round p-4 text-center">
+            <div class="text-2xl font-bold text-amber-600" id="timeUsed">00:00</div>
+            <div class="text-xs mt-1 label-time">用时</div>
+        </div>
+        <div class="card-round p-4 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="progress">0%</div>
+            <div class="text-xs mt-1">全文进度</div>
+            <div class="progress-wrap mt-2">
+                <div id="progBar" class="progress-bar bg-purple-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 练习内容设置区 -->
+    <div class="card-round p-5 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h2 class="font-semibold">练习内容设置</h2>
+            <div class="flex flex-wrap gap-2 items-center">
+                <button onclick="openPracticeBank()" class="btn-normal px-3 py-1.5 text-sm">📚 选择题库</button>
+                <label class="btn-normal px-3 py-1.5 text-sm cursor-pointer">
+                    📁 上传TXT文件
+                    <input type="file" id="fileInput" accept=".txt" class="hidden">
+                </label>
+                <button id="volumeBtn" class="volume-btn btn-normal">🔊 响亮 ●●●</button>
+                <button id="settingToggleBtn" class="btn-normal btn-setting px-3 py-1.5 text-sm">⚙️ 更多设置</button>
+                <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
+            </div>
+        </div>
+        <!-- 折叠式设置面板 -->
+        <div id="settingPanel" class="hidden mb-4 p-4 rounded-xl" style="background: var(--bg-gray-deep);">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div style="display: flex;align-items: center;gap: 6px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">朗读语速</span>
+                    <select id="speechRate">
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1.0" selected>1.0x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                    </select>
+                </div>
+                <div style="display: flex;align-items: center;gap: 4px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">字号</span>
+                    <input type="range" id="fontSizeSlider" min="0.8" max="1.6" step="0.1" value="1.0" style="width: 80px;">
+                    <span id="fontSizeText" style="font-size: 12px;color: var(--text-sub);">标准</span>
+                </div>
+                <button id="wordSpeakToggle" class="btn-normal px-3 py-1.5 text-sm">单词朗读：已开启</button>
+                <button id="soundToggleBtn" onclick="toggleSound()" class="btn-normal px-3 py-1.5 text-sm">🔊 音效：已开启</button>
+                <button id="vkToggleBtn" class="btn-normal px-3 py-1.5 text-sm">虚拟键盘：已关闭</button>
+                
+                <div style="display: flex;align-items: center;gap: 6px;">
+                    <span style="font-size: 12px;color: var(--text-sub);">语音</span>
+                    <select id="voiceSelect" style="background-color: var(--bg-gray); border: none; outline: none; border-radius: 12px; padding: 6px 8px; font-size: 14px; cursor: pointer; color: var(--text-main); min-width: 120px;">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <textarea id="sourceText" class="w-full h-28 p-3 border rounded-xl text-sm resize-none" placeholder="💡 可以粘贴内容、上传TXT文件，或者点「选择题库」用教材内容哦～"></textarea>
+        <div class="flex justify-between items-center mt-3">
+            <span class="text-xs text-slate-400">字符数：<span id="charCount">0</span></span>
+            <div class="flex items-center gap-2">
+                <button id="readAllBtn" class="btn-success px-4 py-2 text-sm">🔊 朗读全文</button>
+                <button id="startBtn" class="btn-primary px-5 py-2 text-sm font-medium">开始练习</button>
+            </div>
+        </div>
+    </div>
+    <!-- 打字展示区域 -->
+    <div class="card-round p-6 mb-4">
+        <div id="bilingualArea" class="hidden">
+            <div class="translation-header">
+                <span class="translation-title" id="areaTitle">中文对照</span>
+                <button id="toggleTranslationBtn" class="toggle-btn">收起</button>
+            </div>
+            <div id="paragraphContainer" class="paragraph-container two-col"></div>
+        </div>
+        <div id="displayArea" class="en-text select-none" style="letter-spacing:0.5px;">
+            <span class="text-slate-400">✨ 请先粘贴练习内容，点击「开始练习」✨</span>
+        </div>
+        <textarea id="inputArea" rows="2" wrap="off" class="w-full p-3 border-2 rounded-xl font-mono text-lg resize-none mt-4" placeholder="在这里打字..." disabled onkeydown="if(event.key==='Enter'){event.preventDefault();return false;}"></textarea>
+    </div>
+    <!-- 操作按钮：重新开始 -->
+    <div class="flex justify-center gap-3 mb-6">
+        <button id="resetBtn" class="btn-warning px-5 py-2 text-sm" disabled>重新开始</button>
+    </div>
+    <!-- 快捷链接模块 -->
+    <div class="card-round p-4 mb-6 flex flex-wrap gap-3 items-center">
+        <span class="font-medium whitespace-nowrap">快捷链接：</span>
+        <div class="flex flex-wrap gap-2 items-center w-full justify-start">
+            <button data-url="https://fanyi.baidu.com" class="quick-link btn-normal px-3 py-1.5 text-sm">百度翻译</button>
+            <button data-url="https://mp.weixin.qq.com/s/etqCO_DlCOP0KaBUfz2wXw" class="quick-link btn-normal px-3 py-1.5 text-sm">广州英语1-6年级</button>
+        </div>
+    </div>
+    <!-- 侧边贴纸成就 -->
+    <div class="sticker-box">
+        <div class="sticker-item" data-id="0">🐱</div>
+        <div class="sticker-item" data-id="1">🐶</div>
+        <div class="sticker-item" data-id="2">🚀</div>
+        <div class="sticker-item" data-id="3">📖</div>
+    </div>
+    <!-- ========== 弹窗统一放最后 ========== -->
+    <!-- 模式选择弹窗 -->
+    <div id="modeModal" class="modal-mask hidden">
+        <div class="modal-box">
+            <h3 class="text-xl font-semibold mb-4">检测到文本包含中文，请选择练习模式</h3>
+            <p class="text-slate-400 mb-2">「确定」：全文练习模式（单栏全屏，完整保留中英内容，全文打字）</p>
+            <p class="text-slate-400">「取消」：双语对照模式（左右分栏，中文对照，仅练习英文）</p>
+            <div class="modal-buttons">
+                <button id="modalOkBtn" class="btn-primary px-5 py-2">确定</button>
+                <button id="modalCancelBtn" class="btn-normal px-5 py-2">取消</button>
+            </div>
+        </div>
+    </div>
+    <!-- 使用提醒弹窗 -->
+    <div id="helpModal" class="modal-mask hidden">
+        <div class="modal-box" style="max-width: 480px;">
+            <h3 class="text-xl font-semibold mb-4">📌 使用提醒</h3>
+            <div style="color: var(--text-sub); line-height: 1.8; font-size: 15px;">
+                <p>1. 朗读功能<strong>请勿使用微信/QQ内置浏览器</strong>打开，优先使用手机系统自带浏览器、Chrome谷歌浏览器；</p>
+                <p>2. 点击「📚 选择题库」可直接使用英语教材内容，无需手动粘贴；</p>
+                <p>3. 没开始练习时也能点「🔊 朗读全文」先听一遍（预览模式），听完再开始练习；</p>
+                <p>4. 点击音量按钮可循环切换 <strong>轻柔 / 标准 / 响亮</strong> 三档音量。</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="helpCloseBtn" class="btn-primary px-5 py-2">我知道了</button>
+            </div>
+        </div>
+    </div>
+    <!-- JS 引入：严格按依赖顺序加载 -->
+    <script src="js/core/config.js?v=2.2.5"></script>
+    <script src="js/core/utils.js?v=2.2.5"></script>
+    <script src="js/core/typing-mode.js?v=2.2.5"></script>
+    <script src="js/core/typing-input.js?v=2.2.5"></script>
+    <script src="js/feature/online-tts.js?v=2.2.5"></script>
+    <script src="js/core/event-base.js?v=2.2.5"></script>
+    <script src="js/feature/virtual-keyboard.js?v=2.2.5"></script>
+    <!-- 题库数据文件 -->
+    <script src="js/data/practice-bank.js?v=2.2.5"></script>
+    
+    <!-- 题库 UI 功能 -->
+    <script src="js/feature/practice-bank-ui.js?v=2.2.5"></script>
+    
+    <script src="js/main.js?v=2.2.5"></script>
+    
+    <!-- vConsole移动端调试面板，线上排查问题专用 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.0/vconsole.min.js"></script>
+    <script>
+    // 初始化移动端控制台，查看JS报错
+    new VConsole();
+    </script>
+  
+    <script>
+    // 检测 Service Worker 更新
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                reg.addEventListener('updatefound', function() {
+                    var newWorker = reg.installing;
+                    
+                    newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // 显示更新提示
+                            showUpdateNotice();
+                        }
+                    });
+                });
+            });
+        });
+    }
+    
+    // 显示更新提示条
+    function showUpdateNotice() {
+        // 创建提示条
+        var notice = document.createElement('div');
+        notice.id = 'update-notice';
+        notice.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#3b82f6;color:#fff;padding:10px 20px;text-align:center;z-index:9999;font-size:14px;';
+        notice.innerHTML = '🔄 发现新版本！ <button id="refresh-btn" style="margin-left:10px;padding:4px 12px;background:#fff;color:#3b82f6;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">立即刷新</button> <button id="later-btn" style="margin-left:5px;padding:4px 12px;background:transparent;color:#fff;border:1px solid #fff;border-radius:4px;cursor:pointer;">稍后再说</button>';
+        
+        document.body.appendChild(notice);
+        
+        // 立即刷新按钮
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        // 稍后再说按钮
+        document.getElementById('later-btn').addEventListener('click', function() {
+            notice.style.display = 'none';
+        });
+    }
+    </script>      
+</body>
+</html>
