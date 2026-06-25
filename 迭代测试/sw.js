@@ -1,6 +1,6 @@
 // Service Worker - 离线缓存
 // 每次更新代码后，修改下面的版本号，用户就能拿到新版本
-const CACHE_NAME = 'typing-practice-v2.3.0';
+const CACHE_NAME = 'typing-practice-v2.4.0';
 
 // 预缓存的核心文件（第一次加载就缓存）
 const PRECACHE_URLS = [

@@ -532,7 +532,9 @@
         // 预加载前 2 句，错开 200ms，避免并发
         const preloadCount = Math.min(2, sentences.length);
         for (let i = 0; i < preloadCount; i++) {
-            let sentence = sentences[i].trim();
+            let sentence = sentences[i];
+            if (typeof sentence !== 'string') continue;
+            sentence = sentence.trim();
             if (!sentence) continue;
             
             // 只读英文模式下，提取英文后再预加载
