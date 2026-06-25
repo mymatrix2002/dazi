@@ -1,6 +1,6 @@
 // Service Worker - 离线缓存
 // 每次更新代码后，修改下面的版本号，用户就能拿到新版本
-const CACHE_NAME = 'typing-practice-v2.2.5-1';
+const CACHE_NAME = 'typing-practice-v2.3.0';
 
 // 预缓存的核心文件（第一次加载就缓存）
 const PRECACHE_URLS = [
@@ -56,6 +56,30 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // ========== HTML 页面：网络优先 ==========
+    // 效果：打开页面优先加载最新的 HTML，保证用户看到的是最新版
+    // 离线时用缓存兜底，保证能打开
+    if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === './') {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // 网络成功，更新缓存
+                    if (response && response.status === 200) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, responseClone);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    // 网络失败，用缓存兜底
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
     // 第三方 CDN 资源（比如 Tailwind）：缓存优先
     if (url.hostname !== location.hostname) {
         event.respondWith(
@@ -75,11 +99,12 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // 本站资源：缓存优先 + 后台更新（Stale-While-Revalidate）
-    // 效果：秒开 + 自动更新到最新版
+    // 本站其他资源（JS/CSS/图片等）：缓存优先
+    // 因为 URL 有版本号（?v=xxx），版本变了 URL 就变，自动加载新的
     event.respondWith(
         caches.match(event.request).then(cached => {
-            const fetchPromise = fetch(event.request).then(response => {
+            if (cached) return cached;
+            return fetch(event.request).then(response => {
                 if (response && response.status === 200) {
                     const responseClone = response.clone();
                     caches.open(CACHE_NAME).then(cache => {
@@ -88,9 +113,6 @@ self.addEventListener('fetch', event => {
                 }
                 return response;
             }).catch(() => cached);
-
-            // 有缓存先返回缓存（秒开），同时后台悄悄更新
-            return cached || fetchPromise;
         })
     );
 });
