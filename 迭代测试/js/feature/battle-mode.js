@@ -385,22 +385,37 @@
 
     // 停止播放语音
     function stopVoice() {
-        if (currentVoiceAudio) {
-            currentVoiceAudio.pause();
+        // 在线语音实例安全停止
+        if (currentVoiceAudio != null) {
+            try {
+                currentVoiceAudio.pause();
+                currentVoiceAudio.currentTime = 0;
+            } catch (e) {
+                console.warn('停止在线语音异常', e);
+            }
             currentVoiceAudio = null;
         }
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
+        // 系统合成语音安全关闭
+        if (typeof window.speechSynthesis !== 'undefined') {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {
+                console.warn('系统语音取消异常', e);
+            }
         }
     }
 
     // 清理语音缓存（退出战斗时调用，释放内存）
     function clearVoiceCache() {
         stopVoice();
-        for (const blobUrl of voiceCache.values()) {
-            URL.revokeObjectURL(blobUrl);
+        try {
+            for (const blobUrl of voiceCache.values()) {
+                URL.revokeObjectURL(blobUrl);
+            }
+            voiceCache.clear();
+        } catch (e) {
+            console.warn('释放语音缓存blob失败', e);
         }
-        voiceCache.clear();
     }
 
     // ========== DOM 元素缓存 ==========
@@ -1560,9 +1575,14 @@
         if (confirm('确定要退出战斗吗？当前进度将丢失。')) {
             battleState.active = false;
             battleState.battleOver = true;
-            // 清理语音缓存，释放内存
-            clearVoiceCache();
+            // 清理语音缓存，增加异常捕获，防止阻断退出流程
+            try {
+                clearVoiceCache();
+            } catch (voiceErr) {
+                console.warn('退出时清理语音缓存失败，忽略异常', voiceErr);
+            }
             
+            // 以下界面关闭逻辑不受语音报错影响，一定会执行
             if (elements.battleMode) {
                 elements.battleMode.classList.remove('active');
             }
