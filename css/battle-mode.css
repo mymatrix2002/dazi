@@ -659,6 +659,19 @@
 }
 /* 移动端适配 */
 @media (max-width: 640px) {
+    /* 角色卡片内emoji缩小 */
+    .character-card-emoji {
+        font-size: 32px; /* 从44缩小到32，按需调整大小 */
+        flex-shrink: 0;
+    }
+    /* 战斗顶部VS、标题⚔️图标不受任何影响，保持原有尺寸 */
+    .battle-vs {
+        font-size: 24px !important;
+    }
+    .battle-select-title {
+        font-size: 28px !important;
+    }
+    
     .battle-avatar {
         font-size: 36px;
         width: 55px;
@@ -680,14 +693,6 @@
     .battle-input {
         font-size: 18px;
         padding: 12px 16px;
-    }
-    
-    .character-card-emoji {
-        font-size: 44px;
-    }
-    
-    .battle-select-title {
-        font-size: 22px;
     }
 }
 
