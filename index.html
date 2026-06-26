@@ -1,4 +1,4 @@
-<!-- index.html v2.3.0 完整代码 -->
+<!-- index.html v2.4.1 完整代码 -->
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
@@ -7,10 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <title>儿童趣味打字练习</title>
     
-    <link rel="stylesheet" href="css/main.css?v=2.3.0">
-    <link rel="stylesheet" href="css/responsive.css?v=2.3.0">
-    <link rel="stylesheet" href="css/keyboard.css?v=2.3.0">
-    <link rel="stylesheet" href="css/font-size.css?v=2.3.0">
+    <link rel="stylesheet" href="css/main.css?v=2.4.1">
+    <link rel="stylesheet" href="css/responsive.css?v=2.4.1">
+    <link rel="stylesheet" href="css/keyboard.css?v=2.4.1">
+    <link rel="stylesheet" href="css/font-size.css?v=2.4.1">
+    <link rel="stylesheet" href="css/battle-mode.css?v=2.4.1">
     
 </head>
 <body class="min-h-screen p-4 max-w-5xl mx-auto">
@@ -18,7 +19,7 @@
     <div class="header-title flex items-center flex-nowrap justify-between gap-2 md:gap-3 w-full">
         <div class="flex items-center flex-nowrap gap-2 md:gap-3 whitespace-nowrap">
             <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap">⌨️儿童趣味打字练习</h1>
-            <span class="version-info whitespace-nowrap">v2.3.0</span>
+            <span class="version-info whitespace-nowrap">v2.4.1</span>
         </div>
         <div class="flex items-center gap-2 flex-nowrap whitespace-nowrap">
             <button id="themeToggle" class="btn-normal text-sm px-2 py-1 whitespace-nowrap">切换日间模式</button>
@@ -65,6 +66,7 @@
                 </label>
                 <button id="volumeBtn" class="volume-btn btn-normal">🔊 响亮 ●●●</button>
                 <button id="settingToggleBtn" class="btn-normal btn-setting px-3 py-1.5 text-sm">⚙️ 更多设置</button>
+                <button onclick="battleMode.open()" class="btn-normal px-3 py-1.5 text-sm battle-mode-entry">⚔️ 战斗模式</button>
                 <button id="clearBtn" class="btn-warning px-3 py-1.5 text-sm">清空</button>
             </div>
         </div>
@@ -170,20 +172,22 @@
         </div>
     </div>
     <!-- JS 引入：严格按依赖顺序加载 -->
-    <script src="js/core/config.js?v=2.3.0"></script>
-    <script src="js/core/utils.js?v=2.3.0"></script>
-    <script src="js/core/typing-mode.js?v=2.3.0"></script>
-    <script src="js/core/typing-input.js?v=2.3.0"></script>
-    <script src="js/feature/online-tts.js?v=2.3.0"></script>
-    <script src="js/core/event-base.js?v=2.3.0"></script>
-    <script src="js/feature/virtual-keyboard.js?v=2.3.0"></script>
+    <script src="js/core/config.js?v=2.4.1"></script>
+    <script src="js/core/utils.js?v=2.4.1"></script>
+    <script src="js/core/typing-mode.js?v=2.4.1"></script>
+    <script src="js/core/typing-input.js?v=2.4.1"></script>
+    <script src="js/feature/online-tts.js?v=2.4.1"></script>
+    <script src="js/core/event-base.js?v=2.4.1"></script>
+    <script src="js/feature/virtual-keyboard.js?v=2.4.1"></script>
     <!-- 题库数据文件 -->
-    <script src="js/data/practice-bank.js?v=2.3.0"></script>
+    <script src="js/data/practice-bank.js?v=2.4.1"></script>
     
     <!-- 题库 UI 功能 -->
-    <script src="js/feature/practice-bank-ui.js?v=2.3.0"></script>
+    <script src="js/feature/practice-bank-ui.js?v=2.4.1"></script>
     
-    <script src="js/main.js?v=2.3.0"></script>
+    <script src="js/feature/battle-mode.js?v=2.4.1"></script>
+    
+    <script src="js/main.js?v=2.4.1"></script>
   
     <script>
     // 检测 Service Worker 更新
@@ -228,11 +232,147 @@
     
         
     <!-- vConsole移动端调试面板，线上排查问题专用 -->
-    <!-- <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.0/vconsole.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.0/vconsole.min.js"></script>
     <script>
     // 初始化移动端控制台，查看JS报错
     new VConsole();
-    </script> -->
+    </script>
+    
+    
+        <!-- ========== 战斗模式 ========== -->
+    <!-- 战斗模式主界面 -->
+    <div id="battleMode" class="battle-mode">
+        <button id="battleExitBtn" class="battle-exit-btn">✕</button>
+        
+        <!-- 顶部状态栏 -->
+        <div class="battle-header">
+            <div class="battle-character player">
+                <div id="battlePlayerAvatar" class="battle-avatar">🐱</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div id="battlePlayerName" class="battle-name">小猫咪</div>
+                    <div class="battle-hp-bar">
+                        <div id="battlePlayerHpFill" class="battle-hp-fill" style="width: 100%"></div>
+                    </div>
+                    <!-- 血量文字 + 护盾 + 道具 同行容器 -->
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <div id="battlePlayerHpText" class="battle-hp-text">100 / 100</div>
+                        <span id="battleShieldCount" class="battle-shield-count"></span>
+                        <span id="battleActiveItems" class="battle-active-items"></span>
+                    </div>
+                    <div id="battlePlayerRageBar" class="battle-rage-bar">
+                        <div id="battlePlayerRageFill" class="battle-rage-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="battle-vs">VS</div>
+            
+            <div class="battle-character enemy">
+                <div id="battleEnemyAvatar" class="battle-avatar">👻</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div id="battleEnemyName" class="battle-name">小幽灵</div>
+                    <div class="battle-hp-bar">
+                        <div id="battleEnemyHpFill" class="battle-hp-fill" style="width: 100%"></div>
+                    </div>
+                    <div id="battleEnemyHpText" class="battle-hp-text">80 / 80</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 战斗场景 -->
+        <div id="battleScene" class="battle-scene">
+            <div id="battlePlayerFighter" class="battle-fighter player">🐱</div>
+            <div id="battleEnemyFighter" class="battle-fighter enemy">👻</div>
+        </div>
+        
+        <!-- 底部输入区 -->
+        <div class="battle-input-area">
+            <div class="battle-current-word">
+                <div class="battle-word-label">当前单词</div>
+                <div id="battleCurrentWord" class="battle-word-text">apple</div>
+            </div>
+            
+            <div id="battleWordProgress" class="battle-word-progress"></div>
+            
+            <input 
+                type="text" 
+                id="battleInput" 
+                class="battle-input" 
+                placeholder="在这里输入单词..."
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+            >
+            
+            <div class="battle-stats">
+                <div class="battle-stat-item">
+                    <div class="battle-stat-value" id="battleStatsCorrect">0</div>
+                    <div>正确</div>
+                </div>
+                <div class="battle-stat-item">
+                    <div class="battle-stat-value" id="battleStatsWrong">0</div>
+                    <div>错误</div>
+                </div>
+                <div class="battle-stat-item">
+                    <div class="battle-stat-value" id="battleStatsCombo">0</div>
+                    <div>连击</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 角色选择界面 -->
+    <div id="battleSelect" class="battle-select">
+        <h2 class="battle-select-title">⚔️ 战斗模式</h2>
+        <p class="battle-select-subtitle">选择你的角色和对手，开始打字对战！</p>
+        
+        <div class="battle-step">
+            <span class="battle-step-number">1</span>
+            选择你的角色
+        </div>
+        <div id="playerCharacterGrid" class="character-grid"></div>
+        
+        <div class="battle-step">
+            <span class="battle-step-number">2</span>
+            选择对手
+        </div>
+        <div id="enemyCharacterGrid" class="character-grid"></div>
+        
+        <button id="startBattleBtn" class="start-battle-btn" disabled>请先选择角色和对手</button>
+    </div>
+    
+    <!-- 战斗结果弹窗 -->
+    <div id="battleResult" class="battle-result">
+        <div class="battle-result-box">
+            <div id="battleResultIcon" class="battle-result-icon">🏆</div>
+            <h3 id="battleResultTitle" class="battle-result-title win">胜利！</h3>
+            <p id="battleResultSubtitle" class="battle-result-subtitle">你击败了小幽灵！</p>
+            
+            <div class="battle-result-stats">
+                <div class="battle-result-stat">
+                    <div class="battle-result-stat-label">正确单词</div>
+                    <div id="resultStatCorrect" class="battle-result-stat-value">0</div>
+                </div>
+                <div class="battle-result-stat">
+                    <div class="battle-result-stat-label">错误次数</div>
+                    <div id="resultStatWrong" class="battle-result-stat-value">0</div>
+                </div>
+                <div class="battle-result-stat">
+                    <div class="battle-result-stat-label">正确率</div>
+                    <div id="resultStatAccuracy" class="battle-result-stat-value">0%</div>
+                </div>
+                <div class="battle-result-stat">
+                    <div class="battle-result-stat-label">用时</div>
+                    <div id="resultStatTime" class="battle-result-stat-value">0:00</div>
+                </div>
+            </div>
+            
+            <div class="battle-result-buttons">
+                <button id="battleResultRetry" class="battle-result-btn primary">再来一局</button>
+                <button id="battleResultBack" class="battle-result-btn secondary">返回选择</button>
+            </div>
+        </div>
+    </div>
     
 </body>
 </html>
