@@ -170,9 +170,11 @@
         startTime: 0,
         battleOver: false
     };
-    // ========== 战斗音效 ==========
+
+    // ========== 战斗音效 - 升级WebAudio合成版（时尚卡通打击感） ==========
     let audioCtx = null;
-    
+    let lastCharSoundTime = 0; // 字符音效节流时间戳
+
     // 初始化音频上下文（懒加载，第一次播放时创建）
     function initAudio() {
         if (!audioCtx) {
@@ -187,93 +189,156 @@
             audioCtx.resume();
         }
     }
-    
+
     // 检查音效是否开启（和全局音效开关联动）
     function isSoundEnabled() {
-        // 优先使用全局的 soundEnabled 变量
         if (typeof window.soundEnabled !== 'undefined') {
             return window.soundEnabled;
         }
-        // 从 localStorage 读取
         return localStorage.getItem('soundEnabled') !== 'false';
     }
-    
-    // 播放基础音调
-    // 参数：频率(Hz)、时长(秒)、波形、音量(0-1)
-    function playTone(frequency, duration, type, volume) {
+
+    /**
+     * 核心发声函数：多层波形叠加 + 随机频率偏移 + 精致音量包络
+     * @param {number} baseFreq 基准频率
+     * @param {number} duration 时长秒
+     * @param {string} type 主波形 sine/sawtooth/triangle/square
+     * @param {number} volume 基础音量 0~1
+     * @param {number} detune 随机偏移范围 ±detune
+     * @param {boolean} addSubLayer 是否叠加低频副音增强打击感
+     */
+    function playTone(baseFreq, duration, type, volume, detune = 60, addSubLayer = false) {
         if (!isSoundEnabled()) return;
         initAudio();
         if (!audioCtx) return;
-        
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.type = type || 'sine';
-        oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-        
-        // 音量包络：开始时渐强，结束时渐弱，避免爆音
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(volume || 0.3, audioCtx.currentTime + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + duration);
+
+        const now = audioCtx.currentTime;
+        // 随机微调频率，避免重复单调
+        const randFreq = baseFreq + (Math.random() - 0.5) * detune;
+
+        // 主发声器
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(randFreq, now);
+
+        // 精致打击包络：瞬间冲高→快速衰减，模拟击打冲击感
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(volume, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+
+        // 叠加低频副音，强化厚重打击感
+        if (addSubLayer) {
+            const subOsc = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subOsc.type = 'sawtooth';
+            subOsc.frequency.setValueAtTime(randFreq * 0.4, now);
+            subGain.gain.setValueAtTime(0, now);
+            subGain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.006);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            subOsc.connect(subGain);
+            subGain.connect(audioCtx.destination);
+            subOsc.start(now);
+            subOsc.stop(now + duration + 0.02);
+        }
     }
-    
-    // ⚔️ 攻击音效 - 清脆的"叮"声
+
+    // 【单字符正确输入 轻反馈音】每打对一个字母触发
+    function playCharCorrectSound() {
+        const now = Date.now();
+        // 最小间隔60ms，快速连续输入只播放一次，防止音效堆叠刺耳
+        if (now - lastCharSoundTime < 60) return;
+        lastCharSoundTime = now;
+        // 下面填你选好的音色代码，可调参数：(音调, 时长, 波形, 音量, 随机偏移, 低频叠加关闭)
+        playTone(1150, 0.05, 'sine', 0.06, 30, false);
+    }
+
+    // ⚔️ 普通攻击音效（带低频叠加，扎实打击感）
     function playAttackSound() {
-        playTone(800, 0.1, 'sine', 0.2);
-        setTimeout(() => playTone(1200, 0.08, 'sine', 0.15), 30);
+        // 根据当前玩家角色差异化音色
+        const playerId = battleState.player?.id;
+        switch (playerId) {
+            case 'tiger': // 高攻老虎：厚重低频重击
+                playTone(680, 0.13, 'sawtooth', 0.22, 70, true);
+                setTimeout(() => playTone(1100, 0.09, 'triangle', 0.14, 50, false), 35);
+                break;
+            case 'fox': // 暴击狐狸：高频清脆利刃声
+                playTone(1100, 0.09, 'square', 0.16, 40, false);
+                setTimeout(() => playTone(1500, 0.06, 'sine', 0.1, 30, false), 25);
+                break;
+            case 'bear': // 肉盾小熊：低沉钝击
+                playTone(520, 0.16, 'sawtooth', 0.24, 60, true);
+                setTimeout(() => playTone(800, 0.11, 'triangle', 0.13, 50, false), 40);
+                break;
+            case 'panda': // 熊猫柔和攻击
+                playTone(780, 0.11, 'sine', 0.18, 50, false);
+                setTimeout(() => playTone(1050, 0.08, 'triangle', 0.12, 40, false), 30);
+                break;
+            default: // 猫咪/小狗平衡型通用打击音
+                playTone(820, 0.11, 'triangle', 0.19, 60, true);
+                setTimeout(() => playTone(1250, 0.07, 'sine', 0.13, 40, false), 30);
+        }
     }
-    
-    // 💥 暴击音效 - 响亮震撼的"嘭"声
+
+    // 💥 暴击音效（强冲击、多层轰鸣，爆发感拉满）
     function playCritSound() {
-        playTone(400, 0.15, 'sawtooth', 0.25);
-        setTimeout(() => playTone(600, 0.1, 'square', 0.2), 50);
-        setTimeout(() => playTone(200, 0.2, 'sine', 0.3), 100);
+        playTone(380, 0.18, 'sawtooth', 0.28, 80, true);
+        setTimeout(() => playTone(620, 0.14, 'square', 0.23, 60, true), 45);
+        setTimeout(() => playTone(1800, 0.1, 'sine', 0.18, 40, false), 90);
     }
-    
-    // 😵 受击音效 - 低沉的"嗡"声
+
+    // 😵 怪物攻击受伤音效（下沉闷震感）
     function playHurtSound() {
-        playTone(150, 0.2, 'sawtooth', 0.25);
-        setTimeout(() => playTone(100, 0.15, 'sine', 0.2), 50);
+        playTone(160, 0.22, 'sawtooth', 0.26, 50, true);
+        setTimeout(() => playTone(110, 0.17, 'triangle', 0.21, 40, false), 60);
     }
-    
-    // 💚 回血音效 - 柔和的上升三连音
+
+    // 💚 熊猫回血柔和上升治愈音阶
     function playHealSound() {
-        playTone(523, 0.1, 'sine', 0.2);   // C5
-        setTimeout(() => playTone(659, 0.1, 'sine', 0.2), 80);   // E5
-        setTimeout(() => playTone(784, 0.15, 'sine', 0.2), 160); // G5
+        const notes = [523, 659, 784, 988];
+        notes.forEach((freq, i) => {
+            setTimeout(() => playTone(freq, 0.11, 'sine', 0.17, 30, false), i * 75);
+        });
     }
-    
-    // 🏆 胜利音效 - 欢快的上升音阶
+
+    // 🏆 胜利欢快上扬旋律
     function playWinSound() {
-        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        const notes = [523, 659, 784, 1047, 1318];
         notes.forEach((freq, i) => {
-            setTimeout(() => playTone(freq, 0.2, 'sine', 0.25), i * 120);
+            setTimeout(() => playTone(freq, 0.2, 'sine', 0.24, 40, false), i * 110);
         });
     }
-    
-    // 💀 失败音效 - 下降的低沉音阶
+
+    // 💀 失败低沉下行压抑音效
     function playLoseSound() {
-        const notes = [400, 350, 300, 200];
+        const notes = [420, 360, 300, 210];
         notes.forEach((freq, i) => {
-            setTimeout(() => playTone(freq, 0.25, 'sawtooth', 0.2), i * 150);
+            setTimeout(() => playTone(freq, 0.26, 'sawtooth', 0.21, 50, false), i * 140);
         });
     }
-    
-    // 🔥 连击音效 - 清脆的提示音（每10连击）
-    function playComboSound() {
-        playTone(1000, 0.08, 'sine', 0.15);
-        setTimeout(() => playTone(1500, 0.08, 'sine', 0.15), 50);
+
+    // 🔥 连击提示音（10/20/30连击分层变激昂）
+    function playComboSound(comboNum) {
+        const level = Math.floor(comboNum / 10);
+        let baseFreq = 1000 + level * 180;
+        let vol = 0.15 + level * 0.04;
+        playTone(baseFreq, 0.09, 'triangle', vol, 40, false);
+        setTimeout(() => playTone(baseFreq * 1.4, 0.07, 'sine', vol * 0.8, 30, false), 45);
     }
-    
-    // 🔘 点击音效 - 轻微的"哒"声（选择角色/按钮）
+
+    // 🔘 按钮/角色点击清脆UI音
     function playClickSound() {
-        playTone(600, 0.05, 'sine', 0.1);
+        playTone(640, 0.05, 'sine', 0.11, 30, false);
+    }
+
+    // ⚠️ 低血量警告低频循环音（血量低于30%时调用）
+    function playLowHpWarning() {
+        playTone(130, 0.22, 'sawtooth', 0.12, 20, false);
     }
 
     // ========== 战斗语音系统 ==========
@@ -844,6 +909,12 @@
             }
             elements.activeItems.innerHTML = html;
         }
+        
+        // 血量低于30%播放警告音
+        const hpRate = battleState.playerHp / battleState.playerMaxHp;
+        if (hpRate < 0.3 && battleState.playerHp > 0) {
+            playLowHpWarning();
+        }
     }
     // ========== 显示当前句子 ==========
     function showCurrentSentence() {
@@ -1007,6 +1078,11 @@
         
         // 更新上次输入长度
         battleState.lastInputLength = inputLen;
+        
+        // 输入无错误，新增单字符反馈音效
+        if (!hasError && inputLen > 0) {
+            playCharCorrectSound();
+        }
     }
     // 打错了
     function handleWrongInput() {
@@ -1038,7 +1114,9 @@
         playerAttack();
         // 每 10 连击播放连击音效 + 获得一个护盾
         if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
-            playComboSound();
+            if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
+                playComboSound(battleState.comboCount);
+            };
             // ===== 新功能：连击护盾 =====
             battleState.shieldCount++;
             // 显示护盾获得特效
