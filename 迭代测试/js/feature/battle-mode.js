@@ -848,7 +848,10 @@
     // ========== 显示当前句子 ==========
     function showCurrentSentence() {
         if (battleState.currentSentenceIndex >= battleState.sentences.length) {
-            // 所有句子打完了
+            // 全部练习内容打完，强制清空怪物血量
+            battleState.enemyHp = 0;
+            battleState.enemyHp = 0;
+            updateBattleUI();
             endBattle('sentences_finished');
             return;
         }
@@ -1403,6 +1406,11 @@
                 battleState.rage = battleState.maxRage;
                 battleState.rageSkillReady = true;
                 showRageFullEffect();
+                setTimeout(() => {
+                    if (!battleState.battleOver && battleState.rageSkillReady) {
+                        useRageSkill();
+                    }
+                }, 800);
             }
         }
     ];
