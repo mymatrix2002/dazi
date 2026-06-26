@@ -155,7 +155,7 @@
         comboCount: 0,       // 连击数
         healCounter: 0,      // 回血计数器（熊猫用）
         lastInputLength: 0,  // 上次输入长度（用于判断是否新增错误）
-        inputError: false,   // 当前输入是否有错误（显示粉红色）
+        inputError: false,   // 当前输入是否有错误（显示浅红色）
         // ===== 新功能：连击护盾 =====
         shieldCount: 0,      // 护盾数量
         // ===== 新功能：怒气系统 =====
@@ -943,7 +943,7 @@
         // 更新每个字符的颜色
         charSpans.forEach((span, i) => {
             if (hasError && i === errorIndex) {
-                // 错误位：粉红色，和血条颜色一致
+                // 错误位：浅红色
                 span.style.color = '#f87171';
             } else if (hasError && i < errorIndex) {
                 // 错误之前的正确字符：绿色
