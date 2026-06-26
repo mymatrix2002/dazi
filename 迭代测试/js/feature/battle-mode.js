@@ -943,8 +943,8 @@
         // 更新每个字符的颜色
         charSpans.forEach((span, i) => {
             if (hasError && i === errorIndex) {
-                // 错误位：粉红色
-                span.style.color = '#ff6b9d';
+                // 错误位：粉红色，和血条颜色一致
+                span.style.color = '#f87171';
             } else if (hasError && i < errorIndex) {
                 // 错误之前的正确字符：绿色
                 span.style.color = '#39d353';
