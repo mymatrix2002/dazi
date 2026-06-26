@@ -253,7 +253,15 @@
                     <div class="battle-hp-bar">
                         <div id="battlePlayerHpFill" class="battle-hp-fill" style="width: 100%"></div>
                     </div>
-                    <div id="battlePlayerHpText" class="battle-hp-text">100 / 100</div>
+                    <!-- 血量文字 + 护盾 + 道具 同行容器 -->
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <div id="battlePlayerHpText" class="battle-hp-text">100 / 100</div>
+                        <span id="battleShieldCount" class="battle-shield-count"></span>
+                        <span id="battleActiveItems" class="battle-active-items"></span>
+                    </div>
+                    <div id="battlePlayerRageBar" class="battle-rage-bar">
+                        <div id="battlePlayerRageFill" class="battle-rage-fill" style="width: 0%"></div>
+                    </div>
                 </div>
             </div>
             

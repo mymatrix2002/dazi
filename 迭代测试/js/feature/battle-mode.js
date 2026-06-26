@@ -808,13 +808,14 @@
         }
         
         // ===== 新功能 UI 更新 =====
-        // 怒气条
-        if (elements.playerRageBarFill) {
+        // 更新怒气条
+        if (elements.playerRageBar && elements.playerRageBarFill) {
+            // 计算怒气百分比
             const ragePercent = (battleState.rage / battleState.maxRage) * 100;
+            // 赋值宽度
             elements.playerRageBarFill.style.width = ragePercent + '%';
-            
-            // 怒气满了加发光效果
-            if (battleState.rageSkillReady) {
+            // 怒气满高亮样式
+            if (battleState.rage >= battleState.maxRage) {
                 elements.playerRageBar.classList.add('rage-full');
             } else {
                 elements.playerRageBar.classList.remove('rage-full');
@@ -822,7 +823,7 @@
         }
         
         // 护盾数量
-        if (elements.shieldCount) {
+        if (elements?.shieldCount != null) {
             if (battleState.shieldCount > 0) {
                 elements.shieldCount.textContent = '🛡️ ' + battleState.shieldCount;
                 elements.shieldCount.style.display = 'inline-block';
@@ -830,14 +831,13 @@
                 elements.shieldCount.style.display = 'none';
             }
         }
-        
+
         // 激活的道具
-        if (elements.activeItems) {
+        if (elements?.activeItems != null) {
             let html = '';
             for (const item of battleState.activeItems) {
                 const itemInfo = itemTypes.find(t => t.id === item.id);
                 if (itemInfo) {
-                    // 剩余时间 <= 1 时闪烁警告
                     const warningClass = item.remaining <= 1 ? 'item-warning' : '';
                     html += `<span class="active-item ${warningClass}" title="${itemInfo.name} 剩余 ${item.remaining} 句">${itemInfo.emoji}${item.remaining}</span>`;
                 }
@@ -1460,6 +1460,7 @@
         // 自动拾取（延迟一点生效，让玩家看到）
         setTimeout(() => {
             item.effect();
+            playComboSound(); // 复用连击音效，或新增道具专用音效
             updateBattleUI();
         }, 500);
     }
