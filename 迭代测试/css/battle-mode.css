@@ -277,11 +277,12 @@
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-    text-align: center;
-    word-wrap: break-word;
-    word-break: break-all;
-    white-space: normal;
-    max-width: 100%;
+    /* 新增核心属性 */
+    text-align: center;       /* 文本居中 */
+    word-wrap: break-word;     /* 长英文单词强制换行 */
+    word-break: break-all;     /* 中英文全部支持任意字符换行，杜绝横向溢出 */
+    white-space: normal;       /* 取消文字不换行默认行为，允许自动折行 */
+    max-width: 100%;           /* 限制宽度不超出父容器 */
 }
 
 /* 战斗输入框 */
