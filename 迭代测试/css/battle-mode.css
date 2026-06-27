@@ -291,7 +291,11 @@
 /* 移动端适配 */
 @media (max-width: 640px) {
     .battle-char {
-        font-size: clamp(16px, 3.8vw, 22px) !important;
+        /* 手机端最小字号，根据你的显示效果可微调数字 */
+        font-size: clamp(16px, 4vw, 22px) !important;
+         /* 移动端加大行间距，多行英文不会挤在一起 */
+        line-height: 1.6 !important;
+        /* 压缩字间距，节省横向空间防止溢出 */
         letter-spacing: 0.5px !important;
     }
 }
