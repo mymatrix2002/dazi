@@ -1,5 +1,5 @@
 // js/data/p5l-m1.js
-// 广州教科版五年级下册 Module 1 Seasons 原版课文
+// 广州教科版 五年级下册 Module1 Seasons 实拍课本原版校正
 (function() {
     'use strict';
     const moduleContent = {
@@ -70,33 +70,37 @@
                 { "en": "cool", "cn": "凉爽的" },
                 { "en": "cold", "cn": "寒冷的" },
                 { "en": "sunny", "cn": "晴朗的" },
-                { "en": "rainy", "cn": "下雨的" }
+                { "en": "rainy", "cn": "下雨的" },
+                { "en": "cousin", "cn": "表/堂兄（弟）" },
+                { "en": "visit", "cn": "拜访；探望" },
+                { "en": "understand", "cn": "明白；理解" },
+                { "en": "January", "cn": "一月" },
+                { "en": "February", "cn": "二月" },
+                { "en": "July", "cn": "七月" },
+                { "en": "August", "cn": "八月" }
             ],
             "phrases": [
-                { "en": "middle of winter", "cn": "隆冬时节" },
-                { "en": "during summer holidays", "cn": "暑假期间" },
-                { "en": "in Australia", "cn": "在澳大利亚" },
-                { "en": "in China", "cn": "在中国" },
-                { "en": "summer holiday", "cn": "暑假" },
-                { "en": "winter holiday", "cn": "寒假" },
-                { "en": "talk about", "cn": "谈论" },
-                { "en": "all year round", "cn": "一整年" }
+                { "en": "the middle of winter", "cn": "隆冬时节" },
+                { "en": "summer holidays", "cn": "暑假" },
+                { "en": "from December to February", "cn": "十二月到二月" },
+                { "en": "from July to August", "cn": "七月到八月" },
+                { "en": "go swimming every day", "cn": "每天去游泳" }
             ],
             "sentences": [
-                { "en": "It's the middle of winter.", "cn": "现在是隆冬时节。" },
-                { "en": "When it's summer in Australia, it's winter in China.", "cn": "澳大利亚是夏天的时候，中国是冬天。" },
-                { "en": "I'm from Australia.", "cn": "我来自澳大利亚。" },
-                { "en": "What's the weather like there?", "cn": "那里的天气怎么样？" },
-                { "en": "During summer holidays, I go swimming every day.", "cn": "暑假期间，我每天都去游泳。" }
+                { "en": "It's the middle of winter in January.", "cn": "一月正值隆冬时节。" },
+                { "en": "Summer in Australia is from December to February.", "cn": "澳大利亚的夏天是十二月到二月。" },
+                { "en": "When it is summer in Australia, it is winter in China.", "cn": "澳大利亚是夏天的时候，中国是冬天。" },
+                { "en": "We can go swimming every day from July to August in China.", "cn": "在中国，七月到八月我们可以每天游泳。" }
             ],
             "dialogue": [
-                { "en": "Ben is a new classmate from Australia. He talks with Xiaoling about different seasons in two countries.", "cn": "本是来自澳大利亚的新同学，他和小玲谈论两个国家不同的季节。" },
-                { "speaker": "Ben", "en": "Hi, I'm Ben. I'm from Australia.", "cn": "大家好，我是本，我来自澳大利亚。" },
-                { "speaker": "Xiaoling", "en": "Welcome to our class. It's so cold here!", "cn": "欢迎来到我们班，这里好冷啊！" },
-                { "speaker": "Ben", "en": "Yes. It's the middle of winter. I never see snow in Australia.", "cn": "是啊，现在正值隆冬，我在澳大利亚从来没见过雪。" },
-                { "speaker": "Xiaoling", "en": "Why is that?", "cn": "为什么会这样呢？" },
-                { "speaker": "Ben", "en": "When it's winter in China, it's summer in Australia. During summer holidays, I go swimming every day.", "cn": "中国是冬天的时候，澳大利亚是夏天。暑假我每天都会去游泳。" },
-                { "speaker": "Xiaoling", "en": "Wow! Maybe we can make a snowman tomorrow.", "cn": "太有意思啦！明天我们可以一起堆雪人。" }
+                { "en": "Ben introduces his cousin Reg from Australia to his classmates, they talk about different seasons in two countries.", "cn": "本向同学们介绍来自澳大利亚的表哥Reg，他们聊两个国家相反的季节。" },
+                { "speaker": "Ben", "en": "Hi, everyone! This is my cousin Reg. He is visiting me for the summer holidays.", "cn": "大家好！这是我的表哥Reg，他放暑假来探望我。" },
+                { "speaker": "Xiaoling", "en": "I don't understand. It is January now, the middle of winter. How can you have a summer holiday?", "cn": "我不明白。现在是一月，隆冬时节，你们怎么会放暑假？" },
+                { "speaker": "Reg", "en": "I'm from Australia. Our summer is from December to February, so it is summer in Australia now.", "cn": "我来自澳大利亚。我们的夏天是十二月到二月，所以澳大利亚现在是夏天。" },
+                { "speaker": "Jiamin", "en": "I see now. When it is summer in Australia, it is winter in China.", "cn": "我现在懂了。澳大利亚是夏天的时候，中国是冬天。" },
+                { "speaker": "Xiaoling", "en": "What's summer like in Australia, Reg?", "cn": "Reg，澳大利亚的夏天是什么样子的？" },
+                { "speaker": "Reg", "en": "It's very hot, so we always go swimming.", "cn": "天气很热，所以我们总是去游泳。" },
+                { "speaker": "Ben", "en": "It's too cold to swim now. But if you are here from July to August, we can go swimming every day.", "cn": "现在天气太冷没法游泳。但如果你七八月来这里，我们就能每天去游泳。" }
             ]
         }
     };
