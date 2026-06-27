@@ -211,28 +211,28 @@
         if (!isSoundEnabled()) return;
         initAudio();
         if (!audioCtx) return;
-
+        // 对战核心：每次播放音效强制唤醒休眠音频上下文
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    
         const now = audioCtx.currentTime;
-        // 随机微调频率，避免重复单调
+        // 下面你原来所有playTone逻辑不动
         const randFreq = baseFreq + (Math.random() - 0.5) * detune;
-
-        // 主发声器
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type || 'sine';
         osc.frequency.setValueAtTime(randFreq, now);
-
-        // 精致打击包络：瞬间冲高→快速衰减，模拟击打冲击感
+    
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(volume, now + 0.008);
         gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
+    
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + duration + 0.02);
-
-        // 叠加低频副音，强化厚重打击感
+    
         if (addSubLayer) {
             const subOsc = audioCtx.createOscillator();
             const subGain = audioCtx.createGain();
@@ -252,7 +252,7 @@
     function playCharCorrectSound() {
         const now = Date.now();
         // 最小间隔60ms，快速连续输入只播放一次，防止音效堆叠刺耳
-        if (now - lastCharSoundTime < 60) return;
+        if (now - lastCharSoundTime < 80) return;
         lastCharSoundTime = now;
         // 下面填你选好的音色代码，可调参数：(音调, 时长, 波形, 音量, 随机偏移, 低频叠加关闭)
         playTone(1150, 0.05, 'sine', 0.06, 30, false);
@@ -533,6 +533,13 @@
         }
         if (elements.battleInput) {
             elements.battleInput.addEventListener('input', handleInput);
+            // 对战新增：触摸输入框强制唤醒音频上下文
+            elements.battleInput.addEventListener('touchend', () => {
+                initAudio();
+                if (audioCtx?.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            });
         }
         if (elements.startBtn) {
             elements.startBtn.addEventListener('click', startBattle);
@@ -820,6 +827,13 @@
             if (elements.battleInput) {
                 elements.battleInput.value = '';
                 elements.battleInput.focus();
+                // 对战专属：focus可信手势唤醒音频，解锁播放权限
+                initAudio();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                    // 空音占位，永久解锁WebAudio权限
+                    playTone(800, 0.01, 'sine', 0.01, 0, false);
+                }
             }
         }, 300);
     }
