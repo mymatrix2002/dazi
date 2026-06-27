@@ -304,7 +304,7 @@
 @media (max-width: 640px) {
     .battle-avatar-box {
         /* 键盘弹出时最低保留高度，数值越大对战区越高，按需调整 */
-        min-height: 180px;
+        min-height: 780px;
         padding: 10px 0;
         display: flex;
         align-items: center;
