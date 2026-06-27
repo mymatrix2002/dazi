@@ -261,6 +261,7 @@
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
 }
+
 /* 当前单词显示 */
 .battle-current-word {
     text-align: center;
@@ -270,6 +271,7 @@
     word-break: break-all;
     padding: 0 10px;
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 .battle-word-label {
     display: none;
@@ -281,12 +283,15 @@
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    white-space: normal;
+    line-height: 1.4;
 }
 .battle-char {
     display: inline-block;
     font-size: clamp(18px, 4vw, 26px);
     line-height: 1.6;
     letter-spacing: 1px;
+    white-space: normal;
 }
 
 /* 战斗输入框 */
