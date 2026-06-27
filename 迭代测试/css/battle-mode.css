@@ -301,21 +301,6 @@
     }
 }
 
-@media (max-width: 640px) {
-    .battle-avatar-box {
-        /* 键盘弹出时最低保留高度，数值越大对战区越高，按需调整 */
-        min-height: 780px;
-        padding: 10px 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-    }
-    /* 限制文字区最大高度，强制让出空间给对战区 */
-    .battle-current-word {
-        max-height: 32vh;
-    }
-}
-
 /* 战斗输入框 */
 .battle-input {
     width: 100%;
