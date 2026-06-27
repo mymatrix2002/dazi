@@ -527,6 +527,21 @@
             resultRetryBtn: document.getElementById('battleResultRetry'),
             resultBackBtn: document.getElementById('battleResultBack')
         };
+        
+        // init函数最后追加
+        document.addEventListener('click', () => {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+        document.addEventListener('touchend', () => {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+        
         // 绑定事件
         if (elements.exitBtn) {
             elements.exitBtn.addEventListener('click', exitBattle);
