@@ -298,6 +298,9 @@
         /* 压缩字间距，节省横向空间防止溢出 */
         letter-spacing: 0.5px !important;
     }
+    /* 手机端单独设置更小/更大的战斗区最小高度 */
+    .battle-current-word {
+        min-height: 160px; /* 手机屏幕窄，调低最小高度节省空间 */
 }
 /* 战斗输入框 */
 .battle-input {
