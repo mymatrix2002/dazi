@@ -285,15 +285,14 @@
 .battle-char {
     display: inline-block;
     font-size: clamp(18px, 4vw, 26px);
-    line-height: 1.3;
+    line-height: 1.6;
     letter-spacing: 1px;
 }
 /* 移动端适配 */
 @media (max-width: 640px) {
     .battle-char {
-        font-size: clamp(17px, 4.2vw, 24px) !important; /* 原版16/3.8vw → 上调字号，更清晰 */
+        font-size: clamp(16px, 3.8vw, 22px) !important;
         letter-spacing: 0.5px !important;
-        line-height: 1.3 !important; /* 强制移动端缩小行高，两行不松散 */
     }
 }
 /* 战斗输入框 */
