@@ -694,6 +694,11 @@
         font-size: 56px;
     }
     
+    /* 新增：战斗场景最小高度，防止页面过低被压缩 */
+    .battle-scene {
+        min-height: 220px;
+    }
+
     .battle-word-text {
         font-size: 24px;
         /* 新增换行居中属性，移动端同样生效 */
