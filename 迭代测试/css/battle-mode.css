@@ -290,9 +290,15 @@
 }
 /* 移动端适配 */
 @media (max-width: 640px) {
+    /* 手机端整段加大行间距，多行文字不拥挤 */
+    .battle-current-word {
+        line-height: 1.3;
+    }
+    /* 手机缩小字号、压缩字母间距，减少横向溢出 */
     .battle-char {
-        font-size: clamp(16px, 3.8vw, 22px) !important;
+        font-size: clamp(18px, 4vw, 26px) !important;
         letter-spacing: 0.5px !important;
+        line-height: 1.3 !important;
     }
 }
 /* 战斗输入框 */
