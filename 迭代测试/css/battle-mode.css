@@ -277,9 +277,10 @@
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-    white-space: pre-wrap;
-    word-break: break-all;
+    text-align: center;
     word-wrap: break-word;
+    word-break: break-all;
+    white-space: normal;
     max-width: 100%;
 }
 
@@ -694,10 +695,11 @@
     
     .battle-word-text {
         font-size: 24px;
-        /* 新增换行规则 */
-        white-space: pre-wrap;
-        word-break: break-all;
+        /* 新增换行居中属性，移动端同样生效 */
+        text-align: center;
         word-wrap: break-word;
+        word-break: break-all;
+        white-space: normal;
     }
     
     .battle-input {
