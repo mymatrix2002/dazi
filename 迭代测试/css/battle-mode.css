@@ -314,7 +314,7 @@
 
     /* 黄色圈选对战头像区域：禁止被挤压压缩 */
     .battle-avatar-box {
-        min-height: 50px; /* 键盘弹出最低高度，不会彻底压扁 */
+        min-height: 180px; /* 键盘弹出最低高度，不会彻底压扁 */
         flex-shrink: 0; /* 核心：不参与页面压缩 */
         display: flex;
         align-items: center;
