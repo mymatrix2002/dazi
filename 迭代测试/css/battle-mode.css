@@ -695,7 +695,7 @@
     }
     
     .battle-word-text {
-        font-size: 18px;
+        font-size: 24px;
         /* 新增换行居中属性，移动端同样生效 */
         text-align: center;
         word-wrap: break-word;
