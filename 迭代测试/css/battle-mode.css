@@ -288,6 +288,7 @@
     line-height: 1.6;
     letter-spacing: 1px;
 }
+
 /* 移动端适配 */
 @media (max-width: 640px) {
     .battle-char {
@@ -300,41 +301,21 @@
     }
 }
 
-/* 仅屏幕宽度≤640px移动端生效，PC不受任何影响 */
 @media (max-width: 640px) {
-    /* 战斗页面最外层总容器 */
-    .battle-wrap {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
-        box-sizing: border-box;
-        padding: 8px;
-    }
-
-    /* 黄色圈选对战头像区域：禁止被挤压压缩 */
     .battle-avatar-box {
-        min-height: 180px; /* 键盘弹出最低高度，不会彻底压扁 */
-        flex-shrink: 0; /* 核心：不参与页面压缩 */
+        /* 键盘弹出时最低保留高度，数值越大对战区越高，按需调整 */
+        min-height: 180px;
+        padding: 10px 0;
         display: flex;
         align-items: center;
         justify-content: space-around;
-        margin-bottom: 10px;
     }
-
-    /* 中间英文对照文本区：唯一可压缩缓冲区域，空间不足自动滚动 */
+    /* 限制文字区最大高度，强制让出空间给对战区 */
     .battle-current-word {
-        flex: 1; /* 自动占用页面剩余全部高度 */
-        overflow-y: auto; /* 文字过多/高度不足支持上下滑动查看完整句子 */
-        padding: 5px 0;
-    }
-
-    /* 底部输入框区域：固定尺寸不压缩 */
-    .battle-input-area {
-        flex-shrink: 0;
-        margin-top: 10px;
+        max-height: 32vh;
     }
 }
+
 /* 战斗输入框 */
 .battle-input {
     width: 100%;
