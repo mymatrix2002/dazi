@@ -265,6 +265,11 @@
 .battle-current-word {
     text-align: center;
     margin-bottom: 12px;
+    width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-all;
+    padding: 0 10px;
+    box-sizing: border-box;
 }
 .battle-word-label {
     display: none;
@@ -276,6 +281,19 @@
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+.battle-char {
+    display: inline-block;
+    font-size: clamp(18px, 4vw, 26px);
+    line-height: 1.6;
+    letter-spacing: 1px;
+}
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .battle-char {
+        font-size: clamp(16px, 3.8vw, 22px) !important;
+        letter-spacing: 0.5px !important;
+    }
 }
 /* 战斗输入框 */
 .battle-input {
