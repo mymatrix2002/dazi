@@ -696,7 +696,9 @@
     
     /* 新增：战斗场景最小高度，防止页面过低被压缩 */
     .battle-scene {
-        min-height: 50px;
+        min-height: 120px;
+        /* 键盘弹出时允许缩小，不强制撑高 */
+        flex-shrink: 1;
     }
 
     .battle-word-text {
