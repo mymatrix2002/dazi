@@ -1407,6 +1407,7 @@
     }
     // 打错了
     function handleWrongInput() {
+        if (battleState.battleOver) return; // 新增，战斗结束不再统计错误
         battleState.wrongCount++;
         battleState.comboCount = 0;
         // 输入框变红
@@ -1424,7 +1425,13 @@
     }
     // 句子完成
     function handleSentenceComplete() {
-        battleState.correctCount++;
+        // 战斗已终止直接返回，禁止计数
+        if (battleState.battleOver) return;
+
+        // 边界防护，防止计数溢出
+        if (battleState.correctCount < battleState.sentences.length) {
+            battleState.correctCount++;
+        }
         battleState.comboCount++;
         // 输入框变绿
         if (elements.battleInput) {
@@ -1885,14 +1892,27 @@
     // ========== 检查战斗是否结束 ==========
     function checkBattleEnd() {
         if (battleState.battleOver) return;
-        // 只有玩家血量归零才失败
-        if (battleState.playerHp <= 0) {
-            onHpChange(HP_TARGET.PLAYER, -battleState.playerMaxHp);
+
+        // 优先判定胜利：怪物血量归0优先级高于玩家阵亡
+        if (battleState.enemyHp <= 0) {
+            // 同时玩家血量为0时，临时赋值1，屏蔽失败判定，强制胜利
+            if (battleState.playerHp <= 0) {
+                battleState.playerHp = 1;
+            }
+            endBattle(BATTLE_END_TYPE.ENEMY_HP_EMPTY);
+            return;
+        }
+
+        // 未胜利才判定玩家死亡，同时排除无敌状态
+        if (battleState.playerHp <= 0 && !battleState.invincible) {
             endBattle(BATTLE_END_TYPE.PLAYER_DEAD);
         }
     }
     // ========== 战斗结束 ==========
     function endBattle(result) {
+        // 新增战斗结束日志
+        console.log(`[BATTLE END] type=${result}, playerHp=${battleState.playerHp}, enemyHp=${battleState.enemyHp}, correct=${battleState.correctCount}`);
+        
         battleState.battleOver = true;
         battleState.active = false;
         const endTime = Date.now();
@@ -1950,6 +1970,9 @@
     // ========== 再来一局 ==========
     function retryBattle() {
         playClickSound();
+        // 强制停止所有语音、清理缓存，解决旧语音延迟干扰新对局
+        stopVoice();
+        clearVoiceCache();
         if (elements.battleResult) {
             elements.battleResult.classList.remove('active');
         }
