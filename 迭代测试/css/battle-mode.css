@@ -708,9 +708,10 @@
         padding: 12px 16px;
     }
     
-    /* 新增：战斗场景最小高度，防止页面过低被压缩 */
+    /* 动态跟随战斗角色字号计算最小高度，避免角色压缩 */
     .battle-scene {
-        min-height: 120px;
+        /* 56px角色高度 + 上下padding各20px + 缓冲留白 */
+        min-height: calc(56px + 40px + 30px);
     }
     
 }
