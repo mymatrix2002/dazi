@@ -695,7 +695,7 @@
     }
     
     .battle-word-text {
-        font-size: 18px !important;  /* 这里改成你想要的大小，默认24 */
+        font-size: 20px;  /* 这里改成你想要的大小，默认24 */
         /* 新增换行居中属性，移动端同样生效 */
         text-align: center;
         word-wrap: break-word;
@@ -711,7 +711,7 @@
     /* 动态跟随战斗角色字号计算最小高度，避免角色压缩 */
     .battle-scene {
         /* 56px角色高度 + 上下padding各20px + 缓冲留白30px */
-        min-height: calc(56px + 40px + 14px);
+        min-height: calc(56px + 20px + 14px);
     }
     
 }
