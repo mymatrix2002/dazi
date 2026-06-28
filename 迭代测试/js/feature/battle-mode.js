@@ -2,6 +2,31 @@
 /* js/feature/battle-mode.js */
 (function() {
     'use strict';
+    
+    // ========== 战斗数值枚举 & 平衡常量 ==========
+    // 血量操作目标枚举，消除硬编码字符串
+    const HP_TARGET = {
+        PLAYER: 'player',
+        ENEMY: 'enemy'
+    };
+
+    // 战斗结束类型枚举，统一胜利/失败判定标识
+    const BATTLE_END_TYPE = {
+        PLAYER_DEAD: 'lose',
+        ALL_SENTENCE_CLEAR: 'win',
+        ENEMY_HP_EMPTY: 'enemy_dead',
+        TIME_OUT: 'timeout'
+    };
+
+    // 全局数值平衡配置，所有倍率集中管理
+    const BATTLE_BALANCE = {
+        sentenceBaseHpCoeff: 2,                // 单句基础血量系数
+        enemyDifficultyHpMulti: { 1: 1.0, 2: 1.3, 3: 1.7, 4: 2.2 }, // 难度血量倍率（旧命名 enemyDifficulty）
+        playerBaseHpMulti: 1,                  // 玩家基础血量总倍率
+        enemyRageHpThreshold: 0.3,             // 怪物狂暴血量阈值
+        playerMaxHpLimitMulti: 10              // 玩家血量上限保护倍率
+    };
+
     // ========== 角色数据 ==========
     
     // 玩家角色（6个）
@@ -12,7 +37,12 @@
             emoji: '🐱',
             type: '平衡型',
             hp: 100,
+            baseHp: 100,
             attack: 10,
+            baseAtk: 10,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.1,      // 暴击率 10%
             special: 'none',     // 无特殊技能
             description: '全能型，适合新手'
@@ -23,7 +53,12 @@
             emoji: '🐶',
             type: '攻击型',
             hp: 90,
+            baseHp: 90,
             attack: 12,
+            baseAtk: 12,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.1,
             special: 'none',
             description: '攻击高，血量稍低'
@@ -34,7 +69,12 @@
             emoji: '🐯',
             type: '高攻型',
             hp: 80,
+            baseHp: 80,
             attack: 15,
+            baseAtk: 15,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.15,
             special: 'none',
             description: '伤害爆炸，比较脆'
@@ -45,7 +85,12 @@
             emoji: '🦊',
             type: '暴击型',
             hp: 95,
+            baseHp: 95,
             attack: 11,
+            baseAtk: 11,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.25,     // 25% 暴击率
             special: 'crit',
             description: '25% 概率暴击双倍伤害'
@@ -56,18 +101,28 @@
             emoji: '🐻',
             type: '肉盾型',
             hp: 120,
+            baseHp: 120,
             attack: 8,
+            baseAtk: 8,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.05,
             special: 'none',
             description: '血厚耐打，攻击低'
         },
         {
             id: 'panda',
-            name: '小熊猫',
+            name: '回复型',
             emoji: '🐼',
             type: '回复型',
             hp: 100,
+            baseHp: 100,
             attack: 9,
+            baseAtk: 9,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
             critRate: 0.1,
             special: 'heal',     // 回血技能
             healAmount: 5,      // 每次回 5 点血
@@ -75,6 +130,7 @@
             description: '每打对3个句子回5点血'
         }
     ];
+
     // 怪物角色（6个，难度递增）
     const enemyCharacters = [
         {
@@ -84,7 +140,14 @@
             difficulty: 1,
             difficultyText: '简单',
             hp: 80,
+            baseHp: 80,
             attack: 8,
+            baseAtk: 8,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
             description: '最菜的怪物，适合练手'
         },
         {
@@ -94,7 +157,14 @@
             difficulty: 1,
             difficultyText: '简单',
             hp: 90,
+            baseHp: 90,
             attack: 9,
+            baseAtk: 9,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
             description: '有点凶，但伤害不高'
         },
         {
@@ -104,7 +174,14 @@
             difficulty: 2,
             difficultyText: '普通',
             hp: 100,
+            baseHp: 100,
             attack: 10,
+            baseAtk: 10,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
             description: '中规中矩的对手'
         },
         {
@@ -114,7 +191,14 @@
             difficulty: 2,
             difficultyText: '普通',
             hp: 110,
+            baseHp: 110,
             attack: 11,
+            baseAtk: 11,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
             description: '速度快，攻击也不低'
         },
         {
@@ -124,7 +208,14 @@
             difficulty: 3,
             difficultyText: '困难',
             hp: 130,
+            baseHp: 130,
             attack: 13,
+            baseAtk: 13,
+            aiEnable: true,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [0.7, 0.4],
+            aiSpecialCooldown: 3,
             description: '喷火龙，伤害很高'
         },
         {
@@ -134,7 +225,14 @@
             difficulty: 4,
             difficultyText: '地狱',
             hp: 150,
+            baseHp: 150,
             attack: 15,
+            baseAtk: 15,
+            aiEnable: true,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [0.7, 0.4, 0.2],
+            aiSpecialCooldown: 3,
             description: '最终BOSS，非常难打'
         }
     ];
@@ -211,33 +309,43 @@
         if (!isSoundEnabled()) return;
         initAudio();
         if (!audioCtx) return;
+
+        // ===== 关键：数值清洗，过滤NaN/Infinity，强制合法区间 =====
+        // 频率限制 20~20000 人耳可听范围
+        baseFreq = isFinite(Number(baseFreq)) ? Math.max(20, Math.min(20000, Number(baseFreq))) : 440;
+        // 时长最小0.01秒，防止0/负数报错
+        duration = isFinite(Number(duration)) ? Math.max(0.01, Number(duration)) : 0.1;
+        // 音量锁定0~1之间
+        volume = isFinite(Number(volume)) ? Math.max(0, Math.min(1, Number(volume))) : 0.2;
+        detune = isFinite(Number(detune)) ? Math.max(0, Math.min(200, Number(detune))) : 60;
+
         // 对战核心：每次播放音效强制唤醒休眠音频上下文
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
-    
+
         const now = audioCtx.currentTime;
-        // 下面你原来所有playTone逻辑不动
         const randFreq = baseFreq + (Math.random() - 0.5) * detune;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type || 'sine';
         osc.frequency.setValueAtTime(randFreq, now);
-    
+
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(volume, now + 0.008);
         gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    
+
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + duration + 0.02);
-    
+
         if (addSubLayer) {
             const subOsc = audioCtx.createOscillator();
             const subGain = audioCtx.createGain();
             subOsc.type = 'sawtooth';
-            subOsc.frequency.setValueAtTime(randFreq * 0.4, now);
+            const subFreq = randFreq * 0.4;
+            subOsc.frequency.setValueAtTime(subFreq, now);
             subGain.gain.setValueAtTime(0, now);
             subGain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.006);
             subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
@@ -262,6 +370,8 @@
     function playAttackSound() {
         // 根据当前玩家角色差异化音色
         const playerId = battleState.player?.id;
+        // 角色为空直接不播放，避免参数NaN
+        if (!playerId) return;
         switch (playerId) {
             case 'tiger': // 高攻老虎：厚重低频重击
                 playTone(680, 0.13, 'sawtooth', 0.22, 70, true);
@@ -324,7 +434,9 @@
 
     // 🔥 连击提示音（10/20/30连击分层变激昂）
     function playComboSound(comboNum) {
-        const level = Math.floor(comboNum / 10);
+        // 兜底：强制转为合法数字，最小1
+        const safeCombo = Math.max(1, isFinite(Number(comboNum)) ? Number(comboNum) : 1);
+        const level = Math.floor(safeCombo / 10);
         let baseFreq = 1000 + level * 180;
         let vol = 0.15 + level * 0.04;
         playTone(baseFreq, 0.09, 'triangle', vol, 40, false);
@@ -482,6 +594,174 @@
             console.warn('释放语音缓存blob失败', e);
         }
     }
+    
+    // ========== 血量计算工具函数 ==========
+    /**
+     * 计算玩家最大血量（带等级、buff、上限保护）
+     * @param {object} playerChar 玩家角色数据
+     * @param {object} ctx 战斗上下文
+     * @returns {number} 最终最大血量
+     */
+    function calcPlayerMaxHp(playerChar, ctx = {}) {
+        let hp = playerChar.baseHp * BATTLE_BALANCE.playerBaseHpMulti;
+        // 等级成长计算
+        if (ctx.level > 1) {
+            hp += playerChar.hpGrowth * (ctx.level - 1);
+        }
+        // buff倍率
+        if (ctx.hpBuff) hp *= ctx.hpBuff;
+        // 血量上限保护，防止数值膨胀
+        const maxLimit = playerChar.baseHp * BATTLE_BALANCE.playerMaxHpLimitMulti;
+        return Math.min(Math.floor(hp), maxLimit);
+    }
+
+    /**
+     * 计算怪物总血量（句子、难度、AI倍率、最低血量兜底）
+     * @param {object} enemyChar 怪物数据
+     * @param {number} sentenceCount 对局句子总数
+     * @param {object} ctx 战斗上下文
+     * @returns {number} 怪物最大血量
+     */
+    function calcEnemyMaxHp(enemyChar, sentenceCount, ctx = {}) {
+        const singleHp = enemyChar.baseAtk * BATTLE_BALANCE.sentenceBaseHpCoeff;
+        let totalHp = singleHp * sentenceCount;
+        // 难度倍率
+        const diffMulti = BATTLE_BALANCE.enemyDifficultyHpMulti[enemyChar.difficulty] || 1;
+        totalHp *= diffMulti;
+        // AI强化倍率
+        if (ctx.enemyAiMulti) totalHp *= ctx.enemyAiMulti;
+        // 最低血量兜底，防止短句秒杀
+        const minHp = enemyChar.baseHp * 0.5;
+        return Math.max(Math.floor(totalHp), minHp);
+    }
+    
+    /**
+     * 怪物选择面板展示血量（仅选角界面用，不参与战斗计算）
+     */
+    function calcEnemyShowHp(enemyChar) {
+        const diffMulti = BATTLE_BALANCE.enemyDifficultyHpMulti[enemyChar.difficulty] || 1;
+        return Math.floor(enemyChar.baseHp * diffMulti);
+    }
+    
+    /**
+     * 计算怪物当前攻击值（统一封装：基础攻击+狂暴倍率，后续装备/等级只需改这里）
+     * @param {enemyChar} 怪物数据
+     * @param {ctx} 战斗上下文（存放enemyAtkMulti）
+     * @returns number 最终怪物伤害
+     */
+    function getEnemyAttackValue(enemyChar, ctx) {
+        const baseAtk = enemyChar.baseAtk;
+        // 三层倍率相乘：基础 × 分段 × 狂暴
+        let totalMulti = ctx.baseAtkMulti * ctx.stageAtkMulti;
+        if (ctx.isRaging) {
+            totalMulti *= enemy.aiRageAtkMulti;
+        }
+        return Math.floor(baseAtk * totalMulti);
+    }
+
+    /**
+     * 玩家攻击计算（基础+连击+道具倍率）
+     * @param {object} playerChar 玩家角色数据
+     * @param {number} comboCount 当前连击数
+     * @param {number} damageMulti 道具伤害倍率
+     * @returns {number} 最终计算后攻击伤害
+     */
+    function getPlayerAttackValue(playerChar, comboCount, damageMulti) {
+        let base = playerChar.baseAtk;
+        // 连击加成：每10连击 +10%
+        const comboBonus = Math.floor(comboCount / 10) * 0.1;
+        base *= (1 + comboBonus);
+        // 道具伤害倍率叠加
+        base *= damageMulti;
+        return Math.floor(base);
+    }
+    
+    // 浮点数安全比较工具，消除JS浮点精度误差（缺陷2专用）
+    const EPS = 1e-6;
+    // val < target，带容差
+    function floatLess(val, target) {
+        return val < target - EPS;
+    }
+    // val >= target，带容差
+    function floatGte(val, target) {
+        return val >= target - EPS;
+    }
+    
+    /**
+     * 获取目标当前血量百分比 0~1
+     * @param {string} target HP_TARGET枚举值
+     * @returns {number} 血量占比
+     */
+    function getHpPercent(target) {
+        const current = target === HP_TARGET.PLAYER ? battleState.playerHp : battleState.enemyHp;
+        const max = target === HP_TARGET.PLAYER ? battleState.playerMaxHp : battleState.enemyMaxHp;
+        // 血量最大值为0，属于异常，强制结束战斗
+        if (max <= 0) {
+            console.error('血量max数值异常，终止战斗');
+            endBattle(BATTLE_END_TYPE.TIME_OUT);
+            return 0;
+        }
+        return current / max;
+    }
+
+    /**
+     * 统一血量变更钩子（AI监听唯一入口，所有扣血/回血走这里）
+     * @param {string} target HP_TARGET.PLAYER / HP_TARGET.ENEMY
+     * @param {number} delta 血量变化值 正数回血 负数扣血
+     */
+    function onHpChange(target, delta) {
+        const isPlayer = target === HP_TARGET.PLAYER;
+        const current = isPlayer ? battleState.playerHp : battleState.enemyHp;
+        const max = isPlayer ? battleState.playerMaxHp : battleState.enemyMaxHp;
+
+        // 边界钳位，血量不会小于0、不会超过上限
+        let newHp = Math.min(max, Math.max(0, current + delta));
+
+        // 更新战斗状态血量
+        if (isPlayer) {
+            battleState.playerHp = newHp;
+        } else {
+            battleState.enemyHp = newHp;
+        }
+
+        // 怪物AI血量阶段监听（仅怪物生效，数组容错）
+        if (!isPlayer && battleState.enemy.aiEnable) {
+            const enemy = battleState.enemy;
+            const oldPercent = current / max;
+            const newPercent = newHp / max;
+            const rageThreshold = enemy.aiRageThreshold;
+
+            // 【缺陷2修复】使用浮点安全函数判断狂暴阈值
+            // 血量下降，进入狂暴
+            if (floatLess(newPercent, rageThreshold) && floatGte(oldPercent, rageThreshold)) {
+                console.log("AI TRIGGER: 怪物进入狂暴模式");
+                battleState.battleCtx.isRaging = true;
+            }
+            // 血量回升，退出狂暴
+            if (floatGte(newPercent, rageThreshold) && floatLess(oldPercent, rageThreshold)) {
+                console.log("AI TRIGGER: 怪物退出狂暴模式");
+                battleState.battleCtx.isRaging = false;
+            }
+
+            // 【缺陷3修复】分段血量双向判断：进入阶段 / 离开阶段
+            if (Array.isArray(enemy.aiStageHp)) {
+                for (const stage of enemy.aiStageHp) {
+                    // 血量降低 → 进入分段增伤（倍率*1.2可自行修改）
+                    if (floatLess(newPercent, stage) && floatGte(oldPercent, stage)) {
+                        console.log(`AI TRIGGER: 怪物进入${stage}血量阶段`);
+                        battleState.battleCtx.stageAtkMulti *= 1.2;
+                    }
+                    // 血量回升 → 退出分段，恢复倍率
+                    if (floatGte(newPercent, stage) && floatLess(oldPercent, stage)) {
+                        console.log(`AI TRIGGER: 怪物离开${stage}血量阶段`);
+                        battleState.battleCtx.stageAtkMulti /= 1.2;
+                    }
+                }
+            }
+        }
+        // 刷新血条UI
+        updateBattleUI();
+    }
 
     // ========== DOM 元素缓存 ==========
     let elements = {};
@@ -528,19 +808,17 @@
             resultBackBtn: document.getElementById('battleResultBack')
         };
         
-        // init函数最后追加
-        document.addEventListener('click', () => {
+        // 仅一次性解锁音频，防止重复创建上下文
+        function unlockAudioOnce() {
             initAudio();
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
-        });
-        document.addEventListener('touchend', () => {
-            initAudio();
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        });
+            document.removeEventListener('click', unlockAudioOnce);
+            document.removeEventListener('touchend', unlockAudioOnce);
+        }
+        document.addEventListener('click', unlockAudioOnce);
+        document.addEventListener('touchend', unlockAudioOnce);
         
         // 绑定事件
         if (elements.exitBtn) {
@@ -577,13 +855,15 @@
                 const card = document.createElement('div');
                 card.className = 'character-card';
                 card.dataset.id = char.id;
+                // 计算标准开局血量
+                const showHp = calcPlayerMaxHp(char, { level: 1, hpBuff: 1 });
                 card.innerHTML = `
                     <div class="character-card-emoji">${char.emoji}</div>
                     <div class="character-card-info">
                         <div class="character-card-name">${char.name}</div>
                         <div class="character-card-type">${char.type}</div>
                         <div class="character-card-stats">
-                            <div class="character-card-stat">❤️ <span>${char.hp}</span></div>
+                            <div class="character-card-stat">❤️ <span>${showHp}</span></div>
                             <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
                         </div>
                     </div>
@@ -596,21 +876,23 @@
         if (elements.enemyGrid) {
             elements.enemyGrid.innerHTML = '';
             enemyCharacters.forEach((char, index) => {
+                // 修复：先创建div，再赋值class
                 const card = document.createElement('div');
                 card.className = 'character-card enemy-card';
                 card.dataset.id = char.id;
                 const stars = '⭐'.repeat(char.difficulty);
+                const showEnemyHp = calcEnemyShowHp(char);
                 card.innerHTML = `
                     <div class="character-card-emoji">${char.emoji}</div>
                     <div class="character-card-info">
                         <div class="character-card-name">${char.name}</div>
                         <div class="difficulty-stars">${stars}</div>
                         <div class="character-card-stats">
-                            <div class="character-card-stat">❤️ <span>${char.hp}</span></div>
+                            <div class="character-card-stat">❤️ <span>${showEnemyHp}</span></div>
                             <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
                         </div>
-                    </div>
-                `;
+                    `;
+                // 绑定选中点击事件（之前已补上，无问题）
                 card.addEventListener('click', () => selectEnemy(char.id));
                 elements.enemyGrid.appendChild(card);
             });
@@ -791,18 +1073,29 @@
         if (!selectedPlayerId || !selectedEnemyId) return;
         const playerChar = playerCharacters.find(c => c.id === selectedPlayerId);
         const enemyChar = enemyCharacters.find(c => c.id === selectedEnemyId);
-        // 初始化战斗状态
-        // 怪物血量 = 句子数量 × 玩家攻击力 × 2（确保打不死，必须打完所有句子才能胜利）
-        const enemyMaxHp = battleState.sentences.length * playerChar.attack * 2;
+        
+        // 构建战斗上下文（预留等级、AI难度、buff扩展）
+        const battleCtx = {
+            level: 1,
+            hpBuff: 1,
+            enemyAiMulti: 1,
+            baseAtkMulti: 1,    // 基础全局倍率
+            stageAtkMulti: 1,   // 分段血量倍率
+            isRaging: false     // 狂暴状态标记
+        };
+        // 通过工具函数计算玩家、怪物最大血量
+        const playerMaxHp = calcPlayerMaxHp(playerChar, battleCtx);
+        const enemyMaxHp = calcEnemyMaxHp(enemyChar, battleState.sentences.length, battleCtx);
         
         battleState = {
             active: true,
             player: playerChar,
             enemy: enemyChar,
-            playerHp: playerChar.hp,
-            playerMaxHp: playerChar.hp,
+            playerHp: playerMaxHp,
+            playerMaxHp: playerMaxHp,
             enemyHp: enemyMaxHp,
             enemyMaxHp: enemyMaxHp,
+            battleCtx: battleCtx, // 新增战斗上下文
             sentences: [...battleState.sentences], // 句子不打乱，保持原文顺序
             currentSentenceIndex: 0,
             currentCharIndex: 0,
@@ -941,18 +1234,17 @@
         
         // 血量低于30%播放警告音
         const hpRate = battleState.playerHp / battleState.playerMaxHp;
-        if (hpRate < 0.3 && battleState.playerHp > 0) {
+        if (hpRate < BATTLE_BALANCE.enemyRageHpThreshold && battleState.playerHp > 0) {
             playLowHpWarning();
         }
     }
     // ========== 显示当前句子 ==========
     function showCurrentSentence() {
         if (battleState.currentSentenceIndex >= battleState.sentences.length) {
-            // 全部练习内容打完，强制清空怪物血量
-            battleState.enemyHp = 0;
-            battleState.enemyHp = 0;
+            // 全部练习内容打完，清空怪物血量
+            onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
             updateBattleUI();
-            endBattle('sentences_finished');
+            endBattle(BATTLE_END_TYPE.ALL_SENTENCE_CLEAR);
             return;
         }
         const sentence = battleState.sentences[battleState.currentSentenceIndex];
@@ -1128,7 +1420,6 @@
         }
         // 怪物攻击玩家
         enemyAttack();
-        updateBattleUI();
         checkBattleEnd();
     }
     // 句子完成
@@ -1143,12 +1434,8 @@
         playerAttack();
         // 每 10 连击播放连击音效 + 获得一个护盾
         if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
-            if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
-                playComboSound(battleState.comboCount);
-            };
-            // ===== 新功能：连击护盾 =====
+            playComboSound(battleState.comboCount);
             battleState.shieldCount++;
-            // 显示护盾获得特效
             showShieldGainEffect();
         }
         // 熊猫回血技能
@@ -1175,26 +1462,23 @@
                 }
             }
         }, 800); // 句子比单词长，多给一点时间看
-        updateBattleUI();
         checkBattleEnd();
     }
     // ========== 玩家攻击 ==========
     function playerAttack() {
-        let damage = battleState.player.attack;
+        let damage = getPlayerAttackValue(
+            battleState.player,
+            battleState.comboCount,
+            battleState.damageMultiplier
+        );
         let isCrit = false;
         // 暴击判定
         if (Math.random() < battleState.player.critRate) {
             damage *= 2;
             isCrit = true;
         }
-        // 连击加成（每10连击 +10% 伤害）
-        const comboBonus = Math.floor(battleState.comboCount / 10) * 0.1;
-        damage = Math.floor(damage * (1 + comboBonus));
-        
-        // ===== 新功能：伤害倍率（道具效果） =====
-        damage = Math.floor(damage * battleState.damageMultiplier);
         // 扣血
-        battleState.enemyHp -= damage;
+        onHpChange(HP_TARGET.ENEMY, -damage);
         // 播放音效
         if (isCrit) {
             playCritSound();
@@ -1221,11 +1505,11 @@
         showDamageNumber(elements.enemyFighter, damage, isCrit ? 'crit' : 'normal');
         // 攻击特效
         showAttackEffect(elements.enemyFighter, '💥');
-        updateBattleUI();
     }
     // ========== 怪物攻击 ==========
     function enemyAttack() {
-        const damage = battleState.enemy.attack;
+        // 怪物基础攻击 * AI狂暴倍率
+        const damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx);
         
         // ===== 新功能：无敌判断（道具效果） =====
         if (battleState.invincible) {
@@ -1248,7 +1532,7 @@
         }
         
         // 正常扣血
-        battleState.playerHp -= damage;
+        onHpChange(HP_TARGET.PLAYER, -damage);
         
         // ===== 新功能：受到伤害增加怒气 =====
         addRage(damage * 2); // 每次受到伤害，怒气值 = 伤害 × 2
@@ -1275,19 +1559,18 @@
         showDamageNumber(elements.playerFighter, damage, 'normal');
         // 攻击特效
         showAttackEffect(elements.playerFighter, '💢');
-        updateBattleUI();
+
     }
     // ========== 玩家回血 ==========
     function playerHeal(amount) {
         const actualHeal = Math.min(amount, battleState.playerMaxHp - battleState.playerHp);
-        battleState.playerHp += actualHeal;
+        onHpChange(HP_TARGET.PLAYER, actualHeal);
         // 播放回血音效
         playHealSound();
         // 显示回血数字
         showDamageNumber(elements.playerFighter, '+' + actualHeal, 'heal');
         // 回血特效
         showAttackEffect(elements.playerFighter, '💚');
-        updateBattleUI();
     }
     // ========== 显示伤害数字 ==========
     function showDamageNumber(targetElement, damage, type) {
@@ -1423,11 +1706,11 @@
         const rageHeal = Math.floor(battleState.playerMaxHp * 0.2); // 回20%血
         
         // 怪物掉血
-        battleState.enemyHp -= rageDamage;
+        onHpChange(HP_TARGET.ENEMY, -rageDamage);
         
         // 玩家回血
         const actualHeal = Math.min(rageHeal, battleState.playerMaxHp - battleState.playerHp);
-        battleState.playerHp += actualHeal;
+        onHpChange(HP_TARGET.PLAYER, actualHeal);
         
         // 播放特效
         showRageSkillEffect();
@@ -1603,10 +1886,9 @@
     function checkBattleEnd() {
         if (battleState.battleOver) return;
         // 只有玩家血量归零才失败
-        // 怪物血量不会归零（血很厚），必须打完所有句子才算胜利
         if (battleState.playerHp <= 0) {
-            battleState.playerHp = 0;
-            endBattle('lose');
+            onHpChange(HP_TARGET.PLAYER, -battleState.playerMaxHp);
+            endBattle(BATTLE_END_TYPE.PLAYER_DEAD);
         }
     }
     // ========== 战斗结束 ==========
@@ -1618,13 +1900,13 @@
         const total = battleState.correctCount + battleState.wrongCount;
         const accuracy = total > 0 ? Math.round((battleState.correctCount / total) * 100) : 0;
         
-        // 打完所有句子也算胜利
-        const isWin = result === 'win' || result === 'sentences_finished';
+        // 打完所有句子 / 击杀怪物 都判定胜利
+        const isWin = result === BATTLE_END_TYPE.ALL_SENTENCE_CLEAR || result === BATTLE_END_TYPE.ENEMY_HP_EMPTY;
         
         // 播放结果音效
         if (isWin) {
             playWinSound();
-        } else if (result === 'lose') {
+        } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
             playLoseSound();
         }
         // 更新结果弹窗
@@ -1638,7 +1920,7 @@
         if (elements.resultSubtitle) {
             if (isWin) {
                 elements.resultSubtitle.textContent = `恭喜！全部 ${battleState.sentences.length} 个句子都打完啦！`;
-            } else if (result === 'lose') {
+            } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
                 elements.resultSubtitle.textContent = `你被 ${battleState.enemy.name} 击败了...`;
             } else {
                 elements.resultSubtitle.textContent = '所有句子都打完啦！';
