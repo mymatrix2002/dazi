@@ -710,8 +710,8 @@
     
     /* 动态跟随战斗角色字号计算最小高度，避免角色压缩 */
     .battle-scene {
-        /* 56px角色高度 + 上下padding各20px + 缓冲留白 */
-        min-height: calc(56px + 40px + 30px);
+        /* 56px角色高度 + 上下padding各20px + 缓冲留白30px */
+        min-height: calc(56px + 40px + 14px);
     }
     
 }
