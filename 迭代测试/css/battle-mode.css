@@ -696,7 +696,7 @@
     
     /* 新增：战斗场景最小高度，防止页面过低被压缩 */
     .battle-scene {
-        min-height: 220px;
+        min-height: 130px;
     }
 
     .battle-word-text {
