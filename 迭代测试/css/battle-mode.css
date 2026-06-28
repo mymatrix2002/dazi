@@ -11,9 +11,6 @@
     flex-direction: column;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
-    /* 新增两行 */
-    height: 100vh;
-    viewport-fit: cover;
 }
 
 /* 战斗模式内容区域 - 与主界面宽度一致 */
@@ -710,19 +707,12 @@
         font-size: 18px;
         padding: 12px 16px;
     }
-
+    
     /* 新增：战斗场景最小高度，防止页面过低被压缩 */
     .battle-scene {
         min-height: 120px;
-        /* 键盘弹出时允许缩小，不强制撑高 */
-        flex-shrink: 1;
     }
     
-    .battle-input-area {
-        /* 底部增加内边距，避开键盘区域 */
-        padding-bottom: 40px;
-    }
- 
 }
 
 /* ========== 新功能：怒气条 ========== */
