@@ -728,18 +728,21 @@
 
 .battle-rage-fill {
     height: 100%;
-    background: linear-gradient(90deg, #f97316, #ef4444);
+    /* 加宽渐变范围，实现流光滑动 */
+    background: linear-gradient(90deg, #ea580c, #f97316, #fb923c, #ef4444, #ea580c);
+    background-size: 300% 100%;
+    background-position: 0% 50%;
     border-radius: 4px;
     width: 0%;
     transition: width 0.3s ease;
 }
-
-/* 怒气满了发光效果 */
+/* 怒气满：流光动画+外发光双重效果 */
 .battle-rage-bar.rage-full .battle-rage-fill {
-    animation: rage-pulse 0.8s ease-in-out infinite;
+    /* 内部橙色流光左右滚动 */
+    animation: rage-shine 1.2s ease-in-out infinite, rage-pulse 0.8s ease-in-out infinite;
     box-shadow: 0 0 10px #ef4444, 0 0 20px #f97316;
 }
-
+/* 外层阴影脉冲闪烁（保留原有发光） */
 @keyframes rage-pulse {
     0%, 100% {
         box-shadow: 0 0 10px #ef4444, 0 0 20px #f97316;
@@ -747,6 +750,12 @@
     50% {
         box-shadow: 0 0 20px #ef4444, 0 0 30px #f97316, 0 0 40px #f97316;
     }
+}
+/* 新增：橙色流光滑动动画 */
+@keyframes rage-shine {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* ========== 新功能：护盾数量显示 ========== */
@@ -946,4 +955,12 @@
     50% {
         transform: scale(1.3);
     }
+}
+
+@keyframes warn-flash {
+    0%,100% {filter: brightness(1);}
+    50% {filter: brightness(1.8) hue-rotate(20deg);}
+}
+.battle-fighter.warn-flash {
+    animation: warn-flash 0.3s infinite;
 }
