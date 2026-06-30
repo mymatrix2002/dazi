@@ -5,25 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <script>
-      // 标记是否成功加载官方Tailwind
       let tailwindReady = false;
 
-      // CDN超时后加载本地 tailwind.min.js
       function loadLocalTailwind() {
         if (tailwindReady) return;
-        // 创建script标签引入本地JS版Tailwind
+        // 自动获取页面基础路径，兼容二级仓库
+        let basePath = window.location.pathname;
+        if (basePath.endsWith('/index.html')) {
+          basePath = basePath.replace('/index.html', '/');
+        }
         const localTwScript = document.createElement('script');
-        localTwScript.src = 'css/tailwind.min.css';
+        localTwScript.src = basePath + 'js/tailwind.min.js';
         document.head.appendChild(localTwScript);
-        console.log("官方CDN加载超时/失败，自动加载本地tailwind.min.css");
+        console.log("官方CDN加载异常，自动切换本地tailwind.min.js");
       }
 
-      // 3秒超时判定，超时则加载本地文件
+      // 3秒兜底超时
       setTimeout(loadLocalTailwind, 3000);
     </script>
 
-    <!-- 优先加载官方在线CDN -->
-    <script src="https://cdn.tailwindcss.com" onload="tailwindReady = true"></script>
+    <!-- 加载成功+加载失败双监听，失败立刻切本地 -->
+    <script 
+      src="https://cdn.tailwindcss.com"
+      onload="tailwindReady = true"
+      onerror="loadLocalTailwind()"
+    ></script>
     <title>儿童趣味打字练习</title>
     
     <link rel="stylesheet" href="css/main.css?v=2.4.1">
