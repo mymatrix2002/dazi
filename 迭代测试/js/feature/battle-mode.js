@@ -26,6 +26,23 @@
         enemyRageHpThreshold: 0.3,             // 怪物狂暴血量阈值
         playerMaxHpLimitMulti: 10              // 玩家血量上限保护倍率
     };
+    // 新增：怪物血量分段枚举
+    const BATTLE_STAGE = {
+        HIGH: 0,
+        MID: 1,
+        LOW: 2
+    };
+    // 新增：难度对应攻击间隔配置
+    const DIFF_ATTACK_CD = {
+		easy: 16000,    // 入门简单：16秒超长反应时间（低年级/打字新手首选）
+		normal: 12000,  // 普通：12秒（五年级正常练习）
+		hard: 8000      // 挑战：8秒（熟练后用来提速）
+    };
+    const STAGE_LABEL = {
+        [BATTLE_STAGE.HIGH]: "常规",
+        [BATTLE_STAGE.MID]: "狂怒",
+        [BATTLE_STAGE.LOW]: "狂暴绝境"
+    };
 
     // ========== 角色数据 ==========
     
@@ -260,6 +277,7 @@
         rage: 0,             // 当前怒气值
         maxRage: 100,        // 最大怒气值
         rageSkillReady: false, // 怒气技能是否就绪
+        rageAutoTimer: null, // 新增：怒气自动释放定时器
         // ===== 新功能：道具掉落 =====
         itemDropCounter: 0,  // 道具掉落计数器（每打对几个句子掉落一次）
         damageMultiplier: 1, // 伤害倍率（道具效果）
@@ -595,6 +613,83 @@
         }
     }
     
+    // 新增全局战斗提示弹窗
+    function showBattleAlert(text, type = "info", duration = 2500) {
+        // 先移除现存弹窗，防止多层叠加
+        const oldTip = document.querySelector('div[style*="top:30%"]');
+        if(oldTip) oldTip.remove();
+        const tip = document.createElement('div');
+        tip.style.cssText = `position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:12px;z-index:9999;font-size:16px`;
+        if(type === "warning") tip.style.boxShadow = "0 0 12px #f87171";
+        tip.textContent = text;
+        document.body.appendChild(tip);
+        setTimeout(()=>{
+            if(tip.parentNode) tip.remove();
+        }, duration);
+    }
+
+    // ========== 新功能：道具类型定义 ==========
+    const itemTypes = [
+        {
+            id: 'heal',
+            name: '回血药水',
+            emoji: '❤️',
+            description: '恢复 30% 生命值',
+            effect: function() {
+                const healAmount = Math.floor(battleState.playerMaxHp * 0.3);
+                playerHeal(healAmount);
+            }
+        },
+        {
+            id: 'shield',
+            name: '护盾道具',
+            emoji: '🛡️',
+            description: '获得 2 个护盾',
+            effect: function() {
+                battleState.shieldCount += 2;
+                showShieldGainEffect();
+            }
+        },
+        {
+            id: 'attack',
+            name: '力量药水',
+            emoji: '⚔️',
+            description: '接下来 5 个句子伤害翻倍',
+            duration: 5,
+            effect: function() {
+                battleState.damageMultiplier = 2;
+                addActiveItem('attack', 5);
+            }
+        },
+        {
+            id: 'invincible',
+            name: '无敌星星',
+            emoji: '⭐',
+            description: '接下来 3 个句子无敌',
+            duration: 3,
+            effect: function() {
+                battleState.invincible = true;
+                addActiveItem('invincible', 3);
+            }
+        },
+        {
+            id: 'rage',
+            name: '怒气药水',
+            emoji: '🔥',
+            description: '怒气直接充满',
+            effect: function() {
+                battleState.rage = battleState.maxRage;
+                battleState.rageSkillReady = true;
+                showRageFullEffect();
+                setTimeout(() => {
+                    if (!battleState.battleOver && battleState.rageSkillReady) {
+                        useRageSkill();
+                    }
+                }, 800);
+            }
+        }
+    ];
+    
     // ========== 血量计算工具函数 ==========
     /**
      * 计算玩家最大血量（带等级、buff、上限保护）
@@ -651,14 +746,16 @@
      */
     function getEnemyAttackValue(enemyChar, ctx) {
         const baseAtk = enemyChar.baseAtk;
-        // 三层倍率相乘：基础 × 分段 × 狂暴
-        let totalMulti = ctx.baseAtkMulti * ctx.stageAtkMulti;
+        // 兜底防止activeStageList为undefined/null
+        const stageCount = Array.isArray(ctx.activeStageList) ? ctx.activeStageList.length : 0;
+        const stageAtkMulti = Math.pow(1.2, stageCount);
+        let totalMulti = ctx.baseAtkMulti * stageAtkMulti;
         if (ctx.isRaging) {
-            totalMulti *= enemy.aiRageAtkMulti;
+            totalMulti *= enemyChar.aiRageAtkMulti;
         }
         return Math.floor(baseAtk * totalMulti);
     }
-
+	
     /**
      * 玩家攻击计算（基础+连击+道具倍率）
      * @param {object} playerChar 玩家角色数据
@@ -676,7 +773,7 @@
         return Math.floor(base);
     }
     
-    // 浮点数安全比较工具，消除JS浮点精度误差（缺陷2专用）
+    // 浮点数安全比较工具，消除JS浮点精度误差
     const EPS = 1e-6;
     // val < target，带容差
     function floatLess(val, target) {
@@ -686,7 +783,14 @@
     function floatGte(val, target) {
         return val >= target - EPS;
     }
-    
+    // 新增：获取怪物当前血量分段
+    function getCurrentStage(hp, maxHp) {
+        const pct = hp / maxHp;
+        if (floatLess(pct, 0.3)) return BATTLE_STAGE.LOW;
+        if (floatLess(pct, 0.7)) return BATTLE_STAGE.MID;
+        return BATTLE_STAGE.HIGH;
+    }
+
     /**
      * 获取目标当前血量百分比 0~1
      * @param {string} target HP_TARGET枚举值
@@ -697,7 +801,6 @@
         const max = target === HP_TARGET.PLAYER ? battleState.playerMaxHp : battleState.enemyMaxHp;
         // 血量最大值为0，属于异常，强制结束战斗
         if (max <= 0) {
-            console.error('血量max数值异常，终止战斗');
             endBattle(BATTLE_END_TYPE.TIME_OUT);
             return 0;
         }
@@ -731,36 +834,41 @@
             const newPercent = newHp / max;
             const rageThreshold = enemy.aiRageThreshold;
 
-            // 【缺陷2修复】使用浮点安全函数判断狂暴阈值
+            // 使用浮点安全函数判断狂暴阈值
             // 血量下降，进入狂暴
             if (floatLess(newPercent, rageThreshold) && floatGte(oldPercent, rageThreshold)) {
-                console.log("AI TRIGGER: 怪物进入狂暴模式");
                 battleState.battleCtx.isRaging = true;
             }
             // 血量回升，退出狂暴
             if (floatGte(newPercent, rageThreshold) && floatLess(oldPercent, rageThreshold)) {
-                console.log("AI TRIGGER: 怪物退出狂暴模式");
                 battleState.battleCtx.isRaging = false;
             }
 
-            // 【缺陷3修复】分段血量双向判断：进入阶段 / 离开阶段
+            // 新增：血量阶段切换弹窗提示，用枚举去重防刷屏
+            const nowStage = getCurrentStage(newHp, max);
+            const oldStage = getCurrentStage(current, max);
+            if (nowStage !== oldStage && !battleState.battleCtx.stageNotified[nowStage]) {
+                battleState.battleCtx.stageNotified[nowStage] = true;
+                // 复用现有弹窗提示，无showBattleAlert函数则替换为console+简易特效
+                showBattleAlert(`⚠️ 怪物进入${STAGE_LABEL[nowStage]}阶段，伤害提升！`, "warning", 2500);
+                // 简易弹窗兼容：若项目无统一alert，可自行封装showBattleAlert
+            }
+            // 分段血量双向判断：进入阶段 / 离开阶段
+            // 刷新怪物血量分段激活列表，仅记录生效分段，倍率移至伤害函数计算
             if (Array.isArray(enemy.aiStageHp)) {
+                battleState.battleCtx.activeStageList = [];
+                const newPercent = newHp / max;
                 for (const stage of enemy.aiStageHp) {
-                    // 血量降低 → 进入分段增伤（倍率*1.2可自行修改）
-                    if (floatLess(newPercent, stage) && floatGte(oldPercent, stage)) {
-                        console.log(`AI TRIGGER: 怪物进入${stage}血量阶段`);
-                        battleState.battleCtx.stageAtkMulti *= 1.2;
-                    }
-                    // 血量回升 → 退出分段，恢复倍率
-                    if (floatGte(newPercent, stage) && floatLess(oldPercent, stage)) {
-                        console.log(`AI TRIGGER: 怪物离开${stage}血量阶段`);
-                        battleState.battleCtx.stageAtkMulti /= 1.2;
+                    if (floatLess(newPercent, stage)) {
+                        battleState.battleCtx.activeStageList.push(stage);
                     }
                 }
             }
         }
         // 刷新血条UI
         updateBattleUI();
+        // 血量变化统一兜底检测战斗胜负
+        checkBattleEnd();
     }
 
     // ========== DOM 元素缓存 ==========
@@ -826,7 +934,8 @@
         }
         if (elements.battleInput) {
             elements.battleInput.addEventListener('input', handleInput);
-            // 对战新增：触摸输入框强制唤醒音频上下文
+
+            // 触摸唤醒音频
             elements.battleInput.addEventListener('touchend', () => {
                 initAudio();
                 if (audioCtx?.state === 'suspended') {
@@ -876,7 +985,7 @@
         if (elements.enemyGrid) {
             elements.enemyGrid.innerHTML = '';
             enemyCharacters.forEach((char, index) => {
-                // 修复：先创建div，再赋值class
+                // 先创建div，再赋值class
                 const card = document.createElement('div');
                 card.className = 'character-card enemy-card';
                 card.dataset.id = char.id;
@@ -891,7 +1000,8 @@
                             <div class="character-card-stat">❤️ <span>${showEnemyHp}</span></div>
                             <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
                         </div>
-                    `;
+                    </div>
+                `;
                 // 绑定选中点击事件（之前已补上，无问题）
                 card.addEventListener('click', () => selectEnemy(char.id));
                 elements.enemyGrid.appendChild(card);
@@ -1073,15 +1183,26 @@
         if (!selectedPlayerId || !selectedEnemyId) return;
         const playerChar = playerCharacters.find(c => c.id === selectedPlayerId);
         const enemyChar = enemyCharacters.find(c => c.id === selectedEnemyId);
-        
+
+        // 使用选中的 enemyChar 读取难度，不读取未初始化的 battleState.enemy
+        const diffKey = enemyChar.difficulty === 1 ? 'easy' : enemyChar.difficulty === 2 ? 'normal' : 'hard';
         // 构建战斗上下文（预留等级、AI难度、buff扩展）
         const battleCtx = {
             level: 1,
             hpBuff: 1,
             enemyAiMulti: 1,
-            baseAtkMulti: 1,    // 基础全局倍率
-            stageAtkMulti: 1,   // 分段血量倍率
-            isRaging: false     // 狂暴状态标记
+            baseAtkMulti: 1,
+            isRaging: false,
+            attackTimer: 0,
+            attackInterval: DIFF_ATTACK_CD[diffKey],
+            attackLock: false,
+            inInterruptWindow: false,
+            continuousCorrect: 0, // 新增：末尾连续有效正确字母数量
+            stageNotified: {},
+            interruptTimer: 0, // 预警超时计时器
+            rageSkillCooldown: false,
+            bgTimerId: null,
+            activeStageList: [] // 新增：记录当前激活的分段阈值
         };
         // 通过工具函数计算玩家、怪物最大血量
         const playerMaxHp = calcPlayerMaxHp(playerChar, battleCtx);
@@ -1090,7 +1211,7 @@
         battleState = {
             active: true,
             player: playerChar,
-            enemy: enemyChar,
+            enemy: enemyChar, // 此处才给全局battleState赋值怪物对象
             playerHp: playerMaxHp,
             playerMaxHp: playerMaxHp,
             enemyHp: enemyMaxHp,
@@ -1144,6 +1265,18 @@
                 }
             }
         }, 300);
+        
+        // 新增：后台持续计时，不输入也会倒计时，每100ms累加一次
+        battleCtx.bgTimerId = setInterval(() => {
+            if(battleState.battleOver) {
+                clearInterval(battleCtx.bgTimerId);
+                return;
+            }
+            const delta = 100;
+            battleCtx.attackTimer += delta;
+            checkMonsterAutoAttack();
+        }, 100);
+
     }
     // ========== 更新战斗 UI ==========
     function updateBattleUI() {
@@ -1239,7 +1372,7 @@
         }
     }
     // ========== 显示当前句子 ==========
-    function showCurrentSentence() {
+    function showCurrentSentence() {  
         if (battleState.currentSentenceIndex >= battleState.sentences.length) {
             // 全部练习内容打完，清空怪物血量
             onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
@@ -1296,9 +1429,7 @@
             elements.battleInput.value = '';
             elements.battleInput.classList.remove('correct', 'wrong');
         }
-        // 重置输入长度记录和错误状态
-        battleState.lastInputLength = 0;
-        battleState.inputError = false;
+
         // 播放当前句子的语音
         playVoice(sentence.english);
         // 预加载下一句的语音
@@ -1309,6 +1440,16 @@
                 preloadVoice(battleState.sentences[nextIndex].english);
             }, 500);
         }
+        
+        // 切换句子刷新计时时间戳
+        battleState.lastInputTime = Date.now();
+        checkMonsterAutoAttack();
+        
+        battleState.lastInputLength = 0;
+        battleState.inputError = false;
+        battleState.battleCtx.continuousCorrect = 0;
+        battleState.battleCtx.inInterruptWindow = false;
+        battleState.battleCtx.interruptTimer = 0;
     }
     
     // 更新逐字颜色（替代圆点进度条）
@@ -1358,13 +1499,65 @@
     // ========== 处理输入 ==========
     function handleInput(e) {
         if (battleState.battleOver) return;
+        const ctx = battleState.battleCtx;
+        let skipMonsterTimer = false;
+        // 打断窗口【优化完整版】：前序错误不影响末尾连续，错字不直接关闭预警
+        if (ctx.inInterruptWindow && !battleState.battleOver) {
+            const input = elements.battleInput;
+            const sentence = battleState.sentences[battleState.currentSentenceIndex];
+            const targetEnglish = sentence.english.toLowerCase();
+            const inputValue = input.value.toLowerCase();
+            let currentContinuous = 0;
+            // 倒序统计末尾有效字母：空格只跳过不打断计数
+            for (let i = inputValue.length - 1; i >= 0; i--) {
+                const char = inputValue[i];
+                // 空格/制表符仅跳过，不中断连续统计
+                if ([' ','\t','\n','\r'].includes(char)) {
+                    continue;
+                }
+                if (char === targetEnglish[i]) {
+                    currentContinuous++;
+                    if (currentContinuous >= 3) {
+                        currentContinuous = 3;
+                        break;
+                    }
+                } else {
+                    // 末尾出现错字，终止统计
+                    break;
+                }
+            }
+
+            // 更新连续计数
+            ctx.continuousCorrect = currentContinuous;
+
+            // 只要末尾凑够3个，立刻打断
+            if (ctx.continuousCorrect >= 3) {
+                ctx.attackTimer = 0;
+                ctx.inInterruptWindow = false;
+                ctx.continuousCorrect = 0;
+                ctx.interruptTimer = 0; 
+                ctx.attackLock = true; // 新增：短时锁住怪物计时
+                setTimeout(()=>{ctx.attackLock = false;},700);
+                if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+                battleState.rageAutoTimer = null;
+                // 手动移除打断警告弹窗
+                const oldTip = document.querySelector('div[style*="top:30%"]');
+                if(oldTip) old.remove();
+                // 关闭怪物闪烁
+                elements.enemyFighter.classList.remove('warn-flash');
+                showAttackEffect(elements.enemyFighter, "✨");
+                playComboSound(20);
+                skipMonsterTimer = true;
+            }
+            // 末尾不足3个、包含错字：仅重置计数，预警保持不消失
+        }
+        // ========== 下方原有输入校验、字符上色逻辑完整保留，不会被跳过 ==========
         const input = elements.battleInput;
         const sentence = battleState.sentences[battleState.currentSentenceIndex];
         const inputValue = input.value.toLowerCase();
         const targetEnglish = sentence.english.toLowerCase();
         const inputLen = inputValue.length;
         
-        // 检查输入是否有错误（找到第一个错误的位置）
         let hasError = false;
         let firstErrorIndex = -1;
         for (let i = 0; i < inputLen; i++) {
@@ -1375,34 +1568,35 @@
             }
         }
         
-        // 如果从正确状态变成错误状态 → 扣血（每个错误只扣一次）
         if (hasError && !battleState.inputError) {
             handleWrongInput();
         }
-        // 更新错误状态
         battleState.inputError = hasError;
         
-        // 更新当前字符索引（正确的字符数）
         if (hasError) {
             battleState.currentCharIndex = firstErrorIndex;
         } else {
             battleState.currentCharIndex = inputLen;
         }
-        
-        // 更新逐字颜色（不管对错都更新）
+        // 打断成功也会执行上色，字符正常变绿色
         updateCharColors();
         
-        // 检查是否打完整个句子的英文部分（全部正确且长度相等）
         if (!hasError && inputLen === targetEnglish.length) {
             handleSentenceComplete();
         }
         
-        // 更新上次输入长度
         battleState.lastInputLength = inputLen;
         
-        // 输入无错误，新增单字符反馈音效
         if (!hasError && inputLen > 0) {
             playCharCorrectSound();
+        }
+        // ========== 根据标记判断是否跳过怪物计时 ==========
+        if(!skipMonsterTimer){
+            const nowTime = Date.now();
+            const delta = nowTime - battleState.lastInputTime || 0;
+            battleState.battleCtx.attackTimer += delta;
+            battleState.lastInputTime = nowTime;
+            checkMonsterAutoAttack();
         }
     }
     // 打错了
@@ -1463,12 +1657,14 @@
         setTimeout(() => {
             if (!battleState.battleOver) {
                 battleState.currentSentenceIndex++;
+                // 新增重置攻击计时
+                battleState.battleCtx.attackTimer = 0;
                 showCurrentSentence();
                 if (elements.battleInput) {
                     elements.battleInput.focus();
                 }
             }
-        }, 800); // 句子比单词长，多给一点时间看
+        }, 800);
         checkBattleEnd();
     }
     // ========== 玩家攻击 ==========
@@ -1513,20 +1709,74 @@
         // 攻击特效
         showAttackEffect(elements.enemyFighter, '💥');
     }
+    
+    // 新增：怪物定时自动攻击检测
+    function checkMonsterAutoAttack() {
+        const ctx = battleState.battleCtx;
+        // 打断窗口期间完全跳过攻击判定
+        if (battleState.battleOver || ctx.attackLock) return;
+
+        // 预警超过6秒自动关闭
+        if(ctx.inInterruptWindow && Date.now() - ctx.interruptTimer > 6000){
+            ctx.inInterruptWindow = false;
+            ctx.continuousCorrect = 0;
+            ctx.interruptTimer = 0;
+            // 超时也移除弹窗、闪光
+            const oldTip = document.querySelector('div[style*="top:30%"]');
+            if(oldTip) old.remove();
+            elements.enemyFighter.classList.remove('warn-flash');
+        }
+
+        const remain = ctx.attackInterval - ctx.attackTimer;
+        //remain <= 4000 代表攻击倒计时剩余 4 秒弹出打断提示
+        if (remain <= 4000 && !ctx.inInterruptWindow) {
+            // 进入打断预警窗口，补充计时戳
+            ctx.inInterruptWindow = true;
+            ctx.interruptTimer = Date.now(); 
+            showBattleAlert(`✨小怪物要出招啦！连续输入3个正确字母就能拦住它哦`, "warning", 6000);
+            elements.enemyFighter.classList.add('warn-flash');
+            setTimeout(()=>elements.enemyFighter.classList.remove('warn-flash'), 6000);
+        }
+        // 计时达到，执行怪物攻击
+        if (ctx.attackTimer >= ctx.attackInterval) {
+            ctx.attackLock = true;
+            enemyAttack();
+            // 攻击完成重置计时器
+            ctx.attackTimer = 0;
+            ctx.inInterruptWindow = false;
+            ctx.continuousCorrect = 0;
+            ctx.interruptTimer = 0;
+            // 锁定700ms，和怪物攻击后锁定时长保持一致
+            setTimeout(()=>{ctx.attackLock = false;},700);
+        }
+    }
+
     // ========== 怪物攻击 ==========
     function enemyAttack() {
+        /*
         // 怪物基础攻击 * AI狂暴倍率
-        const damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx);
+        let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx);
+        */
         
+        // 怪物基础攻击 * AI狂暴倍率 + 全局新手保护伤害减半
+        let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx)* 0.5;
+        damage = Math.floor(damage);
+        // 儿童保护：长时间不输入，怪物伤害减半，避免打击孩子
+        const idleTime = Date.now() - battleState.lastInputTime;
+        if (idleTime > 5000) {
+            damage = Math.floor(damage * 0.5);
+        }
+
         // ===== 新功能：无敌判断（道具效果） =====
         if (battleState.invincible) {
             // 无敌状态，不扣血
             showDamageNumber(elements.playerFighter, '免疫', 'heal');
             showAttackEffect(elements.playerFighter, '✨');
             updateBattleUI();
+            checkBattleEnd();
             return;
         }
-        
+
         // ===== 新功能：护盾抵挡 =====
         if (battleState.shieldCount > 0) {
             battleState.shieldCount--;
@@ -1535,15 +1785,16 @@
             // 不扣血，只显示护盾抵挡
             showDamageNumber(elements.playerFighter, '护盾', 'heal');
             updateBattleUI();
+            checkBattleEnd();
             return;
         }
-        
+
         // 正常扣血
         onHpChange(HP_TARGET.PLAYER, -damage);
-        
+
         // ===== 新功能：受到伤害增加怒气 =====
         addRage(damage * 2); // 每次受到伤害，怒气值 = 伤害 × 2
-        
+
         // 播放受击音效
         playHurtSound();
         // 怪物攻击动画
@@ -1566,7 +1817,8 @@
         showDamageNumber(elements.playerFighter, damage, 'normal');
         // 攻击特效
         showAttackEffect(elements.playerFighter, '💢');
-
+        // 新增：怪物攻击造成伤害后，检测玩家是否阵亡
+        checkBattleEnd();
     }
     // ========== 玩家回血 ==========
     function playerHeal(amount) {
@@ -1669,16 +1921,13 @@
         battleState.rage = Math.min(battleState.rage + amount, battleState.maxRage);
         if (battleState.rage >= battleState.maxRage && !battleState.rageSkillReady) {
             battleState.rageSkillReady = true;
-            // 怒气满了，显示提示
             showRageFullEffect();
-            
-            // ===== 自动释放怒气技能（方案C：自动释放） =====
-            // 延迟一点点释放，让玩家先看到"怒气满了"的提示
-            setTimeout(() => {
-                if (!battleState.battleOver && battleState.rageSkillReady) {
-                    useRageSkill();
-                }
-            }, 800);
+            // 先清除旧倒计时，避免多个定时器叠加
+            if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+            battleState.rageAutoTimer = setTimeout(() => {
+                if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
+                useRageSkill();
+            }, 60000);
         }
         updateBattleUI();
     }
@@ -1703,10 +1952,15 @@
 
     // 释放怒气技能
     function useRageSkill() {
-        if (!battleState.rageSkillReady) return;
-        
+        const ctx = battleState.battleCtx;
+        if (!battleState.rageSkillReady || ctx.rageSkillCooldown || battleState.battleOver) return;
+        ctx.rageSkillCooldown = true;
         battleState.rageSkillReady = false;
         battleState.rage = 0;
+        // 清除自动释放倒计时
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        // 3秒冷却防止重复释放
+        setTimeout(()=>{ctx.rageSkillCooldown = false;}, 3000);
         
         // 怒气技能效果：对怪物造成大量伤害 + 玩家回血
         const rageDamage = Math.floor(battleState.player.attack * 3); // 3倍攻击力
@@ -1722,7 +1976,7 @@
         // 播放特效
         showRageSkillEffect();
         showDamageNumber(elements.enemyFighter, rageDamage, 'crit');
-        showDamageNumber(elements.playerFighter, '+' + actualHeal, 'heal');
+        showDamageNumber(elements.playerFighter, '+' + actualHeal);
         
         // 播放音效（用暴击音效代替）
         playCritSound();
@@ -1730,6 +1984,13 @@
         
         updateBattleUI();
         checkBattleEnd();
+
+        // 新增：释放怒气后自动聚焦输入框
+        setTimeout(() => {
+            if(elements.battleInput && !battleState.battleOver){
+                elements.battleInput.focus();
+            }
+        }, 300);
     }
 
     // 怒气技能特效
@@ -1748,69 +2009,6 @@
             }
         }, 1000);
     }
-
-    // ========== 新功能：道具掉落 ==========
-    // 道具类型定义
-    const itemTypes = [
-        {
-            id: 'heal',
-            name: '回血药水',
-            emoji: '❤️',
-            description: '恢复 30% 生命值',
-            effect: function() {
-                const healAmount = Math.floor(battleState.playerMaxHp * 0.3);
-                playerHeal(healAmount);
-            }
-        },
-        {
-            id: 'shield',
-            name: '护盾道具',
-            emoji: '🛡️',
-            description: '获得 2 个护盾',
-            effect: function() {
-                battleState.shieldCount += 2;
-                showShieldGainEffect();
-            }
-        },
-        {
-            id: 'attack',
-            name: '力量药水',
-            emoji: '⚔️',
-            description: '接下来 5 个句子伤害翻倍',
-            duration: 5,
-            effect: function() {
-                battleState.damageMultiplier = 2;
-                addActiveItem('attack', 5);
-            }
-        },
-        {
-            id: 'invincible',
-            name: '无敌星星',
-            emoji: '⭐',
-            description: '接下来 3 个句子无敌',
-            duration: 3,
-            effect: function() {
-                battleState.invincible = true;
-                addActiveItem('invincible', 3);
-            }
-        },
-        {
-            id: 'rage',
-            name: '怒气药水',
-            emoji: '🔥',
-            description: '怒气直接充满',
-            effect: function() {
-                battleState.rage = battleState.maxRage;
-                battleState.rageSkillReady = true;
-                showRageFullEffect();
-                setTimeout(() => {
-                    if (!battleState.battleOver && battleState.rageSkillReady) {
-                        useRageSkill();
-                    }
-                }, 800);
-            }
-        }
-    ];
 
     // 添加激活的道具（有持续时间的）
     function addActiveItem(itemId, duration) {
@@ -1909,10 +2107,7 @@
         }
     }
     // ========== 战斗结束 ==========
-    function endBattle(result) {
-        // 新增战斗结束日志
-        console.log(`[BATTLE END] type=${result}, playerHp=${battleState.playerHp}, enemyHp=${battleState.enemyHp}, correct=${battleState.correctCount}`);
-        
+    function endBattle(result) {     
         battleState.battleOver = true;
         battleState.active = false;
         const endTime = Date.now();
@@ -1966,9 +2161,17 @@
                 elements.battleResult.classList.add('active');
             }
         }, 800);
+        
+        // 清除后台攻击计时器
+        if(battleState.battleCtx.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+        
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
     }
     // ========== 再来一局 ==========
     function retryBattle() {
+        // 清除旧局计时器，防止多定时器叠加
+        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+        
         playClickSound();
         // 强制停止所有语音、清理缓存，解决旧语音延迟干扰新对局
         stopVoice();
@@ -1977,10 +2180,13 @@
             elements.battleResult.classList.remove('active');
         }
         startBattle();
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
     }
     // ========== 返回选择界面 ==========
     function backToSelect() {
         playClickSound();
+        // 清除后台攻击定时器
+        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
         if (elements.battleResult) {
             elements.battleResult.classList.remove('active');
         }
@@ -2002,7 +2208,10 @@
             } catch (voiceErr) {
                 console.warn('退出时清理语音缓存失败，忽略异常', voiceErr);
             }
-            
+
+            // 新增：清除后台攻击定时器
+            if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+
             // 以下界面关闭逻辑不受语音报错影响，一定会执行
             if (elements.battleMode) {
                 elements.battleMode.classList.remove('active');
@@ -2014,7 +2223,14 @@
                 elements.battleResult.classList.remove('active');
             }
         }
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
     }
+    
+    // 全局怒气手动释放入口
+    window.triggerRageSkill = function() {
+        if(battleState && !battleState.battleOver) useRageSkill();
+    }
+
     // ========== 对外接口 ==========
     window.battleMode = {
         init: init,
