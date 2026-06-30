@@ -4,7 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // 标记是否成功加载官方Tailwind
+      let tailwindReady = false;
+
+      // CDN超时后加载本地 tailwind.min.js
+      function loadLocalTailwind() {
+        if (tailwindReady) return;
+        // 创建script标签引入本地JS版Tailwind
+        const localTwScript = document.createElement('script');
+        localTwScript.src = 'css/tailwind.min.css';
+        document.head.appendChild(localTwScript);
+        console.log("官方CDN加载超时/失败，自动加载本地tailwind.min.css");
+      }
+
+      // 3秒超时判定，超时则加载本地文件
+      setTimeout(loadLocalTailwind, 3000);
+    </script>
+
+    <!-- 优先加载官方在线CDN -->
+    <!-- <script src="https://cdn.tailwindcss.com" onload="tailwindReady = true"></script> -->
     <title>儿童趣味打字练习</title>
     
     <link rel="stylesheet" href="css/main.css?v=2.4.1">
@@ -259,8 +278,8 @@
                         <span id="battleShieldCount" class="battle-shield-count"></span>
                         <span id="battleActiveItems" class="battle-active-items"></span>
                     </div>
-                    <div id="battlePlayerRageBar" class="battle-rage-bar">
-                        <div id="battlePlayerRageFill" class="battle-rage-fill" style="width: 0%"></div>
+                    <div id="battlePlayerRageBar" class="battle-rage-bar" onclick="triggerRageSkill()" style="cursor:pointer;">
+                        <div id="battlePlayerRageFill" class="battle-rage-fill"></div>
                     </div>
                 </div>
             </div>
