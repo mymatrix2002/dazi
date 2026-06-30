@@ -613,6 +613,12 @@
         }
     }
     
+    // 移除怪物预警进度条，防止多条堆叠
+    function clearMonsterWarningBar() {
+        const oldBar = document.querySelector('.monster-warning-bar-wrap');
+        if (oldBar) oldBar.remove();
+    }
+    
     // 新增全局战斗提示弹窗
     function showBattleAlert(text, type = "info", duration = 2500) {
         // 先移除现存弹窗，防止多层叠加
@@ -1543,6 +1549,8 @@
                 // 手动移除打断警告弹窗
                 const oldTip = document.querySelector('div[style*="top:30%"]');
                 if(oldTip) old.remove();
+                // 新增：打断成功销毁进度条
+                clearMonsterWarningBar();
                 // 关闭怪物闪烁
                 elements.enemyFighter.classList.remove('warn-flash');
                 showAttackEffect(elements.enemyFighter, "✨");
@@ -1730,12 +1738,69 @@
         const remain = ctx.attackInterval - ctx.attackTimer;
         //remain <= 4000 代表攻击倒计时剩余 4 秒弹出打断提示
         if (remain <= 4000 && !ctx.inInterruptWindow) {
-            // 进入打断预警窗口，补充计时戳
             ctx.inInterruptWindow = true;
-            ctx.interruptTimer = Date.now(); 
-            showBattleAlert(`✨小怪物要出招啦！连续输入3个正确字母就能拦住它哦`, "warning", 6000);
+            ctx.interruptTimer = Date.now();
+            // 先清掉旧进度条，杜绝多条叠加
+            clearMonsterWarningBar();
+
+            // 弹出文字提示弹窗
+            showBattleAlert(`✨小怪物要出招啦！连续输入3个正确字母就能拦住它`, "warning", 6000);
             elements.enemyFighter.classList.add('warn-flash');
-            setTimeout(()=>elements.enemyFighter.classList.remove('warn-flash'), 6000);
+            
+            // 锁定进度条永久不透明，杜绝跟随怪物闪烁
+            document.querySelector('.monster-warning-bar-wrap')?.style.setProperty('opacity', '1', 'important');
+
+            // 创建进度条容器，和怪物同级，彻底隔绝父级闪烁
+            const monsterWrap = elements.enemyFighter;
+            clearMonsterWarningBar();
+            const monsterRect = monsterWrap.getBoundingClientRect();
+            const parentBox = monsterWrap.parentElement;
+
+            const barWrap = document.createElement('div');
+            barWrap.className = 'monster-warning-bar-wrap';
+            barWrap.style.cssText = `
+                position:absolute;
+                left:${monsterRect.left - parentBox.getBoundingClientRect().left}px;
+                top:${monsterRect.top - parentBox.getBoundingClientRect().top + monsterRect.height + 6}px;
+                width:${monsterRect.width}px;
+                height: 8px;
+                background: #222;
+                border-radius: 4px;
+                overflow: hidden;
+                z-index:10;
+                pointer-events:none;
+                outline: none;
+                box-shadow: none;
+                -webkit-backface-visibility: hidden;
+                /* 关键：进度条自身反向镜像，抵消怪物的scaleX(-1)翻转 */
+                transform: scaleX(-1);
+            `;
+
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = `
+                height: 100%;
+                width: 100%;
+                background: linear-gradient(90deg, #fb923c, #ef4444);
+                border-radius: 4px;
+                transition: transform 6s linear;
+                transform-origin: right center;
+                transform: scaleX(1);
+            `;
+            barWrap.appendChild(progressBar);
+            parentBox.appendChild(barWrap);
+
+            setTimeout(() => {
+                progressBar.style.transform = 'scaleX(0)';
+            }, 30);
+
+            // 6秒超时自动销毁
+            setTimeout(() => {
+                clearMonsterWarningBar();
+                elements.enemyFighter.classList.remove('warn-flash');
+                ctx.inInterruptWindow = false;
+                ctx.continuousCorrect = 0;
+                ctx.interruptTimer = 0;
+            }, 6000);
         }
         // 计时达到，执行怪物攻击
         if (ctx.attackTimer >= ctx.attackInterval) {
@@ -1746,6 +1811,8 @@
             ctx.inInterruptWindow = false;
             ctx.continuousCorrect = 0;
             ctx.interruptTimer = 0;
+            // 攻击触发，清除进度条
+            clearMonsterWarningBar();
             // 锁定700ms，和怪物攻击后锁定时长保持一致
             setTimeout(()=>{ctx.attackLock = false;},700);
         }
@@ -2181,6 +2248,7 @@
         }
         startBattle();
         if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearMonsterWarningBar();
     }
     // ========== 返回选择界面 ==========
     function backToSelect() {
@@ -2196,6 +2264,7 @@
         if (elements.battleSelect) {
             elements.battleSelect.classList.add('active');
         }
+        clearMonsterWarningBar();
     }
     // ========== 退出战斗 ==========
     function exitBattle() {
@@ -2224,6 +2293,7 @@
             }
         }
         if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearMonsterWarningBar();
     }
     
     // 全局怒气手动释放入口
