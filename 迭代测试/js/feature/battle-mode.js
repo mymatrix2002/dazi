@@ -1,0 +1,2216 @@
+/* ========== 战斗模式 - 打字对战 v2.5.0 ========== */
+/* js/feature/battle-mode.js */
+(function() {
+    'use strict';
+    
+    // ========== 战斗数值枚举 & 平衡常量 ==========
+    const HP_TARGET = {
+        PLAYER: 'player',
+        ENEMY: 'enemy'
+    };
+    
+    const BATTLE_END_TYPE = {
+        PLAYER_DEAD: 'lose',
+        ALL_SENTENCE_CLEAR: 'win',
+        ENEMY_HP_EMPTY: 'enemy_dead',
+        TIME_OUT: 'timeout'
+    };
+    
+    // 全局数值平衡配置（可调节）
+    const BATTLE_BALANCE = {
+        sentenceBaseHpCoeff: 2,                // 单句基础血量系数
+        enemyDifficultyHpMulti: { 1: 1.0, 2: 1.3, 3: 1.7, 4: 2.2 }, // 难度血量倍率
+        playerBaseHpMulti: 1,                  // 玩家基础血量总倍率
+        enemyRageHpThreshold: 0.3,             // 怪物狂暴血量阈值
+        playerMaxHpLimitMulti: 10              // 玩家血量上限保护倍率
+    };
+    
+    const BATTLE_STAGE = {
+        HIGH: 0,
+        MID: 1,
+        LOW: 2
+    };
+    
+    // 难度对应攻击间隔（可调节，单位毫秒）
+    const DIFF_ATTACK_CD = {
+        easy: 16000,    // 简单：16秒（低年级/新手）
+        normal: 12000,  // 普通：12秒（五年级正常练习）
+        hard: 8000      // 困难：8秒（熟练提速）
+    };
+    
+    const STAGE_LABEL = {
+        [BATTLE_STAGE.HIGH]: "常规",
+        [BATTLE_STAGE.MID]: "狂怒",
+        [BATTLE_STAGE.LOW]: "狂暴绝境"
+    };
+    
+    // ========== 玩家角色（6个） ==========
+    const playerCharacters = [
+        {
+            id: 'cat',
+            name: '小猫咪',
+            emoji: '🐱',
+            type: '平衡型',
+            hp: 100,
+            baseHp: 100,
+            attack: 10,
+            baseAtk: 10,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.1,
+            special: 'none',
+            description: '全能型，适合新手'
+        },
+        {
+            id: 'dog',
+            name: '小狗狗',
+            emoji: '🐶',
+            type: '攻击型',
+            hp: 90,
+            baseHp: 90,
+            attack: 12,
+            baseAtk: 12,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.1,
+            special: 'none',
+            description: '攻击高，血量稍低'
+        },
+        {
+            id: 'tiger',
+            name: '小老虎',
+            emoji: '🐯',
+            type: '高攻型',
+            hp: 80,
+            baseHp: 80,
+            attack: 15,
+            baseAtk: 15,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.15,
+            special: 'none',
+            description: '伤害爆炸，比较脆'
+        },
+        {
+            id: 'fox',
+            name: '小狐狸',
+            emoji: '🦊',
+            type: '暴击型',
+            hp: 95,
+            baseHp: 95,
+            attack: 11,
+            baseAtk: 11,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.25,
+            special: 'crit',
+            description: '25% 概率暴击双倍伤害'
+        },
+        {
+            id: 'bear',
+            name: '小熊熊',
+            emoji: '🐻',
+            type: '肉盾型',
+            hp: 120,
+            baseHp: 120,
+            attack: 8,
+            baseAtk: 8,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.05,
+            special: 'none',
+            description: '血厚耐打，攻击低'
+        },
+        {
+            id: 'panda',
+            name: '回复型',
+            emoji: '🐼',
+            type: '回复型',
+            hp: 100,
+            baseHp: 100,
+            attack: 9,
+            baseAtk: 9,
+            hpGrowth: 5,
+            atkGrowth: 1,
+            aiFriendlyBuff: 1.0,
+            critRate: 0.1,
+            special: 'heal',
+            healAmount: 5,
+            healInterval: 3,
+            description: '每打对3个句子回5点血'
+        }
+    ];
+    
+    // ========== 怪物角色（6个，难度递增） ==========
+    const enemyCharacters = [
+        {
+            id: 'ghost',
+            name: '小幽灵',
+            emoji: '👻',
+            difficulty: 1,
+            difficultyText: '简单',
+            hp: 80,
+            baseHp: 80,
+            attack: 8,
+            baseAtk: 8,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
+            description: '最菜的怪物，适合练手'
+        },
+        {
+            id: 'ogre',
+            name: '小妖怪',
+            emoji: '👹',
+            difficulty: 1,
+            difficultyText: '简单',
+            hp: 90,
+            baseHp: 90,
+            attack: 9,
+            baseAtk: 9,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
+            description: '有点凶，但伤害不高'
+        },
+        {
+            id: 'zombie',
+            name: '小僵尸',
+            emoji: '🧟',
+            difficulty: 2,
+            difficultyText: '普通',
+            hp: 100,
+            baseHp: 100,
+            attack: 10,
+            baseAtk: 10,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
+            description: '中规中矩的对手'
+        },
+        {
+            id: 'tengu',
+            name: '天狗怪',
+            emoji: '👺',
+            difficulty: 2,
+            difficultyText: '普通',
+            hp: 110,
+            baseHp: 110,
+            attack: 11,
+            baseAtk: 11,
+            aiEnable: false,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [],
+            aiSpecialCooldown: 3,
+            description: '速度快，攻击也不低'
+        },
+        {
+            id: 'dragon',
+            name: '小火龙',
+            emoji: '🐲',
+            difficulty: 3,
+            difficultyText: '困难',
+            hp: 130,
+            baseHp: 130,
+            attack: 13,
+            baseAtk: 13,
+            aiEnable: true,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [0.7, 0.4],
+            aiSpecialCooldown: 3,
+            description: '喷火龙，伤害很高'
+        },
+        {
+            id: 'skeleton',
+            name: '骷髅王',
+            emoji: '💀',
+            difficulty: 4,
+            difficultyText: '地狱',
+            hp: 150,
+            baseHp: 150,
+            attack: 15,
+            baseAtk: 15,
+            aiEnable: true,
+            aiRageThreshold: 0.3,
+            aiRageAtkMulti: 1.5,
+            aiStageHp: [0.7, 0.4, 0.2],
+            aiSpecialCooldown: 3,
+            description: '最终BOSS，非常难打'
+        }
+    ];
+    
+    // ========== 战斗状态 ==========
+    let battleState = {
+        active: false,
+        player: null,
+        enemy: null,
+        playerHp: 0,
+        playerMaxHp: 0,
+        enemyHp: 0,
+        enemyMaxHp: 0,
+        sentences: [],
+        currentSentenceIndex: 0,
+        currentCharIndex: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        comboCount: 0,
+        healCounter: 0,
+        lastInputLength: 0,
+        inputError: false,
+        shieldCount: 0,
+        rage: 0,
+        maxRage: 100,
+        rageSkillReady: false,
+        rageAutoTimer: null,
+        itemDropCounter: 0,
+        damageMultiplier: 1,
+        invincible: false,
+        activeItems: [],
+        startTime: 0,
+        battleOver: false
+    };
+    
+    // ========== 战斗音效（WebAudio合成） ==========
+    let audioCtx = null;
+    let lastCharSoundTime = 0;
+    
+    function initAudio() {
+        if (!audioCtx) {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('Web Audio API 不支持');
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+    
+    function isSoundEnabled() {
+        if (typeof window.soundEnabled !== 'undefined') {
+            return window.soundEnabled;
+        }
+        return localStorage.getItem('soundEnabled') !== 'false';
+    }
+    
+    // 核心发声函数（可调节参数：音调、时长、波形、音量、随机偏移、低频叠加）
+    function playTone(baseFreq, duration, type, volume, detune = 60, addSubLayer = false) {
+        if (!isSoundEnabled()) return;
+        initAudio();
+        if (!audioCtx) return;
+        
+        baseFreq = isFinite(Number(baseFreq)) ? Math.max(20, Math.min(20000, Number(baseFreq))) : 440;
+        duration = isFinite(Number(duration)) ? Math.max(0.01, Number(duration)) : 0.1;
+        volume = isFinite(Number(volume)) ? Math.max(0, Math.min(1, Number(volume))) : 0.2;
+        detune = isFinite(Number(detune)) ? Math.max(0, Math.min(200, Number(detune))) : 60;
+        
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
+        const now = audioCtx.currentTime;
+        const randFreq = baseFreq + (Math.random() - 0.5) * detune;
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(randFreq, now);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(volume, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+        
+        if (addSubLayer) {
+            const subOsc = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subOsc.type = 'sawtooth';
+            const subFreq = randFreq * 0.4;
+            subOsc.frequency.setValueAtTime(subFreq, now);
+            subGain.gain.setValueAtTime(0, now);
+            subGain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.006);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            subOsc.connect(subGain);
+            subGain.connect(audioCtx.destination);
+            subOsc.start(now);
+            subOsc.stop(now + duration + 0.02);
+        }
+    }
+    
+    function playCharCorrectSound() {
+        const now = Date.now();
+        if (now - lastCharSoundTime < 80) return;
+        lastCharSoundTime = now;
+        playTone(1150, 0.05, 'sine', 0.06, 30, false);
+    }
+    
+    function playAttackSound() {
+        const playerId = battleState.player?.id;
+        if (!playerId) return;
+        
+        switch (playerId) {
+            case 'tiger':
+                playTone(680, 0.13, 'sawtooth', 0.22, 70, true);
+                setTimeout(() => playTone(1100, 0.09, 'triangle', 0.14, 50, false), 35);
+                break;
+            case 'fox':
+                playTone(1100, 0.09, 'square', 0.16, 40, false);
+                setTimeout(() => playTone(1500, 0.06, 'sine', 0.1, 30, false), 25);
+                break;
+            case 'bear':
+                playTone(520, 0.16, 'sawtooth', 0.24, 60, true);
+                setTimeout(() => playTone(800, 0.11, 'triangle', 0.13, 50, false), 40);
+                break;
+            case 'panda':
+                playTone(780, 0.11, 'sine', 0.18, 50, false);
+                setTimeout(() => playTone(1050, 0.08, 'triangle', 0.12, 40, false), 30);
+                break;
+            default:
+                playTone(820, 0.11, 'triangle', 0.19, 60, true);
+                setTimeout(() => playTone(1250, 0.07, 'sine', 0.13, 40, false), 30);
+        }
+    }
+    
+    function playCritSound() {
+        playTone(380, 0.18, 'sawtooth', 0.28, 80, true);
+        setTimeout(() => playTone(620, 0.14, 'square', 0.23, 60, true), 45);
+        setTimeout(() => playTone(1800, 0.1, 'sine', 0.18, 40, false), 90);
+    }
+    
+    function playHurtSound() {
+        playTone(160, 0.22, 'sawtooth', 0.26, 50, true);
+        setTimeout(() => playTone(110, 0.17, 'triangle', 0.21, 40, false), 60);
+    }
+    
+    function playHealSound() {
+        const notes = [523, 659, 784, 988];
+        notes.forEach((freq, i) => {
+            setTimeout(() => playTone(freq, 0.11, 'sine', 0.17, 30, false), i * 75);
+        });
+    }
+    
+    function playWinSound() {
+        const notes = [523, 659, 784, 1047, 1318];
+        notes.forEach((freq, i) => {
+            setTimeout(() => playTone(freq, 0.2, 'sine', 0.24, 40, false), i * 110);
+        });
+    }
+    
+    function playLoseSound() {
+        const notes = [420, 360, 300, 210];
+        notes.forEach((freq, i) => {
+            setTimeout(() => playTone(freq, 0.26, 'sawtooth', 0.21, 50, false), i * 140);
+        });
+    }
+    
+    function playComboSound(comboNum) {
+        const safeCombo = Math.max(1, isFinite(Number(comboNum)) ? Number(comboNum) : 1);
+        const level = Math.floor(safeCombo / 10);
+        const baseFreq = 1000 + level * 180;
+        const vol = 0.15 + level * 0.04;
+        playTone(baseFreq, 0.09, 'triangle', vol, 40, false);
+        setTimeout(() => playTone(baseFreq * 1.4, 0.07, 'sine', vol * 0.8, 30, false), 45);
+    }
+    
+    function playClickSound() {
+        playTone(640, 0.05, 'sine', 0.11, 30, false);
+    }
+    
+    function playLowHpWarning() {
+        playTone(130, 0.22, 'sawtooth', 0.12, 20, false);
+    }
+    
+    // ========== 战斗语音系统 ==========
+    const voiceCache = new Map();
+    let currentVoiceAudio = null;
+    const VOICE_PRELOAD_COUNT = 2;
+    
+    function getVoiceUrl(text) {
+        const encodedText = encodeURIComponent(text);
+        const speed = getVoiceSpeed();
+        return `https://tts.841231.xyz/?text=${encodedText}&lan=zh&spd=${speed}`;
+    }
+    
+    function getVoiceSpeed() {
+        if (typeof window.config !== 'undefined' && window.config.speechRate) {
+            return window.config.speechRate;
+        }
+        return 1.0;
+    }
+    
+    function isVoiceEnabled() {
+        if (typeof window.battleVoiceEnabled !== 'undefined') {
+            return window.battleVoiceEnabled;
+        }
+        return true;
+    }
+    
+    function preloadVoice(text) {
+        if (!text || !text.trim()) return;
+        if (voiceCache.has(text)) return;
+        
+        const url = getVoiceUrl(text);
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error('语音加载失败');
+                return response.blob();
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                voiceCache.set(text, blobUrl);
+            })
+            .catch(err => {
+                console.warn('语音预加载失败:', text.substring(0, 20));
+            });
+    }
+    
+    function preloadVoices(sentences, startIndex) {
+        for (let i = 0; i < VOICE_PRELOAD_COUNT; i++) {
+            const idx = startIndex + i;
+            if (idx >= sentences.length) break;
+            setTimeout(() => preloadVoice(sentences[idx].english), i * 200);
+        }
+    }
+    
+    function playVoice(text) {
+        if (!isVoiceEnabled()) return;
+        if (!text || !text.trim()) return;
+        
+        stopVoice();
+        
+        const doPlay = (url) => {
+            const audio = new Audio(url);
+            currentVoiceAudio = audio;
+            audio.play().catch(err => {
+                console.warn('语音播放失败，尝试系统语音兜底');
+                playFallbackVoice(text);
+            });
+            audio.onended = () => {
+                currentVoiceAudio = null;
+            };
+        };
+        
+        if (voiceCache.has(text)) {
+            doPlay(voiceCache.get(text));
+        } else {
+            const url = getVoiceUrl(text);
+            doPlay(url);
+            fetch(url)
+                .then(r => r.blob())
+                .then(blob => {
+                    const blobUrl = URL.createObjectURL(blob);
+                    voiceCache.set(text, blobUrl);
+                })
+                .catch(() => {});
+        }
+    }
+    
+    function playFallbackVoice(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = getVoiceSpeed();
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+    
+    function stopVoice() {
+        if (currentVoiceAudio != null) {
+            try {
+                currentVoiceAudio.pause();
+                currentVoiceAudio.currentTime = 0;
+            } catch (e) {
+                console.warn('停止在线语音异常', e);
+            }
+            currentVoiceAudio = null;
+        }
+        if (typeof window.speechSynthesis !== 'undefined') {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {
+                console.warn('系统语音取消异常', e);
+            }
+        }
+    }
+    
+    function clearVoiceCache() {
+        stopVoice();
+        try {
+            for (const blobUrl of voiceCache.values()) {
+                URL.revokeObjectURL(blobUrl);
+            }
+            voiceCache.clear();
+        } catch (e) {
+            console.warn('释放语音缓存blob失败', e);
+        }
+    }
+    
+    function clearMonsterWarningBar() {
+        const oldBar = document.querySelector('.monster-warning-bar-wrap');
+        if (oldBar) oldBar.remove();
+    }
+    
+    function showBattleAlert(text, type = "info", duration = 2500) {
+        const oldTip = document.querySelector('div[style*="top:30%"]');
+        if(oldTip) oldTip.remove();
+        
+        const tip = document.createElement('div');
+        tip.style.cssText = `position:fixed;top:30%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:12px;z-index:9999;font-size:16px`;
+        if(type === "warning") tip.style.boxShadow = "0 0 12px #f87171";
+        tip.textContent = text;
+        document.body.appendChild(tip);
+        
+        setTimeout(() => {
+            if(tip.parentNode) tip.remove();
+        }, duration);
+    }
+    
+    // ========== 道具系统（5种） ==========
+    const itemTypes = [
+        {
+            id: 'heal',
+            name: '回血药水',
+            emoji: '❤️',
+            description: '恢复 30% 生命值',
+            effect: function() {
+                const healAmount = Math.floor(battleState.playerMaxHp * 0.3);
+                playerHeal(healAmount);
+            }
+        },
+        {
+            id: 'shield',
+            name: '护盾道具',
+            emoji: '🛡️',
+            description: '获得 2 个护盾',
+            effect: function() {
+                battleState.shieldCount += 2;
+                showShieldGainEffect();
+            }
+        },
+        {
+            id: 'attack',
+            name: '力量药水',
+            emoji: '⚔️',
+            description: '接下来 5 个句子伤害翻倍',
+            duration: 5,
+            effect: function() {
+                battleState.damageMultiplier = 2;
+                addActiveItem('attack', 5);
+            }
+        },
+        {
+            id: 'invincible',
+            name: '无敌星星',
+            emoji: '⭐',
+            description: '接下来 3 个句子无敌',
+            duration: 3,
+            effect: function() {
+                battleState.invincible = true;
+                addActiveItem('invincible', 3);
+            }
+        },
+        {
+            id: 'rage',
+            name: '怒气药水',
+            emoji: '🔥',
+            description: '怒气直接充满',
+            effect: function() {
+                battleState.rage = battleState.maxRage;
+                battleState.rageSkillReady = true;
+                showRageFullEffect();
+                setTimeout(() => {
+                    if (!battleState.battleOver && battleState.rageSkillReady) {
+                        useRageSkill();
+                    }
+                }, 800);
+            }
+        }
+    ];
+    
+    // ========== 血量计算工具函数 ==========
+    
+    function calcPlayerMaxHp(playerChar, ctx = {}) {
+        let hp = playerChar.baseHp * BATTLE_BALANCE.playerBaseHpMulti;
+        if (ctx.level > 1) {
+            hp += playerChar.hpGrowth * (ctx.level - 1);
+        }
+        if (ctx.hpBuff) hp *= ctx.hpBuff;
+        const maxLimit = playerChar.baseHp * BATTLE_BALANCE.playerMaxHpLimitMulti;
+        return Math.min(Math.floor(hp), maxLimit);
+    }
+    
+    function calcEnemyMaxHp(enemyChar, sentenceCount, ctx = {}) {
+        const singleHp = enemyChar.baseAtk * BATTLE_BALANCE.sentenceBaseHpCoeff;
+        let totalHp = singleHp * sentenceCount;
+        
+        const diffMulti = BATTLE_BALANCE.enemyDifficultyHpMulti[enemyChar.difficulty] || 1;
+        totalHp *= diffMulti;
+        
+        if (ctx.enemyAiMulti) totalHp *= ctx.enemyAiMulti;
+        
+        const minHp = enemyChar.baseHp * 0.5;
+        return Math.max(Math.floor(totalHp), minHp);
+    }
+    
+    function calcEnemyShowHp(enemyChar) {
+        const diffMulti = BATTLE_BALANCE.enemyDifficultyHpMulti[enemyChar.difficulty] || 1;
+        return Math.floor(enemyChar.baseHp * diffMulti);
+    }
+    
+    function getEnemyAttackValue(enemyChar, ctx) {
+        const baseAtk = enemyChar.baseAtk;
+        const stageCount = Array.isArray(ctx.activeStageList) ? ctx.activeStageList.length : 0;
+        const stageAtkMulti = Math.pow(1.2, stageCount);
+        let totalMulti = ctx.baseAtkMulti * stageAtkMulti;
+        
+        if (ctx.isRaging) {
+            totalMulti *= enemyChar.aiRageAtkMulti;
+        }
+        return Math.floor(baseAtk * totalMulti);
+    }
+    
+    function getPlayerAttackValue(playerChar, comboCount, damageMulti) {
+        let base = playerChar.baseAtk;
+        const comboBonus = Math.floor(comboCount / 10) * 0.1;
+        base *= (1 + comboBonus);
+        base *= damageMulti;
+        return Math.floor(base);
+    }
+    
+    // 浮点数安全比较（消除JS浮点精度误差）
+    const EPS = 1e-6;
+    
+    function floatLess(val, target) {
+        return val < target - EPS;
+    }
+    
+    function floatGte(val, target) {
+        return val >= target - EPS;
+    }
+    
+    function getCurrentStage(hp, maxHp) {
+        const pct = hp / maxHp;
+        if (floatLess(pct, 0.3)) return BATTLE_STAGE.LOW;
+        if (floatLess(pct, 0.7)) return BATTLE_STAGE.MID;
+        return BATTLE_STAGE.HIGH;
+    }
+    
+    function getHpPercent(target) {
+        const current = target === HP_TARGET.PLAYER ? battleState.playerHp : battleState.enemyHp;
+        const max = target === HP_TARGET.PLAYER ? battleState.playerMaxHp : battleState.enemyMaxHp;
+        if (max <= 0) {
+            endBattle(BATTLE_END_TYPE.TIME_OUT);
+            return 0;
+        }
+        return current / max;
+    }
+    
+    // 统一血量变更钩子（AI监听唯一入口，所有扣血/回血走这里）
+    function onHpChange(target, delta) {
+        const isPlayer = target === HP_TARGET.PLAYER;
+        const current = isPlayer ? battleState.playerHp : battleState.enemyHp;
+        const max = isPlayer ? battleState.playerMaxHp : battleState.enemyMaxHp;
+        
+        let newHp = Math.min(max, Math.max(0, current + delta));
+        
+        if (isPlayer) {
+            battleState.playerHp = newHp;
+        } else {
+            battleState.enemyHp = newHp;
+        }
+        
+        // 怪物AI血量阶段监听
+        if (!isPlayer && battleState.enemy.aiEnable) {
+            const enemy = battleState.enemy;
+            const oldPercent = current / max;
+            const newPercent = newHp / max;
+            const rageThreshold = enemy.aiRageThreshold;
+            
+            // 狂暴状态切换
+            if (floatLess(newPercent, rageThreshold) && floatGte(oldPercent, rageThreshold)) {
+                battleState.battleCtx.isRaging = true;
+            }
+            if (floatGte(newPercent, rageThreshold) && floatLess(oldPercent, rageThreshold)) {
+                battleState.battleCtx.isRaging = false;
+            }
+            
+            // 阶段切换提示
+            const nowStage = getCurrentStage(newHp, max);
+            const oldStage = getCurrentStage(current, max);
+            if (nowStage !== oldStage && !battleState.battleCtx.stageNotified[nowStage]) {
+                battleState.battleCtx.stageNotified[nowStage] = true;
+                showBattleAlert(`⚠️ 怪物进入${STAGE_LABEL[nowStage]}阶段，伤害提升！`, "warning", 2500);
+            }
+            
+            // 刷新分段激活列表
+            if (Array.isArray(enemy.aiStageHp)) {
+                battleState.battleCtx.activeStageList = [];
+                const newPercent = newHp / max;
+                for (const stage of enemy.aiStageHp) {
+                    if (floatLess(newPercent, stage)) {
+                        battleState.battleCtx.activeStageList.push(stage);
+                    }
+                }
+            }
+        }
+        
+        updateBattleUI();
+        checkBattleEnd();
+    }
+    
+    // ========== DOM 元素缓存 ==========
+    let elements = {};
+    
+    // ========== 初始化 ==========
+    function init() {
+        elements = {
+            battleMode: document.getElementById('battleMode'),
+            battleSelect: document.getElementById('battleSelect'),
+            battleResult: document.getElementById('battleResult'),
+            playerAvatar: document.getElementById('battlePlayerAvatar'),
+            playerName: document.getElementById('battlePlayerName'),
+            playerHpFill: document.getElementById('battlePlayerHpFill'),
+            playerHpText: document.getElementById('battlePlayerHpText'),
+            enemyAvatar: document.getElementById('battleEnemyAvatar'),
+            enemyName: document.getElementById('battleEnemyName'),
+            enemyHpFill: document.getElementById('battleEnemyHpFill'),
+            enemyHpText: document.getElementById('battleEnemyHpText'),
+            playerFighter: document.getElementById('battlePlayerFighter'),
+            enemyFighter: document.getElementById('battleEnemyFighter'),
+            battleScene: document.getElementById('battleScene'),
+            currentWord: document.getElementById('battleCurrentWord'),
+            battleInput: document.getElementById('battleInput'),
+            statsCorrect: document.getElementById('battleStatsCorrect'),
+            statsWrong: document.getElementById('battleStatsWrong'),
+            statsCombo: document.getElementById('battleStatsCombo'),
+            playerRageBar: document.getElementById('battlePlayerRageBar'),
+            playerRageBarFill: document.getElementById('battlePlayerRageFill'),
+            shieldCount: document.getElementById('battleShieldCount'),
+            activeItems: document.getElementById('battleActiveItems'),
+            exitBtn: document.getElementById('battleExitBtn'),
+            startBtn: document.getElementById('startBattleBtn'),
+            playerGrid: document.getElementById('playerCharacterGrid'),
+            enemyGrid: document.getElementById('enemyCharacterGrid'),
+            resultIcon: document.getElementById('battleResultIcon'),
+            resultTitle: document.getElementById('battleResultTitle'),
+            resultSubtitle: document.getElementById('battleResultSubtitle'),
+            resultCorrect: document.getElementById('resultStatCorrect'),
+            resultWrong: document.getElementById('resultStatWrong'),
+            resultAccuracy: document.getElementById('resultStatAccuracy'),
+            resultTime: document.getElementById('resultStatTime'),
+            resultRetryBtn: document.getElementById('battleResultRetry'),
+            resultBackBtn: document.getElementById('battleResultBack')
+        };
+        
+        // 一次性解锁音频
+        function unlockAudioOnce() {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            document.removeEventListener('click', unlockAudioOnce);
+            document.removeEventListener('touchend', unlockAudioOnce);
+        }
+        document.addEventListener('click', unlockAudioOnce);
+        document.addEventListener('touchend', unlockAudioOnce);
+        
+        // 绑定事件
+        if (elements.exitBtn) {
+            elements.exitBtn.addEventListener('click', exitBattle);
+        }
+        if (elements.battleInput) {
+            elements.battleInput.addEventListener('input', handleInput);
+            elements.battleInput.addEventListener('touchend', () => {
+                initAudio();
+                if (audioCtx?.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            });
+        }
+        if (elements.startBtn) {
+            elements.startBtn.addEventListener('click', startBattle);
+        }
+        if (elements.resultRetryBtn) {
+            elements.resultRetryBtn.addEventListener('click', retryBattle);
+        }
+        if (elements.resultBackBtn) {
+            elements.resultBackBtn.addEventListener('click', backToSelect);
+        }
+        
+        renderCharacterSelect();
+    }
+    
+    // ========== 角色选择界面 ==========
+    function renderCharacterSelect() {
+        if (elements.playerGrid) {
+            elements.playerGrid.innerHTML = '';
+            playerCharacters.forEach((char) => {
+                const card = document.createElement('div');
+                card.className = 'character-card';
+                card.dataset.id = char.id;
+                const showHp = calcPlayerMaxHp(char, { level: 1, hpBuff: 1 });
+                card.innerHTML = `
+                    <div class="character-card-emoji">${char.emoji}</div>
+                    <div class="character-card-info">
+                        <div class="character-card-name">${char.name}</div>
+                        <div class="character-card-type">${char.type}</div>
+                        <div class="character-card-stats">
+                            <div class="character-card-stat">❤️ <span>${showHp}</span></div>
+                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => selectPlayer(char.id));
+                elements.playerGrid.appendChild(card);
+            });
+        }
+        
+        if (elements.enemyGrid) {
+            elements.enemyGrid.innerHTML = '';
+            enemyCharacters.forEach((char) => {
+                const card = document.createElement('div');
+                card.className = 'character-card enemy-card';
+                card.dataset.id = char.id;
+                const stars = '⭐'.repeat(char.difficulty);
+                const showEnemyHp = calcEnemyShowHp(char);
+                card.innerHTML = `
+                    <div class="character-card-emoji">${char.emoji}</div>
+                    <div class="character-card-info">
+                        <div class="character-card-name">${char.name}</div>
+                        <div class="difficulty-stars">${stars}</div>
+                        <div class="character-card-stats">
+                            <div class="character-card-stat">❤️ <span>${showEnemyHp}</span></div>
+                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => selectEnemy(char.id));
+                elements.enemyGrid.appendChild(card);
+            });
+        }
+        
+        updateStartButton();
+    }
+    
+    let selectedPlayerId = null;
+    function selectPlayer(id) {
+        selectedPlayerId = id;
+        playClickSound();
+        document.querySelectorAll('#playerCharacterGrid .character-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        updateStartButton();
+    }
+    
+    let selectedEnemyId = null;
+    function selectEnemy(id) {
+        selectedEnemyId = id;
+        playClickSound();
+        document.querySelectorAll('#enemyCharacterGrid .character-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        updateStartButton();
+    }
+    
+    function updateStartButton() {
+        if (!elements.startBtn) return;
+        const canStart = selectedPlayerId && selectedEnemyId;
+        elements.startBtn.disabled = !canStart;
+        elements.startBtn.textContent = canStart ? '⚔️ 开始战斗！' : '请先选择角色和对手';
+    }
+    
+    // ========== 打开战斗模式 ==========
+    function openBattleMode() {
+        const sourceText = document.getElementById('sourceText');
+        if (!sourceText || !sourceText.value.trim()) {
+            alert('请先选择练习内容（选择题库或粘贴文本）');
+            return;
+        }
+        
+        const text = sourceText.value;
+        battleState.sentences = extractSentences(text);
+        
+        if (battleState.sentences.length < 3) {
+            alert('句子太少啦，至少需要 3 个句子才能开始战斗！');
+            return;
+        }
+        
+        if (elements.battleSelect) {
+            elements.battleSelect.classList.add('active');
+        }
+        
+        if (!selectedPlayerId) {
+            selectPlayer(playerCharacters[0].id);
+        }
+        if (!selectedEnemyId) {
+            selectEnemy(enemyCharacters[0].id);
+        }
+    }
+    
+    // 提取句子（支持双语对照格式：英文一行、中文一行交替）
+    function extractSentences(text) {
+        const lines = text.split('\n');
+        const sentences = [];
+        
+        let i = 0;
+        while (i < lines.length) {
+            const trimmed = lines[i].trim();
+            if (!trimmed) {
+                i++;
+                continue;
+            }
+            
+            const english = extractEnglishPart(trimmed);
+            if (english.length < 2) {
+                i++;
+                continue;
+            }
+            
+            let chinese = '';
+            const chineseChars = trimmed.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]+/g);
+            if (chineseChars && chineseChars.length > 0) {
+                chinese = chineseChars.join('');
+            }
+            
+            if (!chinese && i + 1 < lines.length) {
+                const nextLine = lines[i + 1].trim();
+                const nextEnglish = extractEnglishPart(nextLine);
+                if (nextLine && nextEnglish.length < nextLine.length * 0.3) {
+                    chinese = nextLine;
+                    i++;
+                }
+            }
+            
+            sentences.push({
+                english: english,
+                display: trimmed,
+                chinese: chinese
+            });
+            i++;
+        }
+        
+        // 自动拆分长句
+        const splitSentences = [];
+        for (const s of sentences) {
+            const parts = splitLongSentence(s.english);
+            if (parts.length > 1) {
+                for (const part of parts) {
+                    splitSentences.push({
+                        english: part,
+                        display: part,
+                        chinese: s.chinese
+                    });
+                }
+            } else {
+                splitSentences.push(s);
+            }
+        }
+        
+        return splitSentences;
+    }
+    
+    function splitLongSentence(text) {
+        if (!text || text.length < 15) return [text];
+        
+        const sentenceEndRegex = /([.!?]+)\s+/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = sentenceEndRegex.exec(text)) !== null) {
+            const endPos = match.index + match[1].length;
+            const sentence = text.substring(lastIndex, endPos).trim();
+            if (sentence.length > 3) {
+                parts.push(sentence);
+            }
+            lastIndex = match.index + match[0].length;
+        }
+        
+        const lastPart = text.substring(lastIndex).trim();
+        if (lastPart.length > 3) {
+            parts.push(lastPart);
+        }
+        
+        return parts.length > 1 ? parts : [text];
+    }
+    
+    function extractEnglishPart(line) {
+        const englishRegex = /[a-zA-Z0-9\s.,!?'"-:;()]+/g;
+        const matches = line.match(englishRegex);
+        if (!matches) return '';
+        
+        let result = matches.join('').trim();
+        result = result.replace(/\s+/g, ' ');
+        return result;
+    }
+    
+    // ========== 开始战斗 ==========
+    function startBattle() {
+        if (!selectedPlayerId || !selectedEnemyId) return;
+        
+        const playerChar = playerCharacters.find(c => c.id === selectedPlayerId);
+        const enemyChar = enemyCharacters.find(c => c.id === selectedEnemyId);
+        const diffKey = enemyChar.difficulty === 1 ? 'easy' : enemyChar.difficulty === 2 ? 'normal' : 'hard';
+        
+        // 战斗上下文（可调节参数集中在这里）
+        const battleCtx = {
+            level: 1,
+            hpBuff: 1,
+            enemyAiMulti: 1,
+            baseAtkMulti: 1,
+            isRaging: false,
+            attackTimer: 0,
+            attackInterval: DIFF_ATTACK_CD[diffKey],
+            attackLock: false,
+            inInterruptWindow: false,
+            continuousCorrect: 0,
+            stageNotified: {},
+            interruptTimer: 0,
+            rageSkillCooldown: false,
+            bgTimerId: null,
+            activeStageList: [],
+            
+            // 自适应难度AI参数（可调节）
+            aiEnabled: true,                   // AI总开关
+            baseInterval: DIFF_ATTACK_CD[diffKey], // 基准攻击间隔
+            minInterval: DIFF_ATTACK_CD[diffKey] * 0.5,  // 最快间隔（基准的50%）
+            maxInterval: DIFF_ATTACK_CD[diffKey] * 1.8,  // 最慢间隔（基准的180%）
+            adjustStep: 500,                   // 每次调整步长（毫秒）
+            consecutiveHits: 0,                // 连续被击中次数
+            consecutiveInterrupts: 0,          // 连续成功打断次数
+            aiAdjustCooldown: false            // AI调整冷却
+        };
+        
+        const playerMaxHp = calcPlayerMaxHp(playerChar, battleCtx);
+        const enemyMaxHp = calcEnemyMaxHp(enemyChar, battleState.sentences.length, battleCtx);
+        
+        battleState = {
+            active: true,
+            player: playerChar,
+            enemy: enemyChar,
+            playerHp: playerMaxHp,
+            playerMaxHp: playerMaxHp,
+            enemyHp: enemyMaxHp,
+            enemyMaxHp: enemyMaxHp,
+            battleCtx: battleCtx,
+            sentences: [...battleState.sentences],
+            currentSentenceIndex: 0,
+            currentCharIndex: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            comboCount: 0,
+            healCounter: 0,
+            lastInputLength: 0,
+            inputError: false,
+            shieldCount: 0,
+            rage: 0,
+            maxRage: 100,
+            rageSkillReady: false,
+            itemDropCounter: 0,
+            damageMultiplier: 1,
+            invincible: false,
+            activeItems: [],
+            startTime: Date.now(),
+            battleOver: false
+        };
+        
+        updateBattleUI();
+        
+        if (elements.battleSelect) {
+            elements.battleSelect.classList.remove('active');
+        }
+        if (elements.battleMode) {
+            elements.battleMode.classList.add('active');
+        }
+        
+        preloadVoices(battleState.sentences, 0);
+        showCurrentSentence();
+        
+        setTimeout(() => {
+            if (elements.battleInput) {
+                elements.battleInput.value = '';
+                elements.battleInput.focus();
+                initAudio();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                    playTone(800, 0.01, 'sine', 0.01, 0, false);
+                }
+            }
+        }, 300);
+        
+        // 后台持续计时（锁定期间暂停累加）
+        battleCtx.bgTimerId = setInterval(() => {
+            if(battleState.battleOver) {
+                clearInterval(battleCtx.bgTimerId);
+                return;
+            }
+            if (!battleCtx.attackLock) {
+                battleCtx.attackTimer += 100;
+            }
+            checkMonsterAutoAttack();
+        }, 100);
+    }
+    
+    // ========== 更新战斗 UI ==========
+    function updateBattleUI() {
+        if (!battleState.player || !battleState.enemy) return;
+        
+        if (elements.playerAvatar) {
+            elements.playerAvatar.textContent = battleState.player.emoji;
+        }
+        if (elements.playerName) {
+            elements.playerName.textContent = battleState.player.name;
+        }
+        if (elements.playerHpFill) {
+            const percent = Math.max(0, (battleState.playerHp / battleState.playerMaxHp) * 100);
+            elements.playerHpFill.style.width = percent + '%';
+        }
+        if (elements.playerHpText) {
+            elements.playerHpText.textContent = `${Math.max(0, Math.ceil(battleState.playerHp))} / ${battleState.playerMaxHp}`;
+        }
+        
+        if (elements.enemyAvatar) {
+            elements.enemyAvatar.textContent = battleState.enemy.emoji;
+        }
+        if (elements.enemyName) {
+            elements.enemyName.textContent = battleState.enemy.name;
+        }
+        if (elements.enemyHpFill) {
+            const percent = Math.max(0, (battleState.enemyHp / battleState.enemyMaxHp) * 100);
+            elements.enemyHpFill.style.width = percent + '%';
+        }
+        if (elements.enemyHpText) {
+            elements.enemyHpText.textContent = `${Math.max(0, Math.ceil(battleState.enemyHp))} / ${battleState.enemyMaxHp}`;
+        }
+        
+        if (elements.playerFighter) {
+            elements.playerFighter.textContent = battleState.player.emoji;
+        }
+        if (elements.enemyFighter) {
+            elements.enemyFighter.textContent = battleState.enemy.emoji;
+        }
+        
+        if (elements.statsCorrect) {
+            elements.statsCorrect.textContent = battleState.correctCount;
+        }
+        if (elements.statsWrong) {
+            elements.statsWrong.textContent = battleState.wrongCount;
+        }
+        if (elements.statsCombo) {
+            elements.statsCombo.textContent = battleState.comboCount;
+        }
+        
+        // 怒气条
+        if (elements.playerRageBar && elements.playerRageBarFill) {
+            const ragePercent = (battleState.rage / battleState.maxRage) * 100;
+            elements.playerRageBarFill.style.width = ragePercent + '%';
+            if (battleState.rage >= battleState.maxRage) {
+                elements.playerRageBar.classList.add('rage-full');
+            } else {
+                elements.playerRageBar.classList.remove('rage-full');
+            }
+        }
+        
+        // 护盾数量
+        if (elements?.shieldCount != null) {
+            if (battleState.shieldCount > 0) {
+                elements.shieldCount.textContent = '🛡️ ' + battleState.shieldCount;
+                elements.shieldCount.style.display = 'inline-block';
+            } else {
+                elements.shieldCount.style.display = 'none';
+            }
+        }
+        
+        // 激活的道具
+        if (elements?.activeItems != null) {
+            let html = '';
+            for (const item of battleState.activeItems) {
+                const itemInfo = itemTypes.find(t => t.id === item.id);
+                if (itemInfo) {
+                    const warningClass = item.remaining <= 1 ? 'item-warning' : '';
+                    html += `<span class="active-item ${warningClass}" title="${itemInfo.name} 剩余 ${item.remaining} 句">${itemInfo.emoji}${item.remaining}</span>`;
+                }
+            }
+            elements.activeItems.innerHTML = html;
+        }
+        
+        // 低血量警告音
+        const hpRate = battleState.playerHp / battleState.playerMaxHp;
+        if (hpRate < BATTLE_BALANCE.enemyRageHpThreshold && battleState.playerHp > 0) {
+            playLowHpWarning();
+        }
+    }
+    
+    // ========== 显示当前句子 ==========
+    function showCurrentSentence() {  
+        if (battleState.currentSentenceIndex >= battleState.sentences.length) {
+            onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
+            updateBattleUI();
+            endBattle(BATTLE_END_TYPE.ALL_SENTENCE_CLEAR);
+            return;
+        }
+        
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        battleState.currentCharIndex = 0;
+        
+        if (elements.currentWord) {
+            const displayText = sentence.display;
+            const englishText = sentence.english;
+            const chineseText = sentence.chinese || '';
+            
+            const lowerDisplay = displayText.toLowerCase();
+            const lowerEnglish = englishText.toLowerCase();
+            const index = lowerDisplay.indexOf(lowerEnglish);
+            
+            let speakerPrefix = '';
+            if (index >= 0) {
+                speakerPrefix = displayText.substring(0, index);
+            }
+            
+            let html = `<div style="margin-bottom: 8px; line-height: 1.4; text-align: center;">`;
+            if (speakerPrefix) {
+                html += `<span style="color: rgba(255,255,255,0.5); font-size: 18px;">${speakerPrefix}</span>`;
+            }
+            
+            for (let i = 0; i < englishText.length; i++) {
+                const ch = englishText[i];
+                let color = '#fff';
+                if (i === 0) {
+                    color = '#ffdd00';
+                }
+                html += `<span class="battle-char" data-index="${i}" style="color: ${color}; font-weight: bold; font-size: 26px; letter-spacing: 1px;">${ch === ' ' ? '&nbsp;' : ch}</span>`;
+            }
+            html += `</div>`;
+            
+            if (chineseText) {
+                html += `<div style="color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.4; text-align: center;">
+                    ${chineseText}
+                </div>`;
+            }
+            
+            elements.currentWord.innerHTML = html;
+        }
+        
+        if (elements.battleInput) {
+            elements.battleInput.value = '';
+            elements.battleInput.classList.remove('correct', 'wrong');
+        }
+        
+        playVoice(sentence.english);
+        
+        const nextIndex = battleState.currentSentenceIndex + 1;
+        if (nextIndex < battleState.sentences.length) {
+            setTimeout(() => {
+                preloadVoice(battleState.sentences[nextIndex].english);
+            }, 500);
+        }
+        
+        battleState.lastInputTime = Date.now();
+        checkMonsterAutoAttack();
+        
+        battleState.lastInputLength = 0;
+        battleState.inputError = false;
+        battleState.battleCtx.continuousCorrect = 0;
+        battleState.battleCtx.inInterruptWindow = false;
+        battleState.battleCtx.interruptTimer = 0;
+    }
+    
+    function updateCharColors() {
+        if (!elements.currentWord) return;
+        const charSpans = elements.currentWord.querySelectorAll('.battle-char');
+        if (!charSpans.length) return;
+        
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        if (!sentence) return;
+        
+        const english = sentence.english;
+        const input = elements.battleInput ? elements.battleInput.value.toLowerCase() : '';
+        const target = english.toLowerCase();
+        
+        let hasError = false;
+        let errorIndex = -1;
+        for (let i = 0; i < input.length; i++) {
+            if (input[i] !== target[i]) {
+                hasError = true;
+                errorIndex = i;
+                break;
+            }
+        }
+        
+        charSpans.forEach((span, i) => {
+            if (hasError && i === errorIndex) {
+                span.style.color = '#f87171';
+            } else if (hasError && i < errorIndex) {
+                span.style.color = '#39d353';
+            } else if (!hasError && i < input.length) {
+                span.style.color = '#39d353';
+            } else if (!hasError && i === input.length) {
+                span.style.color = '#ffdd00';
+            } else {
+                span.style.color = '#fff';
+            }
+        });
+    }
+    
+    // ========== 处理输入 ==========
+    function handleInput(e) {
+        if (battleState.battleOver) return;
+        const ctx = battleState.battleCtx;
+        let skipMonsterTimer = false;
+        
+        // 打断窗口：末尾连续3个正确字母即可打断
+        if (ctx.inInterruptWindow && !battleState.battleOver) {
+            const input = elements.battleInput;
+            const sentence = battleState.sentences[battleState.currentSentenceIndex];
+            const targetEnglish = sentence.english.toLowerCase();
+            const inputValue = input.value.toLowerCase();
+            let currentContinuous = 0;
+            
+            // 倒序统计末尾有效字母（空格跳过不中断）
+            for (let i = inputValue.length - 1; i >= 0; i--) {
+                const char = inputValue[i];
+                if ([' ','\t','\n','\r'].includes(char)) {
+                    continue;
+                }
+                if (char === targetEnglish[i]) {
+                    currentContinuous++;
+                    if (currentContinuous >= 3) {
+                        currentContinuous = 3;
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            ctx.continuousCorrect = currentContinuous;
+            
+            // 打断成功
+            if (ctx.continuousCorrect >= 3) {
+                ctx.attackTimer = 0;
+                ctx.inInterruptWindow = false;
+                ctx.continuousCorrect = 0;
+                ctx.interruptTimer = 0; 
+                ctx.attackLock = true;
+                setTimeout(() => { ctx.attackLock = false; }, 700);
+                
+                if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+                battleState.rageAutoTimer = null;
+                
+                const oldTip = document.querySelector('div[style*="top:30%"]');
+                if(oldTip) oldTip.remove();
+                
+                clearMonsterWarningBar();
+                elements.enemyFighter.classList.remove('warn-flash');
+                showAttackEffect(elements.enemyFighter, "✨");
+                playComboSound(20);
+                skipMonsterTimer = true;
+                
+                adjustDifficultyAI('interrupt_success');
+            }
+        }
+        
+        const input = elements.battleInput;
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        const inputValue = input.value.toLowerCase();
+        const targetEnglish = sentence.english.toLowerCase();
+        const inputLen = inputValue.length;
+        
+        let hasError = false;
+        let firstErrorIndex = -1;
+        for (let i = 0; i < inputLen; i++) {
+            if (inputValue[i] !== targetEnglish[i]) {
+                hasError = true;
+                firstErrorIndex = i;
+                break;
+            }
+        }
+        
+        if (hasError && !battleState.inputError) {
+            handleWrongInput();
+        }
+        battleState.inputError = hasError;
+        
+        if (hasError) {
+            battleState.currentCharIndex = firstErrorIndex;
+        } else {
+            battleState.currentCharIndex = inputLen;
+        }
+        
+        updateCharColors();
+        
+        if (!hasError && inputLen === targetEnglish.length) {
+            handleSentenceComplete();
+        }
+        
+        battleState.lastInputLength = inputLen;
+        
+        if (!hasError && inputLen > 0) {
+            playCharCorrectSound();
+        }
+        
+        if(!skipMonsterTimer){
+            const nowTime = Date.now();
+            const delta = nowTime - battleState.lastInputTime || 0;
+            battleState.battleCtx.attackTimer += delta;
+            battleState.lastInputTime = nowTime;
+            checkMonsterAutoAttack();
+        }
+    }
+    
+    function handleWrongInput() {
+        if (battleState.battleOver) return;
+        battleState.wrongCount++;
+        battleState.comboCount = 0;
+        
+        if (elements.battleInput) {
+            elements.battleInput.classList.add('wrong');
+            setTimeout(() => {
+                if (elements.battleInput) {
+                    elements.battleInput.classList.remove('wrong');
+                }
+            }, 300);
+        }
+        
+        enemyAttack();
+        checkBattleEnd();
+    }
+    
+    function handleSentenceComplete() {
+        if (battleState.battleOver) return;
+        
+        if (battleState.correctCount < battleState.sentences.length) {
+            battleState.correctCount++;
+        }
+        battleState.comboCount++;
+        
+        if (elements.battleInput) {
+            elements.battleInput.classList.add('correct');
+        }
+        
+        playerAttack();
+        
+        // 每10连击获得护盾
+        if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
+            playComboSound(battleState.comboCount);
+            battleState.shieldCount++;
+            showShieldGainEffect();
+        }        
+        
+        adjustDifficultyAI('sentence_clear');
+        
+        // 熊猫回血
+        if (battleState.player.special === 'heal') {
+            battleState.healCounter++;
+            if (battleState.healCounter >= battleState.player.healInterval) {
+                battleState.healCounter = 0;
+                playerHeal(battleState.player.healAmount);
+            }
+        }
+        
+        tryDropItem();
+        consumeItemDuration();
+        
+        setTimeout(() => {
+            if (!battleState.battleOver) {
+                battleState.currentSentenceIndex++;
+                battleState.battleCtx.attackTimer = 0;
+                showCurrentSentence();
+                if (elements.battleInput) {
+                    elements.battleInput.focus();
+                }
+            }
+        }, 800);
+        
+        checkBattleEnd();
+    }
+    
+    // ========== 玩家攻击 ==========
+    function playerAttack() {
+        let damage = getPlayerAttackValue(
+            battleState.player,
+            battleState.comboCount,
+            battleState.damageMultiplier
+        );
+        let isCrit = false;
+        
+        if (Math.random() < battleState.player.critRate) {
+            damage *= 2;
+            isCrit = true;
+        }
+        
+        onHpChange(HP_TARGET.ENEMY, -damage);
+        
+        if (isCrit) {
+            playCritSound();
+        } else {
+            playAttackSound();
+        }
+        
+        if (elements.playerFighter) {
+            elements.playerFighter.classList.add('attacking');
+            setTimeout(() => {
+                elements.playerFighter.classList.remove('attacking');
+            }, 500);
+        }
+        
+        setTimeout(() => {
+            if (elements.enemyFighter) {
+                elements.enemyFighter.classList.add('hurt');
+                setTimeout(() => {
+                    elements.enemyFighter.classList.remove('hurt');
+                }, 400);
+            }
+        }, 200);
+        
+        showDamageNumber(elements.enemyFighter, damage, isCrit ? 'crit' : 'normal');
+        showAttackEffect(elements.enemyFighter, '💥');
+    }
+    
+    // ========== 怪物自动攻击检测 ==========
+    function checkMonsterAutoAttack() {
+        const ctx = battleState.battleCtx;
+        if (battleState.battleOver || ctx.attackLock) return;
+        
+        const remain = ctx.attackInterval - ctx.attackTimer;
+        
+        // 剩余4秒进入打断预警窗口
+        if (remain <= 4000 && !ctx.inInterruptWindow) {
+            ctx.inInterruptWindow = true;
+            ctx.interruptTimer = Date.now();
+            
+            showBattleAlert(`✨小怪物要出招啦！连续输入3个正确字母就能拦住它`, "warning", 4000);
+            elements.enemyFighter.classList.add('warn-flash');
+            
+            // 创建进度条
+            const monsterWrap = elements.enemyFighter;
+            clearMonsterWarningBar();
+            const monsterRect = monsterWrap.getBoundingClientRect();
+            const parentBox = monsterWrap.parentElement;
+            
+            const barWrap = document.createElement('div');
+            barWrap.className = 'monster-warning-bar-wrap';
+            barWrap.style.cssText = `
+                position:absolute;
+                left:${monsterRect.left - parentBox.getBoundingClientRect().left}px;
+                top:${monsterRect.top - parentBox.getBoundingClientRect().top + monsterRect.height + 6}px;
+                width:${monsterRect.width}px;
+                height: 8px;
+                background: #222;
+                border-radius: 4px;
+                overflow: hidden;
+                z-index:10;
+                pointer-events:none;
+                outline: none;
+                box-shadow: none;
+                -webkit-backface-visibility: hidden;
+                transform: scaleX(-1);
+            `;
+            
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = `
+                height: 100%;
+                width: 100%;
+                background: linear-gradient(90deg, #fb923c, #ef4444);
+                border-radius: 4px;
+                transition: transform 4s linear;
+                transform-origin: right center;
+                transform: scaleX(1);
+            `;
+            
+            barWrap.appendChild(progressBar);
+            parentBox.appendChild(barWrap);
+            
+            setTimeout(() => {
+                progressBar.style.transform = 'scaleX(0)';
+            }, 30);
+        }
+        
+        // 计时达到，执行攻击
+        if (ctx.attackTimer >= ctx.attackInterval) {
+            ctx.attackLock = true;
+            enemyAttack();
+            
+            ctx.attackTimer = 0;
+            ctx.inInterruptWindow = false;
+            ctx.continuousCorrect = 0;
+            ctx.interruptTimer = 0;
+            clearMonsterWarningBar();
+            elements.enemyFighter.classList.remove('warn-flash');
+            ctx.aiAdjustCooldown = false;
+            
+            setTimeout(() => {
+                ctx.attackLock = false;
+            }, 700);
+        }
+    }
+    
+    // ========== 自适应难度AI ==========
+    function adjustDifficultyAI(triggerType) {
+        const ctx = battleState.battleCtx;
+        if (!ctx.aiEnabled || ctx.aiAdjustCooldown) return;
+        
+        let changed = false;
+        let newInterval = ctx.attackInterval;
+        
+        // 玩家被击中 → 降低难度（减慢攻击）
+        if (triggerType === 'player_hit') {
+            ctx.consecutiveHits++;
+            ctx.consecutiveInterrupts = 0;
+            
+            if (ctx.consecutiveHits >= 2) {
+                newInterval = Math.min(ctx.attackInterval + ctx.adjustStep * 2, ctx.maxInterval);
+            } else {
+                newInterval = Math.min(ctx.attackInterval + ctx.adjustStep, ctx.maxInterval);
+            }
+            
+            if (Math.abs(newInterval - ctx.attackInterval) > 10) {
+                ctx.attackInterval = newInterval;
+                changed = true;
+            }
+        }
+        
+        // 打断成功 → 提高难度（加快攻击）
+        else if (triggerType === 'interrupt_success') {
+            ctx.consecutiveInterrupts++;
+            ctx.consecutiveHits = 0;
+            
+            if (ctx.consecutiveInterrupts >= 3) {
+                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep * 2, ctx.minInterval);
+            } else {
+                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep, ctx.minInterval);
+            }
+            
+            if (Math.abs(newInterval - ctx.attackInterval) > 10) {
+                ctx.attackInterval = newInterval;
+                changed = true;
+            }
+        }
+        
+        // 句子完成 → 准确率高时小幅提高难度
+        else if (triggerType === 'sentence_clear') {
+            const total = battleState.correctCount + battleState.wrongCount;
+            const accuracy = total > 0 ? battleState.correctCount / total : 1;
+            
+            if (accuracy > 0.9) {
+                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep * 0.5, ctx.minInterval);
+                if (Math.abs(newInterval - ctx.attackInterval) > 10) {
+                    ctx.attackInterval = newInterval;
+                    changed = true;
+                }
+            }
+        }
+        
+        // 防止突然攻击：至少留20%反应时间
+        if (changed && ctx.attackTimer > ctx.attackInterval * 0.8) {
+            ctx.attackTimer = ctx.attackInterval * 0.8;
+        }
+        
+        if (changed) {
+            ctx.aiAdjustCooldown = true;
+        }
+    }
+    
+    // ========== 怪物攻击 ==========
+    function enemyAttack() {
+        // 基础伤害 × 新手保护减半
+        let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx) * 0.5;
+        damage = Math.floor(damage);
+        
+        // 儿童保护：长时间不输入，伤害再减半
+        const idleTime = Date.now() - battleState.lastInputTime;
+        if (idleTime > 5000) {
+            damage = Math.floor(damage * 0.5);
+        }
+        
+        // 无敌状态
+        if (battleState.invincible) {
+            showDamageNumber(elements.playerFighter, '免疫', 'heal');
+            showAttackEffect(elements.playerFighter, '✨');
+            updateBattleUI();
+            checkBattleEnd();
+            return;
+        }
+        
+        // 护盾抵挡
+        if (battleState.shieldCount > 0) {
+            battleState.shieldCount--;
+            showShieldBreakEffect();
+            showDamageNumber(elements.playerFighter, '护盾', 'heal');
+            updateBattleUI();
+            checkBattleEnd();
+            return;
+        }
+        
+        // 正常扣血
+        onHpChange(HP_TARGET.PLAYER, -damage);
+        addRage(damage * 2);
+        playHurtSound();
+        
+        if (elements.enemyFighter) {
+            elements.enemyFighter.classList.add('attacking');
+            setTimeout(() => {
+                elements.enemyFighter.classList.remove('attacking');
+            }, 500);
+        }
+        
+        setTimeout(() => {
+            if (elements.playerFighter) {
+                elements.playerFighter.classList.add('hurt');
+                setTimeout(() => {
+                    elements.playerFighter.classList.remove('hurt');
+                }, 400);
+            }
+        }, 200);
+        
+        showDamageNumber(elements.playerFighter, damage, 'normal');
+        showAttackEffect(elements.playerFighter, '💢');
+        
+        adjustDifficultyAI('player_hit');
+        checkBattleEnd();
+    }
+    
+    // ========== 玩家回血 ==========
+    function playerHeal(amount) {
+        const actualHeal = Math.min(amount, battleState.playerMaxHp - battleState.playerHp);
+        onHpChange(HP_TARGET.PLAYER, actualHeal);
+        playHealSound();
+        showDamageNumber(elements.playerFighter, '+' + actualHeal, 'heal');
+        showAttackEffect(elements.playerFighter, '💚');
+    }
+    
+    // ========== 伤害数字 ==========
+    function showDamageNumber(targetElement, damage, type) {
+        if (!targetElement || !elements.battleScene) return;
+        
+        const targetRect = targetElement.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        
+        const damageEl = document.createElement('div');
+        damageEl.className = 'damage-number';
+        if (type === 'crit') {
+            damageEl.classList.add('crit');
+            damageEl.textContent = damage + '!';
+        } else if (type === 'heal') {
+            damageEl.classList.add('heal');
+            damageEl.textContent = damage;
+        } else {
+            damageEl.textContent = '-' + damage;
+        }
+        
+        damageEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 20) + 'px';
+        damageEl.style.top = (targetRect.top - sceneRect.top) + 'px';
+        elements.battleScene.appendChild(damageEl);
+        
+        setTimeout(() => {
+            if (damageEl.parentNode) {
+                damageEl.parentNode.removeChild(damageEl);
+            }
+        }, 1000);
+    }
+    
+    // ========== 攻击特效 ==========
+    function showAttackEffect(targetElement, emoji) {
+        if (!targetElement || !elements.battleScene) return;
+        
+        const targetRect = targetElement.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'attack-effect';
+        effectEl.textContent = emoji;
+        effectEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 30) + 'px';
+        effectEl.style.top = (targetRect.top - sceneRect.top + targetRect.height / 2 - 30) + 'px';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 500);
+    }
+    
+    // ========== 护盾特效 ==========
+    function showShieldGainEffect() {
+        if (!elements.playerFighter || !elements.battleScene) return;
+        
+        const targetRect = elements.playerFighter.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'shield-gain-effect';
+        effectEl.textContent = '🛡️';
+        effectEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 25) + 'px';
+        effectEl.style.top = (targetRect.top - sceneRect.top - 10) + 'px';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 800);
+    }
+    
+    function showShieldBreakEffect() {
+        if (!elements.playerFighter || !elements.battleScene) return;
+        
+        const targetRect = elements.playerFighter.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'shield-break-effect';
+        effectEl.textContent = '💔';
+        effectEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 25) + 'px';
+        effectEl.style.top = (targetRect.top - sceneRect.top - 10) + 'px';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 600);
+    }
+    
+    // ========== 怒气系统 ==========
+    function addRage(amount) {
+        battleState.rage = Math.min(battleState.rage + amount, battleState.maxRage);
+        
+        if (battleState.rage >= battleState.maxRage && !battleState.rageSkillReady) {
+            battleState.rageSkillReady = true;
+            showRageFullEffect();
+            
+            if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+            battleState.rageAutoTimer = setTimeout(() => {
+                if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
+                useRageSkill();
+            }, 60000);
+        }
+        
+        updateBattleUI();
+    }
+    
+    function showRageFullEffect() {
+        if (!elements.playerFighter || !elements.battleScene) return;
+        
+        const targetRect = elements.playerFighter.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'rage-full-effect';
+        effectEl.textContent = '🔥 怒气满了！';
+        effectEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 40) + 'px';
+        effectEl.style.top = (targetRect.top - sceneRect.top - 30) + 'px';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 1500);
+    }
+    
+    function useRageSkill() {
+        const ctx = battleState.battleCtx;
+        if (!battleState.rageSkillReady || ctx.rageSkillCooldown || battleState.battleOver) return;
+        
+        ctx.rageSkillCooldown = true;
+        battleState.rageSkillReady = false;
+        battleState.rage = 0;
+        
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        
+        setTimeout(() => { ctx.rageSkillCooldown = false; }, 3000);
+        
+        // 怒气技能效果：3倍攻击伤害 + 回20%血
+        const rageDamage = Math.floor(battleState.player.attack * 3);
+        const rageHeal = Math.floor(battleState.playerMaxHp * 0.2);
+        
+        onHpChange(HP_TARGET.ENEMY, -rageDamage);
+        
+        const actualHeal = Math.min(rageHeal, battleState.playerMaxHp - battleState.playerHp);
+        onHpChange(HP_TARGET.PLAYER, actualHeal);
+        
+        showRageSkillEffect();
+        showDamageNumber(elements.enemyFighter, rageDamage, 'crit');
+        showDamageNumber(elements.playerFighter, '+' + actualHeal);
+        
+        playCritSound();
+        playHealSound();
+        
+        updateBattleUI();
+        checkBattleEnd();
+        
+        setTimeout(() => {
+            if(elements.battleInput && !battleState.battleOver){
+                elements.battleInput.focus();
+            }
+        }, 300);
+    }
+    
+    function showRageSkillEffect() {
+        if (!elements.battleScene) return;
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'rage-skill-effect';
+        effectEl.textContent = '💥🔥⚡';
+        effectEl.style.left = '50%';
+        effectEl.style.top = '50%';
+        effectEl.style.transform = 'translate(-50%, -50%)';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 1000);
+    }
+    
+    // ========== 道具系统 ==========
+    function addActiveItem(itemId, duration) {
+        battleState.activeItems.push({
+            id: itemId,
+            remaining: duration
+        });
+    }
+    
+    function consumeItemDuration() {
+        const newActiveItems = [];
+        for (const item of battleState.activeItems) {
+            item.remaining--;
+            if (item.remaining > 0) {
+                newActiveItems.push(item);
+            } else {
+                if (item.id === 'attack') {
+                    battleState.damageMultiplier = 1;
+                } else if (item.id === 'invincible') {
+                    battleState.invincible = false;
+                }
+            }
+        }
+        battleState.activeItems = newActiveItems;
+    }
+    
+    function tryDropItem() {
+        battleState.itemDropCounter++;
+        
+        // 每5个句子70%概率掉落
+        if (battleState.itemDropCounter >= 5) {
+            battleState.itemDropCounter = 0;
+            if (Math.random() < 0.7) {
+                dropRandomItem();
+            }
+        }
+    }
+    
+    function dropRandomItem() {
+        const randomIndex = Math.floor(Math.random() * itemTypes.length);
+        const item = itemTypes[randomIndex];
+        
+        showItemDropEffect(item);
+        
+        setTimeout(() => {
+            item.effect();
+            playComboSound();
+            updateBattleUI();
+        }, 500);
+    }
+    
+    function showItemDropEffect(item) {
+        if (!elements.battleScene) return;
+        
+        const effectEl = document.createElement('div');
+        effectEl.className = 'item-drop-effect';
+        effectEl.innerHTML = `
+            <div class="item-drop-emoji">${item.emoji}</div>
+            <div class="item-drop-name">${item.name}</div>
+        `;
+        effectEl.style.left = '50%';
+        effectEl.style.top = '30%';
+        effectEl.style.transform = 'translateX(-50%)';
+        elements.battleScene.appendChild(effectEl);
+        
+        setTimeout(() => {
+            if (effectEl.parentNode) {
+                effectEl.parentNode.removeChild(effectEl);
+            }
+        }, 1200);
+    }
+    
+    // ========== 战斗结束判定 ==========
+    function checkBattleEnd() {
+        if (battleState.battleOver) return;
+        
+        // 优先判定胜利
+        if (battleState.enemyHp <= 0) {
+            if (battleState.playerHp <= 0) {
+                battleState.playerHp = 1;
+            }
+            endBattle(BATTLE_END_TYPE.ENEMY_HP_EMPTY);
+            return;
+        }
+        
+        // 玩家死亡（排除无敌状态）
+        if (battleState.playerHp <= 0 && !battleState.invincible) {
+            endBattle(BATTLE_END_TYPE.PLAYER_DEAD);
+        }
+    }
+    
+    function endBattle(result) {     
+        battleState.battleOver = true;
+        battleState.active = false;
+        
+        const endTime = Date.now();
+        const duration = Math.floor((endTime - battleState.startTime) / 1000);
+        const total = battleState.correctCount + battleState.wrongCount;
+        const accuracy = total > 0 ? Math.round((battleState.correctCount / total) * 100) : 0;
+        
+        const isWin = result === BATTLE_END_TYPE.ALL_SENTENCE_CLEAR || result === BATTLE_END_TYPE.ENEMY_HP_EMPTY;
+        
+        if (isWin) {
+            playWinSound();
+        } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
+            playLoseSound();
+        }
+        
+        if (elements.resultIcon) {
+            elements.resultIcon.textContent = isWin ? '🏆' : '💔';
+        }
+        if (elements.resultTitle) {
+            elements.resultTitle.textContent = isWin ? '胜利！' : '失败...';
+            elements.resultTitle.className = 'battle-result-title ' + (isWin ? 'win' : 'lose');
+        }
+        if (elements.resultSubtitle) {
+            if (isWin) {
+                elements.resultSubtitle.textContent = `恭喜！全部 ${battleState.sentences.length} 个句子都打完啦！`;
+            } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
+                elements.resultSubtitle.textContent = `你被 ${battleState.enemy.name} 击败了...`;
+            } else {
+                elements.resultSubtitle.textContent = '所有句子都打完啦！';
+            }
+        }
+        if (elements.resultCorrect) {
+            elements.resultCorrect.textContent = battleState.correctCount;
+        }
+        if (elements.resultWrong) {
+            elements.resultWrong.textContent = battleState.wrongCount;
+        }
+        if (elements.resultAccuracy) {
+            elements.resultAccuracy.textContent = accuracy + '%';
+        }
+        if (elements.resultTime) {
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            elements.resultTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        setTimeout(() => {
+            if (elements.battleResult) {
+                elements.battleResult.classList.add('active');
+            }
+        }, 800);
+        
+        if(battleState.battleCtx.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+    }
+    
+    // ========== 再来一局 ==========
+    function retryBattle() {
+        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+        
+        playClickSound();
+        stopVoice();
+        clearVoiceCache();
+        
+        if (elements.battleResult) {
+            elements.battleResult.classList.remove('active');
+        }
+        
+        startBattle();
+        
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearMonsterWarningBar();
+    }
+    
+    // ========== 返回选择界面 ==========
+    function backToSelect() {
+        playClickSound();
+        
+        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+        
+        if (elements.battleResult) {
+            elements.battleResult.classList.remove('active');
+        }
+        if (elements.battleMode) {
+            elements.battleMode.classList.remove('active');
+        }
+        if (elements.battleSelect) {
+            elements.battleSelect.classList.add('active');
+        }
+        
+        clearMonsterWarningBar();
+    }
+    
+    // ========== 退出战斗 ==========
+    function exitBattle() {
+        if (confirm('确定要退出战斗吗？当前进度将丢失。')) {
+            battleState.active = false;
+            battleState.battleOver = true;
+            
+            try {
+                clearVoiceCache();
+            } catch (voiceErr) {
+                console.warn('退出时清理语音缓存失败，忽略异常', voiceErr);
+            }
+            
+            if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
+            
+            if (elements.battleMode) {
+                elements.battleMode.classList.remove('active');
+            }
+            if (elements.battleSelect) {
+                elements.battleSelect.classList.remove('active');
+            }
+            if (elements.battleResult) {
+                elements.battleResult.classList.remove('active');
+            }
+        }
+        
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearMonsterWarningBar();
+    }
+    
+    // 全局怒气手动释放入口
+    window.triggerRageSkill = function() {
+        if(battleState && !battleState.battleOver) useRageSkill();
+    }
+    
+    // ========== 对外接口 ==========
+    window.battleMode = {
+        init: init,
+        open: openBattleMode,
+        exit: exitBattle
+    };
+    
+    // 页面加载完成后自动初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
