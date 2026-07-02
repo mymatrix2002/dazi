@@ -165,6 +165,9 @@ typing-practice/
 ├─ README.md                     # 项目说明文档（本文件）
 ├─ css/
 │  ├─ main.css                   # 全局样式、主题变量、组件样式、题库弹窗
+│  ├─ responsive.css             # 移动端/平板响应式适配
+│  ├─ keyboard.css               # 虚拟键盘样式
+│  ├─ font-size.css              # 字号调节样式
 │  └─ battle-mode.css            # 战斗模式样式、角色选择、战斗场景、特效动画
 └─ js/
    ├─ tailwind.min.js            # Tailwind CSS 框架，提供原子化 CSS 类
