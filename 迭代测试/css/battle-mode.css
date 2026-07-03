@@ -1064,3 +1064,102 @@
 .battle-fighter.warn-flash {
     animation: warn-flash 0.3s infinite;
 }
+
+/* ======================================
+    方案6 场景互动机制 - 通用基础样式
+====================================== */
+/* 所有场景漂浮互动元素统一父类 */
+.scene-interact-item {
+    position: absolute;
+    z-index: 8;
+    font-size: 42px;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* 全局随机事件顶部提示气泡 */
+.scene-event-tip {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    padding: 6px 18px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 14px;
+    z-index: 12;
+    white-space: nowrap;
+    animation: tipFade 3s ease-out forwards;
+}
+@keyframes tipFade {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ========== 互动1：治疗星星 ⭐ ========== */
+.heal-star {
+    color: #fbbf24;
+    text-shadow: 0 0 12px #fbbf24, 0 0 24px rgba(251, 191, 36, 0.4);
+    animation: starFall 7s linear forwards, starTwinkle 0.8s infinite alternate;
+}
+/* 星星垂直下落轨迹 */
+@keyframes starFall {
+    0% { top: -60px; left: 20%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 70%; opacity: 0; }
+}
+/* 星星明暗闪烁 */
+@keyframes starTwinkle {
+    from { transform: scale(0.9); }
+    to { transform: scale(1.1); }
+}
+
+/* ========== 互动2：陨石雨 ☄️ ========== */
+.meteor {
+    font-size: 60px;
+    color: #a855f7;
+    text-shadow: 0 0 15px #a855f7, 0 0 30px rgba(168, 85, 247, 0.35);
+    animation: meteorDrop 1.2s linear forwards;
+}
+@keyframes meteorDrop {
+    0% { top: -80px; opacity: 0; transform: rotate(0deg); }
+    10% { opacity: 1; }
+    100% { top: 100%; opacity: 0; transform: rotate(180deg); }
+}
+
+/* ========== 互动3：能量球 ⚡ ========== */
+.energy-ball {
+    color: #38bdf8;
+    text-shadow: 0 0 14px #38bdf8, 0 0 28px rgba(56, 189, 248, 0.4);
+    animation: ballSwing 5s ease-in-out infinite, ballPulse 1s infinite alternate;
+}
+/* 左右横向漂浮 */
+@keyframes ballSwing {
+    0% { left: 10%; }
+    50% { left: 80%; }
+    100% { left: 10%; }
+}
+/* 大小脉冲呼吸 */
+@keyframes ballPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.25); }
+}
+
+/* ========== 拾取成功上浮特效 ========== */
+.interact-get-effect {
+    position: absolute;
+    font-size: 36px;
+    z-index: 15;
+    pointer-events: none;
+    animation: interactGetAnim 0.6s ease-out forwards;
+}
+@keyframes interactGetAnim {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2) translateY(-40px); opacity: 0; }
+}
+

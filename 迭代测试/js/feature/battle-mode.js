@@ -43,6 +43,24 @@
         [BATTLE_STAGE.MID]: "狂怒",
         [BATTLE_STAGE.LOW]: "狂暴绝境"
     };
+    // ========== 方案6 场景互动随机事件配置 ==========
+    const SCENE_EVENT_CONFIG = {
+        eventInterval: 12000,    // 每12秒判定一次是否触发事件
+        eventChance: 0.35,       // 单次触发概率35%
+        healStarHealRatio: 0.2,  // 星星回血比例20%最大生命值
+        meteorDmgRatio: 0.1,     // 陨石双方扣血10%最大生命值
+        energyBuffSentence: 3    // 能量球增伤持续3个句子
+    };
+    // 事件类型枚举
+    const SCENE_EVENT_TYPE = {
+        HEAL_STAR: "star",
+        METEOR: "meteor",
+        ENERGY_BALL: "energy"
+    };
+    // 随机大写字母池（能量球匹配字符）
+    const ENERGY_CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    // 提取英文专用正则，全局复用避免重复创建
+    const ENGLISH_MATCH_REG = /[a-zA-Z0-9\s.,!?'"-:;()]+/g;
     
     // ========== 玩家角色（6个） ==========
     const playerCharacters = [
@@ -252,7 +270,7 @@
         }
     ];
     
-    // ========== 战斗状态 ==========
+    // ========== 战斗状态（已更新统计相关变量，移除旧comboCount） ==========
     let battleState = {
         active: false,
         player: null,
@@ -264,9 +282,12 @@
         sentences: [],
         currentSentenceIndex: 0,
         currentCharIndex: 0,
-        correctCount: 0,
-        wrongCount: 0,
-        comboCount: 0,
+        correctCount: 0,        // 通关短句总数（中途改错也计数）
+        wrongCount: 0,          // 输入错误总次数
+        perfectSentence: 0,     // 界面【完美】连续无错短句
+        letterCombo: 0,         // 字母连击（仅用于伤害、护盾，UI不展示）
+        letterComboBase: 0,     // 新增：连续输入基准长度
+        currentSentenceHasError: false, // 当前句子是否出过错误
         healCounter: 0,
         lastInputLength: 0,
         inputError: false,
@@ -280,7 +301,17 @@
         invincible: false,
         activeItems: [],
         startTime: 0,
-        battleOver: false
+        battleOver: false,
+        // ====== 方案6 场景互动状态 ======
+        sceneInteract: {
+            eventTimer: null,         // 随机事件循环定时器
+            eventLock: false,         // 事件冷却锁，防止连续刷事件
+            hasStar: false,           // 当前是否存在治疗星星
+            hasEnergyBall: false,     // 当前是否存在能量球
+            targetEnergyChar: "",     // 能量球需要匹配的大写字母
+            starDom: null,            // 星星DOM元素缓存
+            energyDom: null           // 能量球DOM元素缓存
+        }
     };
     
     // ========== 战斗音效（WebAudio合成） ==========
@@ -496,7 +527,6 @@
         
         const doPlay = (url) => {
             const audio = new Audio(url);
-            currentVoiceAudio = audio;
             audio.play().catch(err => {
                 console.warn('语音播放失败，尝试系统语音兜底');
                 playFallbackVoice(text);
@@ -581,67 +611,900 @@
         }, duration);
     }
     
-    // ========== 道具系统（5种） ==========
-    const itemTypes = [
-        {
-            id: 'heal',
-            name: '回血药水',
-            emoji: '❤️',
-            description: '恢复 30% 生命值',
-            effect: function() {
-                const healAmount = Math.floor(battleState.playerMaxHp * 0.3);
-                playerHeal(healAmount);
+    // 统一清理战斗所有定时器、场景元素，消除多函数重复代码
+    function clearBattleTimers() {
+        const ctx = battleState.battleCtx;
+        if (ctx?.bgTimerId) clearInterval(ctx.bgTimerId);
+        if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearAllSceneInteract();
+        clearMonsterWarningBar();
+    }
+    
+    // ========== DOM 元素缓存 ==========
+    let elements = {};
+    
+    // ========== 刷新战斗UI（血量、怒气、统计栏） ==========
+    function updateBattleUI() {
+        if (!battleState.active && !battleState.battleOver) return;
+        // 玩家血量
+        if (elements.playerHpFill) {
+            const pct = battleState.playerHp / battleState.playerMaxHp;
+            elements.playerHpFill.style.width = (pct * 100) + '%';
+        }
+        if (elements.playerHpText) {
+            elements.playerHpText.textContent = `${battleState.playerHp}/${battleState.playerMaxHp}`;
+        }
+        // 怪物血量
+        if (elements.enemyHpFill) {
+            const pct = battleState.enemyHp / battleState.enemyMaxHp;
+            elements.enemyHpFill.style.width = (pct * 100) + '%';
+        }
+        if (elements.enemyHpText) {
+            elements.enemyHpText.textContent = `${battleState.enemyHp}/${battleState.enemyMaxHp}`;
+        }
+        // 怒气条
+        if (elements.playerRageBarFill) {
+            const ragePct = battleState.rage / battleState.maxRage;
+            elements.playerRageBarFill.style.width = (ragePct * 100) + '%';
+        }
+        // 护盾数量
+        if (elements.shieldCount) {
+            elements.shieldCount.textContent = battleState.shieldCount;
+        }
+        // 统计栏：通关 / 失误 / 连打 / 完美
+        if (elements.statsCorrect) elements.statsCorrect.textContent = battleState.correctCount;
+        if (elements.statsWrong) elements.statsWrong.textContent = battleState.wrongCount;
+        if (elements.statsLetterCombo) elements.statsLetterCombo.textContent = battleState.letterCombo;
+        if (elements.statsPerfect) elements.statsPerfect.textContent = battleState.perfectSentence;
+        // 激活道具图标
+        if (elements.activeItems) {
+            elements.activeItems.innerHTML = '';
+            battleState.activeItems.forEach(item => {
+                const itemDom = document.createElement('span');
+                itemDom.className = 'active-item-tag';
+                switch(item.id) {
+                    case 'attack': itemDom.textContent = '⚔️'; break;
+                    case 'invincible': itemDom.textContent = '⭐'; break;
+                    case 'doubleDmg': itemDom.textContent = '⚡'; break;
+                    default: itemDom.textContent = '?';
+                }
+                itemDom.title = `剩余${item.remaining}句`;
+                elements.activeItems.appendChild(itemDom);
+            });
+        }
+    }
+
+    // ========== 初始化 ==========
+    function init() {
+        elements = {
+            battleMode: document.getElementById('battleMode'),
+            battleSelect: document.getElementById('battleSelect'),
+            battleResult: document.getElementById('battleResult'),
+            playerAvatar: document.getElementById('battlePlayerAvatar'),
+            playerName: document.getElementById('battlePlayerName'),
+            playerHpFill: document.getElementById('battlePlayerHpFill'),
+            playerHpText: document.getElementById('battlePlayerHpText'),
+            enemyAvatar: document.getElementById('battleEnemyAvatar'),
+            enemyName: document.getElementById('battleEnemyName'),
+            enemyHpFill: document.getElementById('battleEnemyHpFill'),
+            enemyHpText: document.getElementById('battleEnemyHpText'),
+            playerFighter: document.getElementById('battlePlayerFighter'),
+            enemyFighter: document.getElementById('battleEnemyFighter'),
+            battleScene: document.getElementById('battleScene'),
+            currentWord: document.getElementById('battleCurrentWord'),
+            battleInput: document.getElementById('battleInput'),
+            statsCorrect: document.getElementById('battleStatsCorrect'),
+            statsWrong: document.getElementById('battleStatsWrong'),
+            statsLetterCombo: document.getElementById('battleStatsLetterCombo'),
+            statsPerfect: document.getElementById('battleStatsCombo'),
+            playerRageBar: document.getElementById('battlePlayerRageBar'),
+            playerRageBarFill: document.getElementById('battlePlayerRageFill'),
+            shieldCount: document.getElementById('battleShieldCount'),
+            activeItems: document.getElementById('battleActiveItems'),
+            exitBtn: document.getElementById('battleExitBtn'),
+            startBtn: document.getElementById('startBattleBtn'),
+            playerGrid: document.getElementById('playerCharacterGrid'),
+            enemyGrid: document.getElementById('enemyCharacterGrid'),
+            resultIcon: document.getElementById('battleResultIcon'),
+            resultTitle: document.getElementById('battleResultTitle'),
+            resultSubtitle: document.getElementById('battleResultSubtitle'),
+            resultCorrect: document.getElementById('resultStatCorrect'),
+            resultWrong: document.getElementById('resultStatWrong'),
+            resultAccuracy: document.getElementById('resultStatAccuracy'),
+            resultTime: document.getElementById('resultStatTime'),
+            resultRetryBtn: document.getElementById('battleResultRetry'),
+            resultBackBtn: document.getElementById('battleResultBack')
+        };
+        
+        // 一次性解锁音频
+        function unlockAudioOnce() {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
             }
-        },
-        {
-            id: 'shield',
-            name: '护盾道具',
-            emoji: '🛡️',
-            description: '获得 2 个护盾',
-            effect: function() {
-                battleState.shieldCount += 2;
-                showShieldGainEffect();
+            document.removeEventListener('click', unlockAudioOnce);
+            document.removeEventListener('touchend', unlockAudioOnce);
+        }
+        document.addEventListener('click', unlockAudioOnce);
+        document.addEventListener('touchend', unlockAudioOnce);
+        
+        // 绑定事件
+        if (elements.exitBtn) {
+            elements.exitBtn.addEventListener('click', exitBattle);
+        }
+        if (elements.battleInput) {
+            elements.battleInput.addEventListener('input', handleInput);
+            elements.battleInput.addEventListener('touchend', () => {
+                initAudio();
+                if (audioCtx?.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            });
+        }
+        if (elements.startBtn) {
+            elements.startBtn.addEventListener('click', startBattle);
+        }
+        if (elements.resultRetryBtn) {
+            elements.resultRetryBtn.addEventListener('click', retryBattle);
+        }
+        if (elements.resultBackBtn) {
+            elements.resultBackBtn.addEventListener('click', backToSelect);
+        }
+        
+        // 读取本地保存的选中角色
+        const savedPlayer = localStorage.getItem('battle_select_player');
+        const savedEnemy = localStorage.getItem('battle_select_enemy');
+        if(savedPlayer) selectedPlayerId = savedPlayer;
+        if(savedEnemy) selectedEnemyId = savedEnemy;
+        renderCharacterSelect();
+    }
+    
+    // ========== 角色选择界面 ==========
+    function renderCharacterSelect() {
+        if (elements.playerGrid) {
+            elements.playerGrid.innerHTML = '';
+            playerCharacters.forEach((char) => {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.dataset.id = char.id;
+            // 新增选中高亮判断
+            if(char.id === selectedPlayerId) card.classList.add('selected');
+                const showHp = calcPlayerMaxHp(char, { level: 1, hpBuff: 1 });
+                card.innerHTML = `
+                    <div class="character-card-emoji">${char.emoji}</div>
+                    <div class="character-card-info">
+                        <div class="character-card-name">${char.name}</div>
+                        <div class="character-card-type">${char.type}</div>
+                        <div class="character-card-stats">
+                            <div class="character-card-stat">❤️ <span>${showHp}</span></div>
+                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => selectPlayer(char.id));
+                elements.playerGrid.appendChild(card);
+            });
+        }
+        
+        if (elements.enemyGrid) {
+            elements.enemyGrid.innerHTML = '';
+            enemyCharacters.forEach((char) => {
+            const card = document.createElement('div');
+            card.className = 'character-card enemy-card';
+            card.dataset.id = char.id;
+            // 新增选中高亮判断
+            if(char.id === selectedEnemyId) card.classList.add('selected');
+                const stars = '⭐'.repeat(char.difficulty);
+                const showEnemyHp = calcEnemyShowHp(char);
+                card.innerHTML = `
+                    <div class="character-card-emoji">${char.emoji}</div>
+                    <div class="character-card-info">
+                        <div class="character-card-name">${char.name}</div>
+                        <div class="difficulty-stars">${stars}</div>
+                        <div class="character-card-stats">
+                            <div class="character-card-stat">❤️ <span>${showEnemyHp}</span></div>
+                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => selectEnemy(char.id));
+                elements.enemyGrid.appendChild(card);
+            });
+        }
+        
+        updateStartButton();
+    }
+    
+    let selectedPlayerId = null;
+    function selectPlayer(id) {
+        selectedPlayerId = id;
+        localStorage.setItem('battle_select_player', id); // 持久化保存
+        playClickSound();
+        document.querySelectorAll('#playerCharacterGrid .character-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        updateStartButton();
+    }
+    
+    let selectedEnemyId = null;
+    function selectEnemy(id) {
+        selectedEnemyId = id;
+        localStorage.setItem('battle_select_enemy', id); // 持久化保存
+        playClickSound();
+        document.querySelectorAll('#enemyCharacterGrid .character-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        updateStartButton();
+    }
+    
+    function updateStartButton() {
+        if (!elements.startBtn) return;
+        const canStart = selectedPlayerId && selectedEnemyId;
+        elements.startBtn.disabled = !canStart;
+        elements.startBtn.textContent = canStart ? '⚔️ 开始战斗！' : '请先选择角色和对手';
+    }
+    
+    // ========== 打开战斗模式 ==========
+    function openBattleMode() {
+        const sourceText = document.getElementById('sourceText');
+        if (!sourceText || !sourceText.value.trim()) {
+            alert('请先选择练习内容（选择题库或粘贴文本）');
+            return;
+        }
+        
+        const text = sourceText.value;
+        battleState.sentences = extractSentences(text);
+        
+        if (battleState.sentences.length < 3) {
+            alert('句子太少啦，至少需要 3 个句子才能开始战斗！');
+            return;
+        }
+        
+        if (elements.battleSelect) {
+            elements.battleSelect.classList.add('active');
+        }
+        // 恢复兜底逻辑，无选中时自动默认小猫+幽灵
+        if (!selectedPlayerId) {
+            selectPlayer(playerCharacters[0].id);
+        }
+        if (!selectedEnemyId) {
+            selectEnemy(enemyCharacters[0].id);
+        }
+    }
+    
+    // 提取句子（支持双语对照格式：英文一行、中文一行交替）
+    function extractSentences(text) {
+        const lines = text.split('\n');
+        const sentences = [];
+        
+        let i = 0;
+        while (i < lines.length) {
+            const trimmed = lines[i].trim();
+            if (!trimmed) {
+                i++;
+                continue;
             }
-        },
-        {
-            id: 'attack',
-            name: '力量药水',
-            emoji: '⚔️',
-            description: '接下来 5 个句子伤害翻倍',
-            duration: 5,
-            effect: function() {
-                battleState.damageMultiplier = 2;
-                addActiveItem('attack', 5);
+            
+            const english = extractEnglishPart(trimmed);
+            if (english.length < 2) {
+                i++;
+                continue;
             }
-        },
-        {
-            id: 'invincible',
-            name: '无敌星星',
-            emoji: '⭐',
-            description: '接下来 3 个句子无敌',
-            duration: 3,
-            effect: function() {
-                battleState.invincible = true;
-                addActiveItem('invincible', 3);
+            
+            let chinese = '';
+            const chineseChars = trimmed.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]+/g);
+            if (chineseChars && chineseChars.length > 0) {
+                chinese = chineseChars.join('');
             }
-        },
-        {
-            id: 'rage',
-            name: '怒气药水',
-            emoji: '🔥',
-            description: '怒气直接充满',
-            effect: function() {
-                battleState.rage = battleState.maxRage;
-                battleState.rageSkillReady = true;
-                showRageFullEffect();
-                setTimeout(() => {
-                    if (!battleState.battleOver && battleState.rageSkillReady) {
-                        useRageSkill();
-                    }
-                }, 800);
+            
+            if (!chinese && i + 1 < lines.length) {
+                const nextLine = lines[i + 1].trim();
+                const nextEnglish = extractEnglishPart(nextLine);
+                if (nextEnglish.length < nextLine.length * 0.3) {
+                    chinese = nextLine;
+                    i++;
+                }
+            }
+            
+            sentences.push({
+                english: english,
+                display: trimmed,
+                chinese: chinese
+            });
+            i++;
+        }
+        
+        // 自动拆分长句
+        const splitSentences = [];
+        for (const s of sentences) {
+            const parts = splitLongSentence(s.english);
+            if (parts.length > 1) {
+                for (const part of parts) {
+                    splitSentences.push({
+                        english: part,
+                        display: part,
+                        chinese: s.chinese
+                    });
+                }
+            } else {
+                splitSentences.push(s);
             }
         }
-    ];
+        
+        return splitSentences;
+    }
+    
+    function splitLongSentence(text) {
+        if (!text || text.length < 15) return [text];
+        
+        const sentenceEndRegex = /([.!?]+)\s+/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = sentenceEndRegex.exec(text)) !== null) {
+            const endPos = match.index + match[1].length;
+            const sentence = text.substring(lastIndex, endPos).trim();
+            if (sentence.length > 3) {
+                parts.push(sentence);
+            }
+            lastIndex = match.index + match[0].length;
+        }
+        
+        const lastPart = text.substring(lastIndex).trim();
+        if (lastPart.length > 3) {
+            parts.push(lastPart);
+        }
+        
+        return parts.length > 1 ? parts : [text];
+    }
+    
+    function extractEnglishPart(line) {
+        const matches = line.match(ENGLISH_MATCH_REG);
+        if (!matches) return '';
+        
+        let result = matches.join('').trim();
+        result = result.replace(/\s+/g, ' ');
+        return result;
+    }
+    
+    // ========== 开始战斗 ==========
+    function startBattle() {
+        if (!selectedPlayerId || !selectedEnemyId) return;
+
+        const playerChar = playerCharacters.find(item => item.id === selectedPlayerId) || playerCharacters[0];
+        const enemyChar = enemyCharacters.find(item => item.id === selectedEnemyId) || enemyCharacters[0];
+
+        // 修复头像、角色名
+        if(elements.playerAvatar) elements.playerAvatar.textContent = playerChar.emoji;
+        if(elements.playerName) elements.playerName.textContent = playerChar.name;
+        if(elements.enemyAvatar) elements.enemyAvatar.textContent = enemyChar.emoji;
+        if(elements.enemyName) elements.enemyName.textContent = enemyChar.name;
+        // 修复中央战斗角色大图
+        if(elements.playerFighter) elements.playerFighter.textContent = playerChar.emoji;
+        if(elements.enemyFighter) elements.enemyFighter.textContent = enemyChar.emoji;
+        const diffKey = enemyChar.difficulty === 1 ? 'easy' : enemyChar.difficulty === 2 ? 'normal' : 'hard';
+        
+        // 战斗上下文（可调节参数集中在这里）
+        const battleCtx = {
+            level: 1,
+            hpBuff: 1,
+            enemyAiMulti: 1,
+            baseAtkMulti: 1,
+            isRaging: false,
+            attackTimer: 0,
+            attackInterval: DIFF_ATTACK_CD[diffKey],
+            attackLock: false,
+            inInterruptWindow: false,
+            continuousCorrect: 0,
+            stageNotified: {},
+            interruptTimer: 0,
+            rageSkillCooldown: false,
+            bgTimerId: null,
+            
+            // 自适应难度AI参数（可调节）
+            aiEnabled: true,                   // AI总开关
+            baseInterval: DIFF_ATTACK_CD[diffKey], // 基准攻击间隔
+            minInterval: DIFF_ATTACK_CD[diffKey] * 0.5,  // 最快间隔（基准的50%）
+            maxInterval: DIFF_ATTACK_CD[diffKey] * 1.8,  // 最慢间隔（基准的180%）
+            adjustStep: 500,                   // 每次调整步长（毫秒）
+            consecutiveHits: 0,                // 连续被击中次数
+            consecutiveInterrupts: 0,          // 连续成功打断次数
+            aiAdjustCooldown: false            // AI调整冷却
+        };
+        
+        const playerMaxHp = calcPlayerMaxHp(playerChar, battleCtx);
+        const enemyMaxHp = calcEnemyMaxHp(enemyChar, battleState.sentences.length, battleCtx);
+        
+        // 复用全局battleState对象，逐字段重置，消除重复结构冗余
+        battleState.active = true;
+        battleState.player = playerChar;
+        battleState.enemy = enemyChar;
+        battleState.playerHp = playerMaxHp;
+        battleState.playerMaxHp = playerMaxHp;
+        battleState.enemyHp = enemyMaxHp;
+        battleState.enemyMaxHp = enemyMaxHp;
+        battleState.battleCtx = battleCtx;
+        battleState.sentences = [...battleState.sentences];
+        battleState.currentSentenceIndex = 0;
+        battleState.currentCharIndex = 0;
+        battleState.correctCount = 0;
+        battleState.wrongCount = 0;
+        battleState.perfectSentence = 0;
+        battleState.letterCombo = 0;
+        battleState.letterComboBase = 0;
+        battleState.currentSentenceHasError = false;
+        battleState.healCounter = 0;
+        battleState.lastInputLength = 0;
+        battleState.inputError = false;
+        battleState.shieldCount = 0;
+        battleState.rage = 0;
+        battleState.maxRage = 100;
+        battleState.rageSkillReady = false;
+        battleState.rageAutoTimer = null;
+        battleState.itemDropCounter = 0;
+        battleState.damageMultiplier = 1;
+        battleState.invincible = false;
+        battleState.activeItems = [];
+        battleState.startTime = Date.now();
+        battleState.battleOver = false;
+
+        // 场景互动子对象单独重置，不重建对象避免内存冗余
+        const inter = battleState.sceneInteract;
+        inter.eventTimer = null;
+        inter.eventLock = false;
+        inter.hasStar = false;
+        inter.hasEnergyBall = false;
+        inter.targetEnergyChar = "";
+        inter.starDom = null;
+        inter.energyDom = null;
+        
+        updateBattleUI();
+        
+        if (elements.battleSelect) {
+            elements.battleSelect.classList.remove('active');
+        }
+        if (elements.battleMode) {
+            elements.battleMode.classList.add('active');
+        }
+        
+        preloadVoices(battleState.sentences, 0);
+        showCurrentSentence();
+        
+        setTimeout(() => {
+            if (elements.battleInput) {
+                elements.battleInput.value = '';
+                elements.battleInput.focus();
+                initAudio();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                    playTone(800, 0.01, 'sine', 0.01, 0, false);
+                }
+            }
+        }, 300);
+        // 启动方案6 场景随机事件循环
+        clearAllSceneInteract();
+        startSceneEventLoop();
+        
+        // 后台持续计时（锁定期间暂停累加）
+        battleCtx.bgTimerId = setInterval(() => {
+            if(battleState.battleOver) {
+                clearInterval(battleCtx.bgTimerId);
+                return;
+            }
+            if (!battleCtx.attackLock) {
+                battleCtx.attackTimer += 100;
+            }
+            checkMonsterAutoAttack();
+        }, 100);
+    }
+
+    // ========== 显示当前句子 ==========
+    function showCurrentSentence() {  
+        if (battleState.currentSentenceIndex >= battleState.sentences.length) {
+            onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
+            updateBattleUI();
+            endBattle(BATTLE_END_TYPE.ALL_SENTENCE_CLEAR);
+            return;
+        }
+        
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        battleState.currentCharIndex = 0;
+        battleState.currentSentenceHasError = false; // 切换新句重置错误标记
+        
+        if (elements.currentWord) {
+            const displayText = sentence.display;
+            const englishText = sentence.english;
+            const chineseText = sentence.chinese || '';
+            
+            const lowerDisplay = displayText.toLowerCase();
+            const lowerEnglish = englishText.toLowerCase();
+            const index = lowerDisplay.indexOf(lowerEnglish);
+            
+            let speakerPrefix = '';
+            if (index >= 0) {
+                speakerPrefix = displayText.substring(0, index);
+            }
+            
+            let html = `<div style="margin-bottom: 8px; line-height: 1.4; text-align: center;">`;
+            if (speakerPrefix) {
+                html += `<span style="color: rgba(255,255,0.5); font-size: 18px;">${speakerPrefix}</span>`;
+            }
+            
+            for (let i = 0; i < englishText.length; i++) {
+                const ch = englishText[i];
+                let color = '#fff'; // 未输入：白色
+                let extraStyle = '';
+                if (i === 0) {
+                    color = '#ffdd00'; // 当前位：黄色
+                }
+                // 高亮能量球目标字母
+                const interState = battleState.sceneInteract;
+                if (interState.hasEnergyBall && ch.toUpperCase() === interState.targetEnergyChar) {
+                    extraStyle = 'background:#ffd000;color:#000;padding:0 2px;border-radius:3px;';
+                }
+                html += `<span class="battle-char" data-index="${i}" style="color: ${color};${extraStyle} font-weight: bold; font-size: 26px; letter-spacing: 1px;">${ch === ' ' ? '&nbsp;' : ch}</span>`;
+            }
+            html += `</div>`;
+            
+            // 中文翻译（如果有）
+            if (chineseText) {
+                html += `<div style="color: rgba(255,255,255,0.6); font-size: 16px; line-height: 1.3; text-align: center;">
+                    ${chineseText}
+                </div>`;
+            }
+            
+            elements.currentWord.innerHTML = html;
+        }
+        
+        if (elements.battleInput) {
+            elements.battleInput.value = '';
+            elements.battleInput.classList.remove('correct', 'wrong');
+        }
+        
+        playVoice(sentence.english);
+        
+        const nextIndex = battleState.currentSentenceIndex + 1;
+        if (nextIndex < battleState.sentences.length) {
+            setTimeout(() => {
+                preloadVoice(battleState.sentences[nextIndex].english);
+            }, 500);
+        }
+        
+        battleState.lastInputTime = Date.now();
+        checkMonsterAutoAttack();
+        
+        battleState.lastInputLength = 0;
+        battleState.inputError = false;
+        battleState.battleCtx.continuousCorrect = 0;
+        battleState.battleCtx.inInterruptWindow = false;
+        battleState.battleCtx.interruptTimer = 0;
+        battleState.currentSentenceHasError = false;
+        // 仅重置输入基准，连击数值全程保留，跨句子持续累计
+        battleState.letterComboBase = 0;
+        
+        refreshSentenceHighlight();
+        
+    }
+    
+    function refreshSentenceHighlight() {
+        if (battleState.currentSentenceIndex >= battleState.sentences.length) return;
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        if (!elements.currentWord) return;
+        const displayText = sentence.display;
+        const englishText = sentence.english;
+        const chineseText = sentence.chinese || '';
+        const userInput = elements.battleInput.value;
+        const lowerUserInput = userInput.toLowerCase();
+        const lowerEnglish = englishText.toLowerCase();
+        const inputLen = lowerUserInput.length;
+        const targetLen = lowerEnglish.length;
+        const index = displayText.toLowerCase().indexOf(lowerEnglish);
+        let speakerPrefix = '';
+        if (index >= 0) speakerPrefix = displayText.substring(0, index);
+        let html = `<div style="margin-bottom: 8px; line-height: 1.4; text-align: center;">`;
+        if (speakerPrefix) html += `<span style="color: rgba(255,255,0.5); font-size: 18px;">${speakerPrefix}</span>`;
+        for (let i = 0; i < targetLen; i++) {
+            const ch = englishText[i];
+            let color = '#fff';
+            let extraStyle = '';
+            // 仅当当前位已经有输入内容时判断对错
+            if (i < inputLen) {
+                if (lowerUserInput[i] === lowerEnglish[i]) {
+                    color = '#39ff14'; // 正确绿色
+                } else {
+                    color = '#f87171'; // 错误浅红
+                }
+            }
+            // 光标位置高亮（未输入的下一位）
+            if (i === battleState.currentCharIndex && i >= inputLen) {
+                color = '#ffdd00';
+            }
+            // 能量球高亮最高优先级
+            const interState = battleState.sceneInteract;
+            if (interState.hasEnergyBall && ch.toUpperCase() === interState.targetEnergyChar) {
+                extraStyle = 'background:#ffd000;color:#000;padding:0 2px;border-radius:3px;';
+            }
+            html += `<span class="battle-char" data-index="${i}" style="color: ${color};${extraStyle} font-weight: bold; font-size: 26px; letter-spacing: 1px;">${ch === ' ' ? '&nbsp;' : ch}</span>`;
+        }
+        html += `</div>`;
+        if (chineseText) {
+            html += `<div style="color: rgba(255,255,255,0.6); font-size: 16px; line-height: 1.3; text-align: center;">${chineseText}</div>`;
+        }
+        elements.currentWord.innerHTML = html;
+    }
+    
+    function updateCharColors() {
+        if (!elements.currentWord) return;
+        const charSpans = elements.currentWord.querySelectorAll('.battle-char');
+        if (!charSpans.length) return;
+        
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        if (!sentence) return;
+        
+        const english = sentence.english;
+        const input = elements.battleInput ? elements.battleInput.value.toLowerCase() : '';
+        const target = english.toLowerCase();
+        
+        let hasError = false;
+        let errorIndex = -1;
+        for (let i = 0; i < input.length; i++) {
+            if (input[i] !== target[i]) {
+                hasError = true;
+                errorIndex = i;
+                break;
+            }
+        }
+        
+        charSpans.forEach((span, i) => {
+            if (hasError && i === errorIndex) {
+                span.style.color = '#f87171';
+            } else if (hasError && i < errorIndex) {
+                span.style.color = '#39d353';
+            } else if (!hasError && i < input.length) {
+                span.style.color = '#39d353';
+            } else if (!hasError && i === input.length) {
+                span.style.color = '#ffdd00';
+            } else {
+                span.style.color = '#fff';
+            }
+        });
+    }
+    
+    // ========== 处理输入 ==========
+    function handleInput(e) {
+        // 闲置超过5秒清空连击
+        const idleMs = Date.now() - battleState.lastInputTime;
+        if (idleMs > 5000 && battleState.letterCombo > 0) {
+            battleState.letterCombo = 0;
+            battleState.letterComboBase = 0;
+            updateBattleUI();
+        }
+
+        if (battleState.battleOver) return;
+        const ctx = battleState.battleCtx;
+        let skipMonsterTimer = false;
+        
+        // 打断窗口：末尾连续3个正确字母即可打断
+        if (ctx.inInterruptWindow && !battleState.battleOver) {
+            const input = elements.battleInput;
+            const sentence = battleState.sentences[battleState.currentSentenceIndex];
+            const targetEnglish = sentence.english.toLowerCase();
+            const inputValue = input.value.toLowerCase();
+            let currentContinuous = 0;
+            
+            // 倒序统计末尾有效字母（空格跳过不中断）
+            for (let i = inputValue.length - 1; i >= 0; i--) {
+                const char = inputValue[i];
+                if ([' ','\t','\n','\r'].includes(char)) {
+                    continue;
+                }
+                if (char === targetEnglish[i]) {
+                    currentContinuous++;
+                    if (currentContinuous >= 3) {
+                        currentContinuous = 3;
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            ctx.continuousCorrect = currentContinuous;
+            
+            // 打断成功
+            if (ctx.continuousCorrect >= 3) {
+                ctx.attackTimer = 0;
+                ctx.inInterruptWindow = false;
+                ctx.continuousCorrect = 0;
+                ctx.interruptTimer = 0; 
+                ctx.attackLock = true;
+                setTimeout(() => { ctx.attackLock = false; }, 700);
+                
+                if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+                battleState.rageAutoTimer = null;
+                
+                const oldTip = document.querySelector('div[style*="top:30%"]');
+                if(oldTip) oldTip.remove();
+                
+                clearMonsterWarningBar();
+                elements.enemyFighter.classList.remove('warn-flash');
+                showAttackEffect(elements.enemyFighter, "✨");
+                playComboSound(20);
+                skipMonsterTimer = true;
+                
+                adjustDifficultyAI('interrupt_success');
+            }
+        }
+        
+        const input = elements.battleInput;
+        const sentence = battleState.sentences[battleState.currentSentenceIndex];
+        const targetEnglish = sentence.english.toLowerCase();
+        const inputValue = input.value.toLowerCase();
+        const inputLen = inputValue.length;
+        
+        let hasError = false;
+        let firstErrorIndex = -1;
+        for (let i = 0; i < inputLen; i++) {
+            if (inputValue[i] !== targetEnglish[i]) {
+                hasError = true;
+                firstErrorIndex = i;
+                break;
+            }
+        }
+        
+        if (hasError && !battleState.inputError) {
+            handleWrongInput();
+        }
+        battleState.inputError = hasError;
+        
+        // 原有光标定位逻辑保留
+        if (hasError) {
+            battleState.currentCharIndex = firstErrorIndex;
+        } else {
+            battleState.currentCharIndex = inputLen;
+        }
+        
+        // 输入无错误时，清除本句错误标记（修复退格后完美不计数BUG）
+        if (!hasError) {
+            battleState.currentSentenceHasError = false;
+            updateBattleUI(); // 退格删除错误字符后同步刷新
+        }
+        updateCharColors();
+        // ====== 方案：修复互动字符匹配BUG ======
+        // 提取最后有效字符，剔除空格、空白
+        let lastChar = inputValue.slice(-1).trim();
+        if (lastChar) {
+            checkInteractPickup(lastChar);
+        }
+        if (!hasError && inputLen === targetEnglish.length) {
+            handleSentenceComplete();
+        }
+        
+        battleState.lastInputLength = inputLen;
+        
+        if (!hasError && inputLen > 0) {
+            playCharCorrectSound();
+            // 两种情况不清零：
+            // 1、当前输入 = 上一次长度+1（同句连续打字）
+            // 2、当前输入从头开始，但上一句已完成（跨句子继续连击）
+            const isContinueInput = inputLen === battleState.letterComboBase + 1;
+            // 跨句子首字符直接累加，无需重置
+            const isNewSentenceStart = battleState.letterComboBase === 0 && inputLen === 1;
+            // 新增：上一句打完直接打下一句，无停顿，强制叠加连击
+            if (isContinueInput || isNewSentenceStart) {
+                battleState.letterCombo += 1;
+            }
+            // 仅手动回退/退格才清空连击
+            else if (inputLen < battleState.letterComboBase) {
+                battleState.letterCombo = 0;
+            }
+            // 补充：正常切句无操作、中途停5秒不会进else，连击保留
+            battleState.letterComboBase = inputLen;
+            updateBattleUI();
+        }
+        
+        if(!skipMonsterTimer){
+            const nowTime = Date.now();
+            const delta = nowTime - battleState.lastInputTime || 0;
+            // 固定单次最多累加4000ms，避开不存在的battleCfg
+            const maxAddTime = 4000;
+            const realAdd = Math.min(delta, maxAddTime);
+            battleState.battleCtx.attackTimer += realAdd;
+            battleState.lastInputTime = nowTime;
+            checkMonsterAutoAttack();
+        }
+        // 删除重复的 updateCharColors(); 只保留一次刷新
+        refreshSentenceHighlight();
+    }
+    
+        function handleWrongInput() {
+            if (battleState.battleOver) return;
+            battleState.wrongCount++;
+            battleState.perfectSentence = 0;
+            battleState.letterCombo = 0;     // 字母连击清零
+            battleState.letterComboBase = 0; // 同步重置连续基准
+            battleState.currentSentenceHasError = true; // 标记本句存在错误
+            
+            if (elements.battleInput) {
+                elements.battleInput.classList.add('wrong');
+                setTimeout(() => {
+                    if (elements.battleInput) {
+                        elements.battleInput.classList.remove('wrong');
+                    }
+                }, 300);
+            }
+
+            updateBattleUI(); // 新增：输错立刻刷新UI，连打瞬间归零显示
+            enemyAttack();
+            checkBattleEnd();
+        }
+    
+    function handleSentenceComplete() {
+        if (battleState.battleOver) return;
+        
+        // 所有完整通关句子都计入总数，无上限限制
+        battleState.correctCount++;
+
+        // 只有当前句子全程没有任何错误，才叠加完美短句
+        if (!battleState.currentSentenceHasError) {
+            battleState.perfectSentence++;
+        }
+        
+        if (elements.battleInput) {
+            elements.battleInput.classList.add('correct');
+        }
+        
+        playerAttack();
+        
+        // 每10个字母连击获得护盾
+        if (battleState.letterCombo > 0 && battleState.letterCombo % 10 === 0) {
+            playComboSound(battleState.letterCombo);
+            battleState.shieldCount++;
+            showShieldGainEffect();
+        }        
+        
+        adjustDifficultyAI('sentence_clear');
+        
+        // 熊猫回血
+        if (battleState.player.special === 'heal') {
+            battleState.healCounter++;
+            if (battleState.healCounter >= battleState.player.healInterval) {
+                battleState.healCounter = 0;
+                playerHeal(battleState.player.healAmount);
+            }
+        }
+        
+        tryDropItem();
+        consumeItemDuration();
+        // 整句完全打完，检测治愈星星拾取
+        const starState = battleState.sceneInteract;
+        if (starState.hasStar) {
+            const sentence = battleState.sentences[battleState.currentSentenceIndex];
+            const fullInput = elements.battleInput.value.toLowerCase();
+            const targetTxt = sentence.english.toLowerCase();
+            if (fullInput === targetTxt) {
+                if (starState.starDom?.parentNode) starState.starDom.remove();
+                starState.hasStar = false;
+                starState.starDom = null;
+                const healVal = Math.floor(battleState.playerMaxHp * SCENE_EVENT_CONFIG.healStarHealRatio);
+                playerHeal(healVal);
+                showInteractGetEffect("⭐", elements.battleScene);
+            }
+        }
+        setTimeout(() => {
+            if (!battleState.battleOver) {
+                battleState.currentSentenceIndex++;
+                battleState.battleCtx.attackTimer = 0;
+                showCurrentSentence();
+                if (elements.battleInput) {
+                    elements.battleInput.focus();
+                }
+            }
+        }, 800);
+        
+        checkBattleEnd();
+    }
     
     // ========== 血量计算工具函数 ==========
     
@@ -687,9 +1550,15 @@
     
     function getPlayerAttackValue(playerChar, comboCount, damageMulti) {
         let base = playerChar.baseAtk;
-        const comboBonus = Math.floor(comboCount / 10) * 0.1;
+        const comboBonus = Math.floor(battleState.letterCombo / 10) * 0.1;
         base *= (1 + comboBonus);
-        base *= damageMulti;
+        // 统计当前拥有的双倍buff数量：attack力量药水 / doubleDmg能量球 各算一层
+        let buffLayer = 1;
+        const hasAttack = battleState.activeItems.some(i => i.id === 'attack');
+        const hasDoubleDmg = battleState.activeItems.some(i => i.id === 'doubleDmg');
+        if (hasAttack) buffLayer *= 2;
+        if (hasDoubleDmg) buffLayer *= 2;
+        base *= buffLayer;
         return Math.floor(base);
     }
     
@@ -751,8 +1620,8 @@
             }
             
             // 阶段切换提示
-            const nowStage = getCurrentStage(newHp, max);
             const oldStage = getCurrentStage(current, max);
+            const nowStage = getCurrentStage(newHp, max);
             if (nowStage !== oldStage && !battleState.battleCtx.stageNotified[nowStage]) {
                 battleState.battleCtx.stageNotified[nowStage] = true;
                 showBattleAlert(`⚠️ 怪物进入${STAGE_LABEL[nowStage]}阶段，伤害提升！`, "warning", 2500);
@@ -774,778 +1643,11 @@
         checkBattleEnd();
     }
     
-    // ========== DOM 元素缓存 ==========
-    let elements = {};
-    
-    // ========== 初始化 ==========
-    function init() {
-        elements = {
-            battleMode: document.getElementById('battleMode'),
-            battleSelect: document.getElementById('battleSelect'),
-            battleResult: document.getElementById('battleResult'),
-            playerAvatar: document.getElementById('battlePlayerAvatar'),
-            playerName: document.getElementById('battlePlayerName'),
-            playerHpFill: document.getElementById('battlePlayerHpFill'),
-            playerHpText: document.getElementById('battlePlayerHpText'),
-            enemyAvatar: document.getElementById('battleEnemyAvatar'),
-            enemyName: document.getElementById('battleEnemyName'),
-            enemyHpFill: document.getElementById('battleEnemyHpFill'),
-            enemyHpText: document.getElementById('battleEnemyHpText'),
-            playerFighter: document.getElementById('battlePlayerFighter'),
-            enemyFighter: document.getElementById('battleEnemyFighter'),
-            battleScene: document.getElementById('battleScene'),
-            currentWord: document.getElementById('battleCurrentWord'),
-            battleInput: document.getElementById('battleInput'),
-            statsCorrect: document.getElementById('battleStatsCorrect'),
-            statsWrong: document.getElementById('battleStatsWrong'),
-            statsCombo: document.getElementById('battleStatsCombo'),
-            playerRageBar: document.getElementById('battlePlayerRageBar'),
-            playerRageBarFill: document.getElementById('battlePlayerRageFill'),
-            shieldCount: document.getElementById('battleShieldCount'),
-            activeItems: document.getElementById('battleActiveItems'),
-            exitBtn: document.getElementById('battleExitBtn'),
-            startBtn: document.getElementById('startBattleBtn'),
-            playerGrid: document.getElementById('playerCharacterGrid'),
-            enemyGrid: document.getElementById('enemyCharacterGrid'),
-            resultIcon: document.getElementById('battleResultIcon'),
-            resultTitle: document.getElementById('battleResultTitle'),
-            resultSubtitle: document.getElementById('battleResultSubtitle'),
-            resultCorrect: document.getElementById('resultStatCorrect'),
-            resultWrong: document.getElementById('resultStatWrong'),
-            resultAccuracy: document.getElementById('resultStatAccuracy'),
-            resultTime: document.getElementById('resultStatTime'),
-            resultRetryBtn: document.getElementById('battleResultRetry'),
-            resultBackBtn: document.getElementById('battleResultBack')
-        };
-        
-        // 一次性解锁音频
-        function unlockAudioOnce() {
-            initAudio();
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            document.removeEventListener('click', unlockAudioOnce);
-            document.removeEventListener('touchend', unlockAudioOnce);
-        }
-        document.addEventListener('click', unlockAudioOnce);
-        document.addEventListener('touchend', unlockAudioOnce);
-        
-        // 绑定事件
-        if (elements.exitBtn) {
-            elements.exitBtn.addEventListener('click', exitBattle);
-        }
-        if (elements.battleInput) {
-            elements.battleInput.addEventListener('input', handleInput);
-            elements.battleInput.addEventListener('touchend', () => {
-                initAudio();
-                if (audioCtx?.state === 'suspended') {
-                    audioCtx.resume();
-                }
-            });
-        }
-        if (elements.startBtn) {
-            elements.startBtn.addEventListener('click', startBattle);
-        }
-        if (elements.resultRetryBtn) {
-            elements.resultRetryBtn.addEventListener('click', retryBattle);
-        }
-        if (elements.resultBackBtn) {
-            elements.resultBackBtn.addEventListener('click', backToSelect);
-        }
-        
-        renderCharacterSelect();
-    }
-    
-    // ========== 角色选择界面 ==========
-    function renderCharacterSelect() {
-        if (elements.playerGrid) {
-            elements.playerGrid.innerHTML = '';
-            playerCharacters.forEach((char) => {
-                const card = document.createElement('div');
-                card.className = 'character-card';
-                card.dataset.id = char.id;
-                const showHp = calcPlayerMaxHp(char, { level: 1, hpBuff: 1 });
-                card.innerHTML = `
-                    <div class="character-card-emoji">${char.emoji}</div>
-                    <div class="character-card-info">
-                        <div class="character-card-name">${char.name}</div>
-                        <div class="character-card-type">${char.type}</div>
-                        <div class="character-card-stats">
-                            <div class="character-card-stat">❤️ <span>${showHp}</span></div>
-                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
-                        </div>
-                    </div>
-                `;
-                card.addEventListener('click', () => selectPlayer(char.id));
-                elements.playerGrid.appendChild(card);
-            });
-        }
-        
-        if (elements.enemyGrid) {
-            elements.enemyGrid.innerHTML = '';
-            enemyCharacters.forEach((char) => {
-                const card = document.createElement('div');
-                card.className = 'character-card enemy-card';
-                card.dataset.id = char.id;
-                const stars = '⭐'.repeat(char.difficulty);
-                const showEnemyHp = calcEnemyShowHp(char);
-                card.innerHTML = `
-                    <div class="character-card-emoji">${char.emoji}</div>
-                    <div class="character-card-info">
-                        <div class="character-card-name">${char.name}</div>
-                        <div class="difficulty-stars">${stars}</div>
-                        <div class="character-card-stats">
-                            <div class="character-card-stat">❤️ <span>${showEnemyHp}</span></div>
-                            <div class="character-card-stat">⚔️ <span>${char.attack}</span></div>
-                        </div>
-                    </div>
-                `;
-                card.addEventListener('click', () => selectEnemy(char.id));
-                elements.enemyGrid.appendChild(card);
-            });
-        }
-        
-        updateStartButton();
-    }
-    
-    let selectedPlayerId = null;
-    function selectPlayer(id) {
-        selectedPlayerId = id;
-        playClickSound();
-        document.querySelectorAll('#playerCharacterGrid .character-card').forEach(card => {
-            card.classList.toggle('selected', card.dataset.id === id);
-        });
-        updateStartButton();
-    }
-    
-    let selectedEnemyId = null;
-    function selectEnemy(id) {
-        selectedEnemyId = id;
-        playClickSound();
-        document.querySelectorAll('#enemyCharacterGrid .character-card').forEach(card => {
-            card.classList.toggle('selected', card.dataset.id === id);
-        });
-        updateStartButton();
-    }
-    
-    function updateStartButton() {
-        if (!elements.startBtn) return;
-        const canStart = selectedPlayerId && selectedEnemyId;
-        elements.startBtn.disabled = !canStart;
-        elements.startBtn.textContent = canStart ? '⚔️ 开始战斗！' : '请先选择角色和对手';
-    }
-    
-    // ========== 打开战斗模式 ==========
-    function openBattleMode() {
-        const sourceText = document.getElementById('sourceText');
-        if (!sourceText || !sourceText.value.trim()) {
-            alert('请先选择练习内容（选择题库或粘贴文本）');
-            return;
-        }
-        
-        const text = sourceText.value;
-        battleState.sentences = extractSentences(text);
-        
-        if (battleState.sentences.length < 3) {
-            alert('句子太少啦，至少需要 3 个句子才能开始战斗！');
-            return;
-        }
-        
-        if (elements.battleSelect) {
-            elements.battleSelect.classList.add('active');
-        }
-        
-        if (!selectedPlayerId) {
-            selectPlayer(playerCharacters[0].id);
-        }
-        if (!selectedEnemyId) {
-            selectEnemy(enemyCharacters[0].id);
-        }
-    }
-    
-    // 提取句子（支持双语对照格式：英文一行、中文一行交替）
-    function extractSentences(text) {
-        const lines = text.split('\n');
-        const sentences = [];
-        
-        let i = 0;
-        while (i < lines.length) {
-            const trimmed = lines[i].trim();
-            if (!trimmed) {
-                i++;
-                continue;
-            }
-            
-            const english = extractEnglishPart(trimmed);
-            if (english.length < 2) {
-                i++;
-                continue;
-            }
-            
-            let chinese = '';
-            const chineseChars = trimmed.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]+/g);
-            if (chineseChars && chineseChars.length > 0) {
-                chinese = chineseChars.join('');
-            }
-            
-            if (!chinese && i + 1 < lines.length) {
-                const nextLine = lines[i + 1].trim();
-                const nextEnglish = extractEnglishPart(nextLine);
-                if (nextLine && nextEnglish.length < nextLine.length * 0.3) {
-                    chinese = nextLine;
-                    i++;
-                }
-            }
-            
-            sentences.push({
-                english: english,
-                display: trimmed,
-                chinese: chinese
-            });
-            i++;
-        }
-        
-        // 自动拆分长句
-        const splitSentences = [];
-        for (const s of sentences) {
-            const parts = splitLongSentence(s.english);
-            if (parts.length > 1) {
-                for (const part of parts) {
-                    splitSentences.push({
-                        english: part,
-                        display: part,
-                        chinese: s.chinese
-                    });
-                }
-            } else {
-                splitSentences.push(s);
-            }
-        }
-        
-        return splitSentences;
-    }
-    
-    function splitLongSentence(text) {
-        if (!text || text.length < 15) return [text];
-        
-        const sentenceEndRegex = /([.!?]+)\s+/g;
-        const parts = [];
-        let lastIndex = 0;
-        let match;
-        
-        while ((match = sentenceEndRegex.exec(text)) !== null) {
-            const endPos = match.index + match[1].length;
-            const sentence = text.substring(lastIndex, endPos).trim();
-            if (sentence.length > 3) {
-                parts.push(sentence);
-            }
-            lastIndex = match.index + match[0].length;
-        }
-        
-        const lastPart = text.substring(lastIndex).trim();
-        if (lastPart.length > 3) {
-            parts.push(lastPart);
-        }
-        
-        return parts.length > 1 ? parts : [text];
-    }
-    
-    function extractEnglishPart(line) {
-        const englishRegex = /[a-zA-Z0-9\s.,!?'"-:;()]+/g;
-        const matches = line.match(englishRegex);
-        if (!matches) return '';
-        
-        let result = matches.join('').trim();
-        result = result.replace(/\s+/g, ' ');
-        return result;
-    }
-    
-    // ========== 开始战斗 ==========
-    function startBattle() {
-        if (!selectedPlayerId || !selectedEnemyId) return;
-        
-        const playerChar = playerCharacters.find(c => c.id === selectedPlayerId);
-        const enemyChar = enemyCharacters.find(c => c.id === selectedEnemyId);
-        const diffKey = enemyChar.difficulty === 1 ? 'easy' : enemyChar.difficulty === 2 ? 'normal' : 'hard';
-        
-        // 战斗上下文（可调节参数集中在这里）
-        const battleCtx = {
-            level: 1,
-            hpBuff: 1,
-            enemyAiMulti: 1,
-            baseAtkMulti: 1,
-            isRaging: false,
-            attackTimer: 0,
-            attackInterval: DIFF_ATTACK_CD[diffKey],
-            attackLock: false,
-            inInterruptWindow: false,
-            continuousCorrect: 0,
-            stageNotified: {},
-            interruptTimer: 0,
-            rageSkillCooldown: false,
-            bgTimerId: null,
-            activeStageList: [],
-            
-            // 自适应难度AI参数（可调节）
-            aiEnabled: true,                   // AI总开关
-            baseInterval: DIFF_ATTACK_CD[diffKey], // 基准攻击间隔
-            minInterval: DIFF_ATTACK_CD[diffKey] * 0.5,  // 最快间隔（基准的50%）
-            maxInterval: DIFF_ATTACK_CD[diffKey] * 1.8,  // 最慢间隔（基准的180%）
-            adjustStep: 500,                   // 每次调整步长（毫秒）
-            consecutiveHits: 0,                // 连续被击中次数
-            consecutiveInterrupts: 0,          // 连续成功打断次数
-            aiAdjustCooldown: false            // AI调整冷却
-        };
-        
-        const playerMaxHp = calcPlayerMaxHp(playerChar, battleCtx);
-        const enemyMaxHp = calcEnemyMaxHp(enemyChar, battleState.sentences.length, battleCtx);
-        
-        battleState = {
-            active: true,
-            player: playerChar,
-            enemy: enemyChar,
-            playerHp: playerMaxHp,
-            playerMaxHp: playerMaxHp,
-            enemyHp: enemyMaxHp,
-            enemyMaxHp: enemyMaxHp,
-            battleCtx: battleCtx,
-            sentences: [...battleState.sentences],
-            currentSentenceIndex: 0,
-            currentCharIndex: 0,
-            correctCount: 0,
-            wrongCount: 0,
-            comboCount: 0,
-            healCounter: 0,
-            lastInputLength: 0,
-            inputError: false,
-            shieldCount: 0,
-            rage: 0,
-            maxRage: 100,
-            rageSkillReady: false,
-            itemDropCounter: 0,
-            damageMultiplier: 1,
-            invincible: false,
-            activeItems: [],
-            startTime: Date.now(),
-            battleOver: false
-        };
-        
-        updateBattleUI();
-        
-        if (elements.battleSelect) {
-            elements.battleSelect.classList.remove('active');
-        }
-        if (elements.battleMode) {
-            elements.battleMode.classList.add('active');
-        }
-        
-        preloadVoices(battleState.sentences, 0);
-        showCurrentSentence();
-        
-        setTimeout(() => {
-            if (elements.battleInput) {
-                elements.battleInput.value = '';
-                elements.battleInput.focus();
-                initAudio();
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                    playTone(800, 0.01, 'sine', 0.01, 0, false);
-                }
-            }
-        }, 300);
-        
-        // 后台持续计时（锁定期间暂停累加）
-        battleCtx.bgTimerId = setInterval(() => {
-            if(battleState.battleOver) {
-                clearInterval(battleCtx.bgTimerId);
-                return;
-            }
-            if (!battleCtx.attackLock) {
-                battleCtx.attackTimer += 100;
-            }
-            checkMonsterAutoAttack();
-        }, 100);
-    }
-    
-    // ========== 更新战斗 UI ==========
-    function updateBattleUI() {
-        if (!battleState.player || !battleState.enemy) return;
-        
-        if (elements.playerAvatar) {
-            elements.playerAvatar.textContent = battleState.player.emoji;
-        }
-        if (elements.playerName) {
-            elements.playerName.textContent = battleState.player.name;
-        }
-        if (elements.playerHpFill) {
-            const percent = Math.max(0, (battleState.playerHp / battleState.playerMaxHp) * 100);
-            elements.playerHpFill.style.width = percent + '%';
-        }
-        if (elements.playerHpText) {
-            elements.playerHpText.textContent = `${Math.max(0, Math.ceil(battleState.playerHp))} / ${battleState.playerMaxHp}`;
-        }
-        
-        if (elements.enemyAvatar) {
-            elements.enemyAvatar.textContent = battleState.enemy.emoji;
-        }
-        if (elements.enemyName) {
-            elements.enemyName.textContent = battleState.enemy.name;
-        }
-        if (elements.enemyHpFill) {
-            const percent = Math.max(0, (battleState.enemyHp / battleState.enemyMaxHp) * 100);
-            elements.enemyHpFill.style.width = percent + '%';
-        }
-        if (elements.enemyHpText) {
-            elements.enemyHpText.textContent = `${Math.max(0, Math.ceil(battleState.enemyHp))} / ${battleState.enemyMaxHp}`;
-        }
-        
-        if (elements.playerFighter) {
-            elements.playerFighter.textContent = battleState.player.emoji;
-        }
-        if (elements.enemyFighter) {
-            elements.enemyFighter.textContent = battleState.enemy.emoji;
-        }
-        
-        if (elements.statsCorrect) {
-            elements.statsCorrect.textContent = battleState.correctCount;
-        }
-        if (elements.statsWrong) {
-            elements.statsWrong.textContent = battleState.wrongCount;
-        }
-        if (elements.statsCombo) {
-            elements.statsCombo.textContent = battleState.comboCount;
-        }
-        
-        // 怒气条
-        if (elements.playerRageBar && elements.playerRageBarFill) {
-            const ragePercent = (battleState.rage / battleState.maxRage) * 100;
-            elements.playerRageBarFill.style.width = ragePercent + '%';
-            if (battleState.rage >= battleState.maxRage) {
-                elements.playerRageBar.classList.add('rage-full');
-            } else {
-                elements.playerRageBar.classList.remove('rage-full');
-            }
-        }
-        
-        // 护盾数量
-        if (elements?.shieldCount != null) {
-            if (battleState.shieldCount > 0) {
-                elements.shieldCount.textContent = '🛡️ ' + battleState.shieldCount;
-                elements.shieldCount.style.display = 'inline-block';
-            } else {
-                elements.shieldCount.style.display = 'none';
-            }
-        }
-        
-        // 激活的道具
-        if (elements?.activeItems != null) {
-            let html = '';
-            for (const item of battleState.activeItems) {
-                const itemInfo = itemTypes.find(t => t.id === item.id);
-                if (itemInfo) {
-                    const warningClass = item.remaining <= 1 ? 'item-warning' : '';
-                    html += `<span class="active-item ${warningClass}" title="${itemInfo.name} 剩余 ${item.remaining} 句">${itemInfo.emoji}${item.remaining}</span>`;
-                }
-            }
-            elements.activeItems.innerHTML = html;
-        }
-        
-        // 低血量警告音
-        const hpRate = battleState.playerHp / battleState.playerMaxHp;
-        if (hpRate < BATTLE_BALANCE.enemyRageHpThreshold && battleState.playerHp > 0) {
-            playLowHpWarning();
-        }
-    }
-    
-    // ========== 显示当前句子 ==========
-    function showCurrentSentence() {  
-        if (battleState.currentSentenceIndex >= battleState.sentences.length) {
-            onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
-            updateBattleUI();
-            endBattle(BATTLE_END_TYPE.ALL_SENTENCE_CLEAR);
-            return;
-        }
-        
-        const sentence = battleState.sentences[battleState.currentSentenceIndex];
-        battleState.currentCharIndex = 0;
-        
-        if (elements.currentWord) {
-            const displayText = sentence.display;
-            const englishText = sentence.english;
-            const chineseText = sentence.chinese || '';
-            
-            const lowerDisplay = displayText.toLowerCase();
-            const lowerEnglish = englishText.toLowerCase();
-            const index = lowerDisplay.indexOf(lowerEnglish);
-            
-            let speakerPrefix = '';
-            if (index >= 0) {
-                speakerPrefix = displayText.substring(0, index);
-            }
-            
-            let html = `<div style="margin-bottom: 8px; line-height: 1.4; text-align: center;">`;
-            if (speakerPrefix) {
-                html += `<span style="color: rgba(255,255,255,0.5); font-size: 18px;">${speakerPrefix}</span>`;
-            }
-            
-            for (let i = 0; i < englishText.length; i++) {
-                const ch = englishText[i];
-                let color = '#fff';
-                if (i === 0) {
-                    color = '#ffdd00';
-                }
-                html += `<span class="battle-char" data-index="${i}" style="color: ${color}; font-weight: bold; font-size: 26px; letter-spacing: 1px;">${ch === ' ' ? '&nbsp;' : ch}</span>`;
-            }
-            html += `</div>`;
-            
-            if (chineseText) {
-                html += `<div style="color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.4; text-align: center;">
-                    ${chineseText}
-                </div>`;
-            }
-            
-            elements.currentWord.innerHTML = html;
-        }
-        
-        if (elements.battleInput) {
-            elements.battleInput.value = '';
-            elements.battleInput.classList.remove('correct', 'wrong');
-        }
-        
-        playVoice(sentence.english);
-        
-        const nextIndex = battleState.currentSentenceIndex + 1;
-        if (nextIndex < battleState.sentences.length) {
-            setTimeout(() => {
-                preloadVoice(battleState.sentences[nextIndex].english);
-            }, 500);
-        }
-        
-        battleState.lastInputTime = Date.now();
-        checkMonsterAutoAttack();
-        
-        battleState.lastInputLength = 0;
-        battleState.inputError = false;
-        battleState.battleCtx.continuousCorrect = 0;
-        battleState.battleCtx.inInterruptWindow = false;
-        battleState.battleCtx.interruptTimer = 0;
-    }
-    
-    function updateCharColors() {
-        if (!elements.currentWord) return;
-        const charSpans = elements.currentWord.querySelectorAll('.battle-char');
-        if (!charSpans.length) return;
-        
-        const sentence = battleState.sentences[battleState.currentSentenceIndex];
-        if (!sentence) return;
-        
-        const english = sentence.english;
-        const input = elements.battleInput ? elements.battleInput.value.toLowerCase() : '';
-        const target = english.toLowerCase();
-        
-        let hasError = false;
-        let errorIndex = -1;
-        for (let i = 0; i < input.length; i++) {
-            if (input[i] !== target[i]) {
-                hasError = true;
-                errorIndex = i;
-                break;
-            }
-        }
-        
-        charSpans.forEach((span, i) => {
-            if (hasError && i === errorIndex) {
-                span.style.color = '#f87171';
-            } else if (hasError && i < errorIndex) {
-                span.style.color = '#39d353';
-            } else if (!hasError && i < input.length) {
-                span.style.color = '#39d353';
-            } else if (!hasError && i === input.length) {
-                span.style.color = '#ffdd00';
-            } else {
-                span.style.color = '#fff';
-            }
-        });
-    }
-    
-    // ========== 处理输入 ==========
-    function handleInput(e) {
-        if (battleState.battleOver) return;
-        const ctx = battleState.battleCtx;
-        let skipMonsterTimer = false;
-        
-        // 打断窗口：末尾连续3个正确字母即可打断
-        if (ctx.inInterruptWindow && !battleState.battleOver) {
-            const input = elements.battleInput;
-            const sentence = battleState.sentences[battleState.currentSentenceIndex];
-            const targetEnglish = sentence.english.toLowerCase();
-            const inputValue = input.value.toLowerCase();
-            let currentContinuous = 0;
-            
-            // 倒序统计末尾有效字母（空格跳过不中断）
-            for (let i = inputValue.length - 1; i >= 0; i--) {
-                const char = inputValue[i];
-                if ([' ','\t','\n','\r'].includes(char)) {
-                    continue;
-                }
-                if (char === targetEnglish[i]) {
-                    currentContinuous++;
-                    if (currentContinuous >= 3) {
-                        currentContinuous = 3;
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-            
-            ctx.continuousCorrect = currentContinuous;
-            
-            // 打断成功
-            if (ctx.continuousCorrect >= 3) {
-                ctx.attackTimer = 0;
-                ctx.inInterruptWindow = false;
-                ctx.continuousCorrect = 0;
-                ctx.interruptTimer = 0; 
-                ctx.attackLock = true;
-                setTimeout(() => { ctx.attackLock = false; }, 700);
-                
-                if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-                battleState.rageAutoTimer = null;
-                
-                const oldTip = document.querySelector('div[style*="top:30%"]');
-                if(oldTip) oldTip.remove();
-                
-                clearMonsterWarningBar();
-                elements.enemyFighter.classList.remove('warn-flash');
-                showAttackEffect(elements.enemyFighter, "✨");
-                playComboSound(20);
-                skipMonsterTimer = true;
-                
-                adjustDifficultyAI('interrupt_success');
-            }
-        }
-        
-        const input = elements.battleInput;
-        const sentence = battleState.sentences[battleState.currentSentenceIndex];
-        const inputValue = input.value.toLowerCase();
-        const targetEnglish = sentence.english.toLowerCase();
-        const inputLen = inputValue.length;
-        
-        let hasError = false;
-        let firstErrorIndex = -1;
-        for (let i = 0; i < inputLen; i++) {
-            if (inputValue[i] !== targetEnglish[i]) {
-                hasError = true;
-                firstErrorIndex = i;
-                break;
-            }
-        }
-        
-        if (hasError && !battleState.inputError) {
-            handleWrongInput();
-        }
-        battleState.inputError = hasError;
-        
-        if (hasError) {
-            battleState.currentCharIndex = firstErrorIndex;
-        } else {
-            battleState.currentCharIndex = inputLen;
-        }
-        
-        updateCharColors();
-        
-        if (!hasError && inputLen === targetEnglish.length) {
-            handleSentenceComplete();
-        }
-        
-        battleState.lastInputLength = inputLen;
-        
-        if (!hasError && inputLen > 0) {
-            playCharCorrectSound();
-        }
-        
-        if(!skipMonsterTimer){
-            const nowTime = Date.now();
-            const delta = nowTime - battleState.lastInputTime || 0;
-            battleState.battleCtx.attackTimer += delta;
-            battleState.lastInputTime = nowTime;
-            checkMonsterAutoAttack();
-        }
-    }
-    
-    function handleWrongInput() {
-        if (battleState.battleOver) return;
-        battleState.wrongCount++;
-        battleState.comboCount = 0;
-        
-        if (elements.battleInput) {
-            elements.battleInput.classList.add('wrong');
-            setTimeout(() => {
-                if (elements.battleInput) {
-                    elements.battleInput.classList.remove('wrong');
-                }
-            }, 300);
-        }
-        
-        enemyAttack();
-        checkBattleEnd();
-    }
-    
-    function handleSentenceComplete() {
-        if (battleState.battleOver) return;
-        
-        if (battleState.correctCount < battleState.sentences.length) {
-            battleState.correctCount++;
-        }
-        battleState.comboCount++;
-        
-        if (elements.battleInput) {
-            elements.battleInput.classList.add('correct');
-        }
-        
-        playerAttack();
-        
-        // 每10连击获得护盾
-        if (battleState.comboCount > 0 && battleState.comboCount % 10 === 0) {
-            playComboSound(battleState.comboCount);
-            battleState.shieldCount++;
-            showShieldGainEffect();
-        }        
-        
-        adjustDifficultyAI('sentence_clear');
-        
-        // 熊猫回血
-        if (battleState.player.special === 'heal') {
-            battleState.healCounter++;
-            if (battleState.healCounter >= battleState.player.healInterval) {
-                battleState.healCounter = 0;
-                playerHeal(battleState.player.healAmount);
-            }
-        }
-        
-        tryDropItem();
-        consumeItemDuration();
-        
-        setTimeout(() => {
-            if (!battleState.battleOver) {
-                battleState.currentSentenceIndex++;
-                battleState.battleCtx.attackTimer = 0;
-                showCurrentSentence();
-                if (elements.battleInput) {
-                    elements.battleInput.focus();
-                }
-            }
-        }, 800);
-        
-        checkBattleEnd();
-    }
-    
     // ========== 玩家攻击 ==========
     function playerAttack() {
         let damage = getPlayerAttackValue(
             battleState.player,
-            battleState.comboCount,
+            battleState.letterCombo,
             battleState.damageMultiplier
         );
         let isCrit = false;
@@ -1595,12 +1697,11 @@
             ctx.inInterruptWindow = true;
             ctx.interruptTimer = Date.now();
             
-            showBattleAlert(`✨小怪物要出招啦！连续输入3个正确字母就能拦住它`, "warning", 4000);
             elements.enemyFighter.classList.add('warn-flash');
             
             // 创建进度条
-            const monsterWrap = elements.enemyFighter;
             clearMonsterWarningBar();
+            const monsterWrap = elements.enemyFighter;
             const monsterRect = monsterWrap.getBoundingClientRect();
             const parentBox = monsterWrap.parentElement;
             
@@ -1935,9 +2036,11 @@
         
         if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
         
-        setTimeout(() => { ctx.rageSkillCooldown = false; }, 3000);
+        setTimeout(() => {
+            ctx.rageSkillCooldown = false;
+        }, 3000);
         
-        // 怒气技能效果：3倍攻击伤害 + 回20%血
+        // 怒气技能效果：3倍攻击 + 回20%血
         const rageDamage = Math.floor(battleState.player.attack * 3);
         const rageHeal = Math.floor(battleState.playerMaxHp * 0.2);
         
@@ -1971,7 +2074,7 @@
         effectEl.textContent = '💥🔥⚡';
         effectEl.style.left = '50%';
         effectEl.style.top = '50%';
-        effectEl.style.transform = 'translate(-50%, -50%)';
+        effectEl.style.transform = 'translate(-50%)';
         elements.battleScene.appendChild(effectEl);
         
         setTimeout(() => {
@@ -1982,6 +2085,82 @@
     }
     
     // ========== 道具系统 ==========
+    const itemTypes = [
+        {
+            id: 'heal',
+            name: '回血药水',
+            emoji: '❤️',
+            description: '恢复 30% 生命值',
+            effect: function() {
+                const healAmount = Math.floor(battleState.playerMaxHp * 0.3);
+                playerHeal(healAmount);
+            }
+        },
+        {
+            id: 'shield',
+            name: '护盾道具',
+            emoji: '🛡️',
+            description: '获得 2 个护盾',
+            effect: function() {
+                battleState.shieldCount += 2;
+                showShieldGainEffect();
+            }
+        },
+        {
+            id: 'attack',
+            name: '力量药水',
+            emoji: '⚔️',
+            description: '接下来 5 个句子伤害翻倍',
+            duration: 5,
+            effect: function() {
+                // 力量药水自身buff叠加
+                const existBuff = battleState.activeItems.find(item => item.id === "attack");
+                if (existBuff) {
+                    existBuff.remaining += 5;
+                } else {
+                    addActiveItem('attack', 5);
+                }
+                // 存在任意增伤buff，基础倍率设2，后续计算相乘
+                battleState.damageMultiplier = 2;
+            }
+        },
+        {
+            id: 'invincible',
+            name: '无敌星星',
+            emoji: '⭐',
+            description: '接下来 3 个句子无敌',
+            duration: 3,
+            effect: function() {
+                battleState.invincible = true;
+                addActiveItem('invincible', 3);
+            }
+        },
+        {
+            id: 'doubleDmg',
+            name: '能量增幅',
+            emoji: '⚡',
+            description: '接下来N个句子伤害翻倍',
+            // 补充空effect，因为能量球是场景互动生成，不会道具掉落触发
+            effect: function() {}
+        },
+        {
+            id: 'rage',
+            name: '怒气药水',
+            emoji: '🔥',
+            description: '怒气直接充满',
+            effect: function() {
+                battleState.rage = battleState.maxRage;
+                battleState.rageSkillReady = true;
+                showRageFullEffect();
+                setTimeout(() => {
+                    if (!battleState.battleOver && battleState.rageSkillReady) {
+                        useRageSkill();
+                    }
+                }, 800);
+            }
+        }
+    ];
+    
     function addActiveItem(itemId, duration) {
         battleState.activeItems.push({
             id: itemId,
@@ -1996,8 +2175,17 @@
             if (item.remaining > 0) {
                 newActiveItems.push(item);
             } else {
-                if (item.id === 'attack') {
-                    battleState.damageMultiplier = 1;
+                if (item.id === 'attack' || item.id === 'doubleDmg') {
+                    // 移除当前过期buff后，检查是否还存在其他增伤buff
+                    const stillHasAttack = battleState.activeItems.some(x => x.id === 'attack' && x.remaining > 0);
+                    const stillHasDouble = battleState.activeItems.some(x => x.id === 'doubleDmg' && x.remaining > 0);
+                    if (!stillHasAttack && !stillHasDouble) {
+                        // 两种buff全部清空，倍率恢复正常1倍
+                        battleState.damageMultiplier = 1;
+                    } else {
+                        // 仍有任意一种双倍buff，保持基础倍率2
+                        battleState.damageMultiplier = 2;
+                    }
                 } else if (item.id === 'invincible') {
                     battleState.invincible = false;
                 }
@@ -2052,11 +2240,229 @@
         }, 1200);
     }
     
+    // ====================== 方案6 场景互动核心函数 ======================
+/**
+ * 启动随机事件循环
+ */
+function startSceneEventLoop() {
+    const state = battleState.sceneInteract;
+    if (state.eventTimer) return;
+    state.eventTimer = setInterval(() => {
+        if (battleState.battleOver || !battleState.active) return;
+        if (state.eventLock) return;
+        if (Math.random() < SCENE_EVENT_CONFIG.eventChance) {
+            triggerRandomSceneEvent();
+            state.eventLock = true;
+            setTimeout(() => {
+                state.eventLock = false;
+            }, 8000);
+        }
+    }, SCENE_EVENT_CONFIG.eventInterval);
+}
+/**
+ * 随机抽取并生成一种场景事件
+ */
+function triggerRandomSceneEvent() {
+    const eventTypes = [SCENE_EVENT_TYPE.HEAL_STAR, SCENE_EVENT_TYPE.METEOR, SCENE_EVENT_TYPE.ENERGY_BALL];
+    const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    switch(randomType) {
+        case SCENE_EVENT_TYPE.HEAL_STAR:
+            spawnHealStar();
+            break;
+        case SCENE_EVENT_TYPE.METEOR:
+            spawnMeteorRain();
+            break;
+        case SCENE_EVENT_TYPE.ENERGY_BALL:
+            spawnEnergyBall();
+            break;
+    }
+}
+/**
+ * 生成治疗星星⭐
+ */
+function spawnHealStar() {
+    const state = battleState.sceneInteract;
+    if (state.hasStar) return;
+    state.hasStar = true;
+    const starEl = document.createElement('div');
+    starEl.className = "scene-interact-item heal-star";
+    starEl.textContent = "⭐";
+    elements.battleScene.appendChild(starEl);
+    state.starDom = starEl;
+    createSceneTip("天上掉落治愈星星！输入完整当前句子即可拾取回血");
+    setTimeout(() => {
+        if (state.starDom && state.starDom.parentNode) {
+            state.starDom.remove();
+        }
+        state.hasStar = false;
+        state.starDom = null;
+    }, 7000);
+}
+/**
+ * 生成陨石雨☄️ 天罚机制
+ */
+function spawnMeteorRain() {
+    const state = battleState.sceneInteract;
+    if(battleState.battleOver || state.eventLock) return;
+    for(let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const meteor = document.createElement('div');
+            meteor.className = "scene-interact-item meteor";
+            meteor.textContent = "☄️";
+            meteor.style.left = (10 + Math.random() * 80) + "%";
+            elements.battleScene.appendChild(meteor);
+            setTimeout(() => {
+                if(meteor.parentNode) meteor.remove();
+            }, 1200);
+        }, i * 120);
+    }
+    createSceneTip("陨石来袭！双方损失10%最大生命值", "warning");
+    playHurtSound();
+    const playerDmg = Math.floor(battleState.playerMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio);
+    const enemyDmg = Math.floor(battleState.enemyMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio);
+    onHpChange(HP_TARGET.PLAYER, -playerDmg);
+    onHpChange(HP_TARGET.ENEMY, -enemyDmg);
+    showDamageNumber(elements.playerFighter, "-" + playerDmg, "normal");
+    showDamageNumber(elements.enemyFighter, "-" + enemyDmg, "normal");
+    checkBattleEnd();
+}
+/**
+ * 生成能量球⚡
+ */
+function spawnEnergyBall() {
+    const state = battleState.sceneInteract;
+    if(state.hasEnergyBall) return;
+    state.hasEnergyBall = true;
+    const currentSentence = battleState.sentences[battleState.currentSentenceIndex];
+    const sentenceText = currentSentence.english.toUpperCase();
+    let validChars = [];
+    for (const ch of sentenceText) {
+        if (/[A-Z]/.test(ch) && !validChars.includes(ch)) {
+            validChars.push(ch);
+        }
+    }
+    let randomChar;
+    if (validChars.length > 0) {
+        randomChar = validChars[Math.floor(Math.random() * validChars.length)];
+    } else {
+        randomChar = ENERGY_CHAR_POOL[Math.floor(Math.random() * ENERGY_CHAR_POOL.length)];
+    }
+    state.targetEnergyChar = randomChar;
+    const ballEl = document.createElement('div');
+    ballEl.className = "scene-interact-item energy-ball";
+    ballEl.textContent = "⚡";
+    elements.battleScene.appendChild(ballEl);
+    state.energyDom = ballEl;
+    createSceneTip(`能量球出现！顺着句子正确打出字母【${randomChar}】即可拾取，3句伤害翻倍`);
+    refreshSentenceHighlight();
+    setTimeout(() => {
+        if(state.energyDom && state.energyDom.parentNode) {
+            state.energyDom.remove();
+        }
+        state.hasEnergyBall = false;
+        state.targetEnergyChar = "";
+        state.energyDom = null;
+        refreshSentenceHighlight();
+    }, 9000);
+}
+/**
+ * 检测拾取交互
+ * @param rawInputChar 输入末尾字符
+ */
+function checkInteractPickup(rawInputChar) {
+    const state = battleState.sceneInteract;
+    const sentence = battleState.sentences[battleState.currentSentenceIndex];
+    const targetFull = sentence.english.toUpperCase();
+    const userInput = elements.battleInput.value.toUpperCase();
+    const inputChar = rawInputChar?.toUpperCase().trim() || '';
+    if (state.hasEnergyBall && state.targetEnergyChar) {
+        const targetC = state.targetEnergyChar;
+        const isCorrectPrefix = targetFull.startsWith(userInput);
+        const hasTargetLetter = userInput.includes(targetC);
+        if (isCorrectPrefix && hasTargetLetter) {
+            if (state.energyDom?.parentNode) state.energyDom.remove();
+            state.hasEnergyBall = false;
+            state.targetEnergyChar = "";
+            state.energyDom = null;
+            battleState.damageMultiplier = 2;
+            const existBuff = battleState.activeItems.find(item => item.id === "doubleDmg");
+            if (existBuff) {
+                existBuff.remaining += SCENE_EVENT_CONFIG.energyBuffSentence;
+            } else {
+                addActiveItem("doubleDmg", SCENE_EVENT_CONFIG.energyBuffSentence);
+            }
+            showInteractGetEffect("⚡", elements.battleScene);
+            playComboSound(15);
+            return;
+        }
+    }
+    if(state.hasStar) {
+        const targetTxt = sentence.english.toLowerCase();
+        const inputVal = elements.battleInput.value.toLowerCase();
+        if(inputVal === targetTxt) {
+            if (state.starDom?.parentNode) state.starDom.remove();
+            state.hasStar = false;
+            state.starDom = null;
+            const healVal = Math.floor(battleState.playerMaxHp * SCENE_EVENT_CONFIG.healStarHealRatio);
+            playerHeal(healVal);
+            showInteractGetEffect("⭐", elements.battleScene);
+        }
+    }
+}
+/**
+ * 创建场景提示文字
+ */
+function createSceneTip(text, type = "info") {
+    const oldTip = document.querySelector(".scene-event-tip");
+    if(oldTip) oldTip.remove();
+    const tip = document.createElement("div");
+    tip.className = "scene-event-tip";
+    tip.textContent = text;
+    if(type === "warning") tip.style.color = "#f87171";
+    elements.battleScene.appendChild(tip);
+    setTimeout(() => {
+        if(tip.parentNode) tip.remove();
+    }, 3000);
+}
+/**
+ * 拾取成功上浮特效
+ */
+function showInteractGetEffect(emoji, parent) {
+    const eff = document.createElement("div");
+    eff.className = "interact-get-effect";
+    eff.textContent = emoji;
+    eff.style.left = "50%";
+    eff.style.top = "40%";
+    eff.style.transform = "translateX(-50%)";
+    parent.appendChild(eff);
+    setTimeout(() => {
+        if(eff.parentNode) eff.remove();
+    }, 600);
+}
+/**
+ * 清空所有场景互动元素与定时器
+ */
+function clearAllSceneInteract() {
+    const state = battleState.sceneInteract;
+    if(state.eventTimer) {
+        clearInterval(state.eventTimer);
+        state.eventTimer = null;
+    }
+    if(state.starDom?.parentNode) state.starDom.remove();
+    if(state.energyDom?.parentNode) state.energyDom.remove();
+    document.querySelectorAll(".scene-event-tip, .scene-interact-item").forEach(el => {
+        if(el.parentNode) el.remove();
+    });
+    state.hasStar = false;
+    state.hasEnergyBall = false;
+    state.targetEnergyChar = "";
+    state.eventLock = false;
+    state.starDom = null;
+    state.energyDom = null;
+}
     // ========== 战斗结束判定 ==========
     function checkBattleEnd() {
         if (battleState.battleOver) return;
-        
-        // 优先判定胜利
         if (battleState.enemyHp <= 0) {
             if (battleState.playerHp <= 0) {
                 battleState.playerHp = 1;
@@ -2064,30 +2470,23 @@
             endBattle(BATTLE_END_TYPE.ENEMY_HP_EMPTY);
             return;
         }
-        
-        // 玩家死亡（排除无敌状态）
         if (battleState.playerHp <= 0 && !battleState.invincible) {
             endBattle(BATTLE_END_TYPE.PLAYER_DEAD);
         }
     }
-    
-    function endBattle(result) {     
+    function endBattle(result) {
         battleState.battleOver = true;
         battleState.active = false;
-        
         const endTime = Date.now();
         const duration = Math.floor((endTime - battleState.startTime) / 1000);
         const total = battleState.correctCount + battleState.wrongCount;
         const accuracy = total > 0 ? Math.round((battleState.correctCount / total) * 100) : 0;
-        
         const isWin = result === BATTLE_END_TYPE.ALL_SENTENCE_CLEAR || result === BATTLE_END_TYPE.ENEMY_HP_EMPTY;
-        
         if (isWin) {
             playWinSound();
         } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
             playLoseSound();
         }
-        
         if (elements.resultIcon) {
             elements.resultIcon.textContent = isWin ? '🏆' : '💔';
         }
@@ -2118,96 +2517,58 @@
             const seconds = duration % 60;
             elements.resultTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
-        
         setTimeout(() => {
             if (elements.battleResult) {
                 elements.battleResult.classList.add('active');
             }
         }, 800);
-        
-        if(battleState.battleCtx.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
-        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        clearBattleTimers();
     }
-    
     // ========== 再来一局 ==========
     function retryBattle() {
-        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
-        
+        clearBattleTimers();
         playClickSound();
         stopVoice();
         clearVoiceCache();
-        
         if (elements.battleResult) {
             elements.battleResult.classList.remove('active');
         }
-        
         startBattle();
-        
-        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-        clearMonsterWarningBar();
     }
-    
-    // ========== 返回选择界面 ==========
+    // ========== 返回角色选择界面 ==========
     function backToSelect() {
         playClickSound();
-        
-        if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
-        
-        if (elements.battleResult) {
-            elements.battleResult.classList.remove('active');
-        }
+        clearBattleTimers();
         if (elements.battleMode) {
             elements.battleMode.classList.remove('active');
         }
         if (elements.battleSelect) {
             elements.battleSelect.classList.add('active');
         }
-        
-        clearMonsterWarningBar();
     }
-    
-    // ========== 退出战斗 ==========
+    // ========== 退出战斗模块 ==========
     function exitBattle() {
-        if (confirm('确定要退出战斗吗？当前进度将丢失。')) {
-            battleState.active = false;
-            battleState.battleOver = true;
-            
-            try {
-                clearVoiceCache();
-            } catch (voiceErr) {
-                console.warn('退出时清理语音缓存失败，忽略异常', voiceErr);
-            }
-            
-            if(battleState?.battleCtx?.bgTimerId) clearInterval(battleState.battleCtx.bgTimerId);
-            
-            if (elements.battleMode) {
-                elements.battleMode.classList.remove('active');
-            }
-            if (elements.battleSelect) {
-                elements.battleSelect.classList.remove('active');
-            }
-            if (elements.battleResult) {
-                elements.battleResult.classList.remove('active');
-            }
+        if (!confirm('确定要退出战斗吗？当前进度将丢失。')) return;
+        clearBattleTimers();
+        battleState.active = false;
+        battleState.battleOver = true;
+        try {
+            clearVoiceCache();
+        } catch (e) {
+            console.warn('语音缓存释放异常');
         }
-        
-        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-        clearMonsterWarningBar();
+        if (elements.battleMode) elements.battleMode.classList.remove('active');
+        if (elements.battleSelect) elements.battleSelect.classList.remove('active');
+        if (elements.battleResult) elements.battleResult.classList.remove('active');
     }
-    
-    // 全局怒气手动释放入口
-    window.triggerRageSkill = function() {
-        if(battleState && !battleState.battleOver) useRageSkill();
-    }
-    
-    // ========== 对外接口 ==========
+
+    // 全局对外挂载接口
     window.battleMode = {
         init: init,
         open: openBattleMode,
         exit: exitBattle
     };
-    
-    // 页面加载完成后自动初始化
+    // 页面加载完成自动初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
