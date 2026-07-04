@@ -135,6 +135,8 @@
 
 /* 战斗场景区域 */
 .battle-scene {
+    position: relative; /* 必须relative，作为所有特效父级堆叠上下文 */
+    z-index: 1;
     flex: 1;
     position: relative;
     display: flex;
@@ -233,6 +235,18 @@
     80% { transform: scaleX(-1) translateX(5px); filter: brightness(1.1); }
 }
 
+/* 单飞弹轻震动：仅位移，不发光变色 */
+.enemy-shake-only {
+    animation: enemyShakeOnly 0.3s ease-out;
+}
+@keyframes enemyShakeOnly {
+    0%, 100% { transform: scaleX(-1) translateX(0); }
+    20% { transform: scaleX(-1) translateX(-8px); }
+    40% { transform: scaleX(-1) translateX(8px); }
+    60% { transform: scaleX(-1) translateX(-4px); }
+    80% { transform: scaleX(-1) translateX(4px); }
+}
+
 /* 伤害数字 */
 .damage-number {
     position: absolute;
@@ -242,7 +256,7 @@
     text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
     animation: damageFloat 1s ease-out forwards;
     pointer-events: none;
-    z-index: 10;
+    z-index: 13;
 }
 
 .damage-number.crit {
@@ -268,13 +282,13 @@
     }
 }
 
-/* 攻击特效 */
+/* 攻击特效（💥✨） */
 .attack-effect {
     position: absolute;
     font-size: 60px;
     animation: attackEffect 0.5s ease-out forwards;
     pointer-events: none;
-    z-index: 5;
+    z-index: 13;
 }
 
 @keyframes attackEffect {
@@ -895,13 +909,13 @@
 }
 
 /* ========== 护盾获得特效 ========== */
-
+/* 护盾获得 */
 .shield-gain-effect {
     position: absolute;
     font-size: 32px;
     animation: shield-gain 0.8s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
 }
 
 @keyframes shield-gain {
@@ -920,13 +934,13 @@
 }
 
 /* ========== 护盾破碎特效 ========== */
-
+/* 护盾破碎 */
 .shield-break-effect {
     position: absolute;
     font-size: 28px;
     animation: shield-break 0.6s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
 }
 
 @keyframes shield-break {
@@ -945,7 +959,7 @@
 }
 
 /* ========== 怒气满特效 ========== */
-
+/* 怒气满提示 */
 .rage-full-effect {
     position: absolute;
     font-size: 18px;
@@ -954,7 +968,7 @@
     text-shadow: 0 0 10px #ef4444, 0 0 20px #f97316;
     animation: rage-full 1.5s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
     white-space: nowrap;
 }
 
@@ -978,13 +992,13 @@
 }
 
 /* ========== 怒气技能特效 ========== */
-
+/* 怒气大招全屏爆炸 */
 .rage-skill-effect {
     position: absolute;
     font-size: 48px;
     animation: rage-skill 1s ease-out forwards;
     pointer-events: none;
-    z-index: 200;
+    z-index: 20;/* 全屏特效最高 */
 }
 
 @keyframes rage-skill {
@@ -1003,13 +1017,13 @@
 }
 
 /* ========== 道具掉落特效 ========== */
-
+/* 道具掉落弹窗 */
 .item-drop-effect {
     position: absolute;
     text-align: center;
     animation: item-drop 1.2s ease-out forwards;
     pointer-events: none;
-    z-index: 150;
+    z-index: 15;
 }
 
 .item-drop-emoji {
@@ -1071,7 +1085,7 @@
 /* 所有场景漂浮互动元素统一父类 */
 .scene-interact-item {
     position: absolute;
-    z-index: 8;
+    z-index: 11;
     font-size: 42px;
     pointer-events: none;
     user-select: none;
@@ -1089,7 +1103,7 @@
     border-radius: 999px;
     color: #ffffff;
     font-size: 14px;
-    z-index: 12;
+    z-index: 16;
     white-space: nowrap;
     animation: tipFade 3s ease-out forwards;
 }
@@ -1154,7 +1168,7 @@
 .interact-get-effect {
     position: absolute;
     font-size: 36px;
-    z-index: 15;
+    z-index: 13;
     pointer-events: none;
     animation: interactGetAnim 0.6s ease-out forwards;
 }
@@ -1162,4 +1176,50 @@
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(2) translateY(-40px); opacity: 0; }
 }
+
+/* 普通魔法飞弹 */
+.magic-bullet {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(#a8e8ff, #2299ff);
+    box-shadow: 0 0 8px #44aaff, 0 0 16px #66bbff;
+    pointer-events: none;
+    z-index: 11; 
+    /* 左右扩展60px空白区域，容纳拖尾，不再裁剪残影 */
+    clip-path: inset(-10px -60px -10px -60px);
+}
+/* 暴击金色飞弹 */
+.magic-bullet.crit-bullet {
+    background: radial-gradient(#fff990, #ffaa00);
+    box-shadow: 0 0 10px #ffdd22, 0 0 22px #ffb000;
+    z-index: 11;
+}
+
+/* 命中爆炸粒子 */
+.hit-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #73c8ff;
+    box-shadow: 0 0 4px #44aaff;
+    pointer-events: none;
+    z-index: 12; /* 高于10 */
+}
+.crit-particle {
+    background: #ffdd33;
+    box-shadow: 0 0 8px #ffbb00;
+    width: 8px;
+    height: 8px;
+    z-index: 12;
+}
+
+/* 角色头像 z-index 基准 */
+#battlePlayerFighter, #battleEnemyFighter {
+    position: relative;
+    z-index: 10; /* 基准线：所有特效必须>10 */
+}
+
 

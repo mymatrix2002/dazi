@@ -85,8 +85,8 @@
             name: '小狗狗',
             emoji: '🐶',
             type: '攻击型',
-            hp: 90,
-            baseHp: 90,
+            hp: 95,
+            baseHp: 95,
             attack: 12,
             baseAtk: 12,
             hpGrowth: 5,
@@ -101,14 +101,14 @@
             name: '小老虎',
             emoji: '🐯',
             type: '高攻型',
-            hp: 80,
-            baseHp: 80,
-            attack: 15,
-            baseAtk: 15,
+            hp: 85,
+            baseHp: 85,
+            attack: 14,
+            baseAtk: 14,
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
-            critRate: 0.15,
+            critRate: 0.14,
             special: 'none',
             description: '伤害爆炸，比较脆'
         },
@@ -124,7 +124,7 @@
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
-            critRate: 0.25,
+            critRate: 0.22, //原0.25小幅削弱暴击
             special: 'crit',
             description: '25% 概率暴击双倍伤害'
         },
@@ -133,10 +133,10 @@
             name: '小熊熊',
             emoji: '🐻',
             type: '肉盾型',
-            hp: 120,
-            baseHp: 120,
-            attack: 8,
-            baseAtk: 8,
+            hp: 110,
+            baseHp: 110,
+            attack: 9,
+            baseAtk: 9,
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
@@ -146,7 +146,7 @@
         },
         {
             id: 'panda',
-            name: '回复型',
+            name: '小熊猫',
             emoji: '🐼',
             type: '回复型',
             hp: 100,
@@ -158,8 +158,8 @@
             aiFriendlyBuff: 1.0,
             critRate: 0.1,
             special: 'heal',
-            healAmount: 5,
-            healInterval: 3,
+            healAmount: 6, //原5小幅提升
+            healInterval: 2, //原3，回血频率提升
             description: '每打对3个句子回5点血'
         }
     ];
@@ -388,7 +388,8 @@
         const now = Date.now();
         if (now - lastCharSoundTime < 80) return;
         lastCharSoundTime = now;
-        playTone(1150, 0.05, 'sine', 0.06, 30, false);
+        //输入正确字母音效
+        playTone(1150, 0.05, 'sine', 0.16, 30, false);
     }
     
     function playAttackSound() {
@@ -426,7 +427,7 @@
     
     function playHurtSound() {
         playTone(160, 0.22, 'sawtooth', 0.26, 50, true);
-        setTimeout(() => playTone(110, 0.17, 'triangle', 0.21, 40, false), 60);
+        setTimeout(() => playTone(110, 0.17, 'triangle', 0.1, 40, false), 60);
     }
     
     function playHealSound() {
@@ -643,10 +644,26 @@
             elements.enemyHpText.textContent = `${battleState.enemyHp}/${battleState.enemyMaxHp}`;
         }
         // 怒气条
-        if (elements.playerRageBarFill) {
-            const ragePct = battleState.rage / battleState.maxRage;
-            elements.playerRageBarFill.style.width = (ragePct * 100) + '%';
+        if (elements.playerRageBar && elements.playerRageBarFill) {
+            const ragePercent = (battleState.rage / battleState.maxRage) * 100;
+            elements.playerRageBarFill.style.width = ragePercent + '%';
+            if (battleState.rage >= battleState.maxRage) {
+                elements.playerRageBar.classList.add('rage-full');
+                battleState.rageSkillReady = true;
+                // 重置30秒自动释放倒计时
+                if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+                battleState.rageAutoTimer = setTimeout(() => {
+                    if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
+                    useRageSkill();
+                }, 20000);
+            } else {
+                elements.playerRageBar.classList.remove('rage-full');
+                battleState.rageSkillReady = false;
+                // 怒气不满直接清除自动计时
+                if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+            }
         }
+        
         // 护盾数量
         if (elements.shieldCount) {
             elements.shieldCount.textContent = battleState.shieldCount;
@@ -662,13 +679,36 @@
             battleState.activeItems.forEach(item => {
                 const itemDom = document.createElement('span');
                 itemDom.className = 'active-item-tag';
+                let icon = '';
+                let num = '';
                 switch(item.id) {
-                    case 'attack': itemDom.textContent = '⚔️'; break;
-                    case 'invincible': itemDom.textContent = '⭐'; break;
-                    case 'doubleDmg': itemDom.textContent = '⚡'; break;
-                    default: itemDom.textContent = '?';
+                    case 'attack': 
+                        icon = '⚔️'; 
+                        num = item.remaining;
+                        break;
+                    case 'invincible': 
+                        icon = '⭐'; 
+                        num = item.remaining;
+                        break;
+                    case 'doubleDmg':
+                        icon = '⚡'; 
+                        num = item.remaining;
+                        break;
+                    case 'shield': 
+                        icon = '🛡️'; 
+                        num = battleState.shieldCount;
+                        break;
+                    default: 
+                        icon = '?';
+                        num = '';
                 }
-                itemDom.title = `剩余${item.remaining}句`;
+                itemDom.textContent = `${icon}${num}`;
+                // 区分护盾与其他道具的悬浮提示
+                if(item.id === 'shield'){
+                    itemDom.title = `当前护盾层数：${num}`;
+                }else{
+                    itemDom.title = `剩余${num}句`;
+                }
                 elements.activeItems.appendChild(itemDom);
             });
         }
@@ -1026,17 +1066,16 @@
         battleState.enemyMaxHp = enemyMaxHp;
         battleState.battleCtx = battleCtx;
         battleState.sentences = [...battleState.sentences];
-        battleState.currentSentenceIndex = 0;
         battleState.currentCharIndex = 0;
-        battleState.correctCount = 0;
         battleState.wrongCount = 0;
         battleState.perfectSentence = 0;
-        battleState.letterCombo = 0;
-        battleState.letterComboBase = 0;
         battleState.currentSentenceHasError = false;
         battleState.healCounter = 0;
-        battleState.lastInputLength = 0;
+        battleState.lastInputTime = Date.now();
         battleState.inputError = false;
+        battleState.letterCombo = 0;
+        battleState.letterComboBase = 0;
+        battleState.lastInputLength = 0;
         battleState.shieldCount = 0;
         battleState.rage = 0;
         battleState.maxRage = 100;
@@ -1048,6 +1087,10 @@
         battleState.activeItems = [];
         battleState.startTime = Date.now();
         battleState.battleOver = false;
+        battleState.correctCount = 0;
+        battleState.fullSentenceRoundComplete = false;
+        battleState.currentSentenceIndex = 0;
+        
 
         // 场景互动子对象单独重置，不重建对象避免内存冗余
         const inter = battleState.sceneInteract;
@@ -1101,10 +1144,13 @@
 
     // ========== 显示当前句子 ==========
     function showCurrentSentence() {  
+        // 兜底修复下标越界
         if (battleState.currentSentenceIndex >= battleState.sentences.length) {
-            onHpChange(HP_TARGET.ENEMY, -battleState.enemyMaxHp);
-            updateBattleUI();
-            endBattle(BATTLE_END_TYPE.ALL_SENTENCE_CLEAR);
+            battleState.currentSentenceIndex = 0;
+        }
+        if (battleState.battleOver) return;
+        if (battleState.currentSentenceIndex >= battleState.sentences.length) {
+            checkBattleEnd();
             return;
         }
         
@@ -1273,6 +1319,10 @@
     
     // ========== 处理输入 ==========
     function handleInput(e) {
+        // 核心拦截：战斗未激活/已结束，直接终止所有输入逻辑
+        if (!battleState.active || battleState.battleOver) {
+            return;
+        }
         // 闲置超过5秒清空连击
         const idleMs = Date.now() - battleState.lastInputTime;
         if (idleMs > 5000 && battleState.letterCombo > 0) {
@@ -1402,6 +1452,12 @@
             // 补充：正常切句无操作、中途停5秒不会进else，连击保留
             battleState.letterComboBase = inputLen;
             updateBattleUI();
+            // 新增：输入正确字母生成魔法飞弹攻击怪物
+            const charAtk = getSingleCharDamage(battleState.player, battleState.letterCombo, battleState.damageMulti);   
+            // 字母命中轻魔法音效
+            playTone(1400, 0.04, 'sine', 0.05, 20, false);
+            
+            spawnMagicBullet(charAtk.dmg, charAtk.isCrit);
         }
         
         if(!skipMonsterTimer){
@@ -1462,7 +1518,10 @@
             playComboSound(battleState.letterCombo);
             battleState.shieldCount++;
             showShieldGainEffect();
-        }        
+            // 新增：护盾同步存入activeItems，永久2层护盾
+            addActiveItem('shield', 999);
+            updateBattleUI();
+        }      
         
         adjustDifficultyAI('sentence_clear');
         
@@ -1509,26 +1568,54 @@
     // ========== 血量计算工具函数 ==========
     
     function calcPlayerMaxHp(playerChar, ctx = {}) {
+        // 基础角色血量
         let hp = playerChar.baseHp * BATTLE_BALANCE.playerBaseHpMulti;
         if (ctx.level > 1) {
             hp += playerChar.hpGrowth * (ctx.level - 1);
         }
         if (ctx.hpBuff) hp *= ctx.hpBuff;
+
+        // ========== 新增：句子数量动态加血逻辑 ==========
+        const sentenceTotal = battleState.sentences.length;
+        const sentenceBaseAdd = 4; // 每句基础加血4点（可微调）
+        let sentenceAdd = 0;
+        // 和怪物同梯度衰减，避免长文本血量爆炸
+        if (sentenceTotal <= 10) {
+            sentenceAdd = sentenceTotal * sentenceBaseAdd;
+        } else if (sentenceTotal <= 30) {
+            sentenceAdd = 10 * sentenceBaseAdd + (sentenceTotal - 10) * 2.5;
+        } else {
+            sentenceAdd = 10 * sentenceBaseAdd + 20 * 2.5 + (sentenceTotal - 30) * 1;
+        }
+        hp += Math.floor(sentenceAdd);
+        // ==============================================
+
         const maxLimit = playerChar.baseHp * BATTLE_BALANCE.playerMaxHpLimitMulti;
-        return Math.min(Math.floor(hp), maxLimit);
+        // 新增最低血量兜底，防止1-2句短文血量过低
+        const minPlayerHp = playerChar.baseHp * 0.8;
+        hp = Math.min(Math.floor(hp), maxLimit);
+        return Math.max(hp, Math.floor(minPlayerHp));
     }
     
     function calcEnemyMaxHp(enemyChar, sentenceCount, ctx = {}) {
-        const singleHp = enemyChar.baseAtk * BATTLE_BALANCE.sentenceBaseHpCoeff;
-        let totalHp = singleHp * sentenceCount;
-        
+        const baseSingle = enemyChar.baseAtk * BATTLE_BALANCE.sentenceBaseHpCoeff;
+        let totalHp;
+        // 分区间梯度衰减
+        if(sentenceCount <= 10){
+            totalHp = baseSingle * sentenceCount;
+        }else if(sentenceCount <= 30){
+            totalHp = baseSingle * 10 + baseSingle * 0.6 * (sentenceCount - 10);
+        }else{
+            totalHp = baseSingle * 10 + baseSingle * 0.6 * 20 + baseSingle * 0.3 * (sentenceCount - 30);
+        }
         const diffMulti = BATTLE_BALANCE.enemyDifficultyHpMulti[enemyChar.difficulty] || 1;
         totalHp *= diffMulti;
-        
         if (ctx.enemyAiMulti) totalHp *= ctx.enemyAiMulti;
-        
-        const minHp = enemyChar.baseHp * 0.5;
-        return Math.max(Math.floor(totalHp), minHp);
+        const minHp = enemyChar.baseHp * 1.2;
+        // 原35倍下调至28倍，长文本更容易击杀
+        const maxHpCap = enemyChar.baseHp * 28;
+        totalHp = Math.min(Math.floor(totalHp), maxHpCap);
+        return Math.max(totalHp, minHp);
     }
     
     function calcEnemyShowHp(enemyChar) {
@@ -1541,10 +1628,9 @@
         const stageCount = Array.isArray(ctx.activeStageList) ? ctx.activeStageList.length : 0;
         const stageAtkMulti = Math.pow(1.2, stageCount);
         let totalMulti = ctx.baseAtkMulti * stageAtkMulti;
-        
-        if (ctx.isRaging) {
-            totalMulti *= enemyChar.aiRageAtkMulti;
-        }
+        if (ctx.isRaging) totalMulti *= enemyChar.aiRageAtkMulti;
+        // 全局伤害上限，最高2.8倍，防止多层叠加秒玩家
+        totalMulti = Math.min(totalMulti, 2.8);
         return Math.floor(baseAtk * totalMulti);
     }
     
@@ -1562,6 +1648,150 @@
         return Math.floor(base);
     }
     
+    // 单个正确字母魔法小额伤害
+    function getSingleCharDamage(playerChar, comboCount, damageMulti) {
+        let base = Math.floor(playerChar.attack * 0.14);
+        // 长文本单字母伤害衰减，避免碾压怪物
+        const sentenceTotal = battleState.sentences.length;
+        let sentenceDecay = 1;
+        if(sentenceTotal > 20) sentenceDecay = 0.85;
+        if(sentenceTotal > 40) sentenceDecay = 0.65;
+        base *= sentenceDecay;
+
+        const comboBonus = Math.floor(comboCount / 10) * 0.1;
+        base *= (1 + comboBonus);
+        let buffLayer = 1;
+        const hasAttack = battleState.activeItems.some(i => i.id === 'attack');
+        const hasDoubleDmg = battleState.activeItems.some(i => i.id === 'doubleDmg');
+        if (hasAttack) buffLayer *= 2;
+        if (hasDoubleDmg) buffLayer *= 2;
+        // 双层buff叠加上限锁定3倍，杜绝4倍超模
+        buffLayer = Math.min(buffLayer, 3);
+        base *= buffLayer;
+        const isCrit = Math.random() < 0.05;
+        if(isCrit) base *= 2;
+        return {
+            dmg: Math.floor(base),
+            isCrit: isCrit
+        };
+    }
+    
+    /** 生成魔法飞弹：玩家→怪物飞行动画 */
+    function spawnMagicBullet(damage, isCrit) {
+        if(!elements.battleScene || !elements.playerFighter || !elements.enemyFighter) return;
+
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        const playerRect = elements.playerFighter.getBoundingClientRect();
+        const enemyRect = elements.enemyFighter.getBoundingClientRect();
+
+        // 创建飞弹DOM
+        const bullet = document.createElement('div');
+        bullet.className = 'magic-bullet';
+        if(isCrit) bullet.classList.add('crit-bullet');
+
+        // 随机偏移（X左右，Y仅头像小范围）
+        const randomOffsetX = (Math.random() - 0.5) * 60;
+        const randomOffsetY = (Math.random() - 0.5) * 60;
+
+        // 起点：玩家头像中心±小范围垂直偏移
+        const startX = playerRect.left - sceneRect.left + playerRect.width / 2 + randomOffsetX;
+        const startY = playerRect.top - sceneRect.top + playerRect.height / 2 + randomOffsetY;
+        // 终点同步偏移
+        const endX = enemyRect.left - sceneRect.left + enemyRect.width / 2 + randomOffsetX * 0.5;
+        const endY = enemyRect.top - sceneRect.top + enemyRect.height / 2 + randomOffsetY * 0.5;
+
+        bullet.style.left = startX + 'px';
+        bullet.style.top = startY + 'px';
+        elements.battleScene.appendChild(bullet);
+
+        // 弹道动画，移除 composite: "accumulate"
+        bullet.animate([
+            { left: startX + 'px', top: startY + 'px', opacity: 1, scale: 1 },
+            { left: endX + 'px', top: endY + 'px', opacity: 0.8, scale: 0.6 }
+        ], {
+            duration: 450,
+            easing: 'ease-out'
+        });
+
+        // 根据连击等级放大飞弹
+        const comboLevel = Math.floor(battleState.letterCombo / 10);
+        const bulletSize = 18 + comboLevel * 4;
+        bullet.style.width = bulletSize + 'px';
+        bullet.style.height = bulletSize + 'px';
+        bullet.style.boxShadow = `0 0 ${8 + comboLevel * 6}px currentColor`;
+
+        // 角色专属弹道颜色
+        const charId = battleState.player.id;
+        if(charId === 'tiger'){ //老虎 火焰红
+            bullet.style.background = 'radial-gradient(#ffb380, #ff4400)';
+        }else if(charId === 'fox'){ //狐狸 紫暴击
+            bullet.style.background = 'radial-gradient(#e0b3ff, #9922ff)';
+        }else if(charId === 'bear'){ //小熊土黄
+            bullet.style.background = 'radial-gradient(#ffe0b3, #bb7722)';
+        }else if(charId === 'panda'){ //熊猫绿色
+            bullet.style.background = 'radial(#b3ffb3, #22bb44)';
+        }
+
+        // 0.3秒弹道动画
+        bullet.animate([
+            { left: startX + 'px', top: startY + 'px', opacity: 1, scale: 1 },
+            { left: endX + 'px', top: endY + 'px', opacity: 0.8, scale: 0.6 }
+        ], {
+            duration: 450, // 原300→450，飞行变慢，多颗同时存在更明显
+            easing: 'ease-out'
+        });
+
+        // 飞弹命中后逻辑
+        setTimeout(() => {
+            if(bullet.parentNode) bullet.remove();
+            // 爆炸粒子
+            const sceneRect = elements.battleScene.getBoundingClientRect();
+            const enemyRect = elements.enemyFighter.getBoundingClientRect();
+            const hitX = enemyRect.left - sceneRect.left + enemyRect.width / 2;
+            const hitY = enemyRect.top - sceneRect.top + enemyRect.height / 2;
+            spawnHitParticle(hitX, hitY, isCrit);
+            // 怪物扣血
+            onHpChange(HP_TARGET.ENEMY, -damage);
+            // 单字母飞弹：仅震动，无高光闪烁
+            elements.enemyFighter.classList.add('enemy-shake-only');
+            setTimeout(()=>elements.enemyFighter.classList.remove('enemy-shake-only'), 300);
+            // 飘伤害数字
+            showDamageNumber(elements.enemyFighter, damage, isCrit ? 'crit' : 'normal');
+            // 轻微屏幕震动增强打击感
+            //elements.battleScene.style.transform = 'translateX(-4px)';
+            setTimeout(()=>elements.battleScene.style.transform = '', 80);
+        }, 300);
+    }
+
+        /** 飞命中爆炸粒子 */
+        function spawnHitParticle(targetX, targetY, isCrit) {
+            if(!elements.battleScene) return;
+            const particleCount = isCrit ? 12 : 6; // 暴击更多粒子
+            for(let i = 0; i < particleCount; i++){
+                const p = document.createElement('div');
+                p.className = 'hit-particle';
+                if(isCrit) p.classList.add('crit-particle');
+                // 随机扩散角度
+                const angle = Math.PI * 2 / particleCount * i;
+                const dist = 30 + Math.random() * 40;
+                const endX = targetX + Math.cos(angle) * dist;
+                const endY = targetY + Math.sin(angle) * dist;
+
+                p.style.left = targetX + 'px';
+                p.style.top = targetY + 'px';
+                elements.battleScene.appendChild(p);
+
+                p.animate([
+                    { left: targetX + 'px', top: targetY + 'px', opacity: 1, transform: 'scale(1)' },
+                    { left: endX + 'px', top: endY + 'px', opacity: 0, transform: 'scale(0)' }
+                ], { duration: 400, easing: 'ease-out' });
+
+                setTimeout(()=>{
+                    if(p.parentNode) p.remove();
+                }, 400);
+            }
+        }
+
     // 浮点数安全比较（消除JS浮点精度误差）
     const EPS = 1e-6;
     
@@ -1716,7 +1946,7 @@
                 background: #222;
                 border-radius: 4px;
                 overflow: hidden;
-                z-index:10;
+                z-index:11;
                 pointer-events:none;
                 outline: none;
                 box-shadow: none;
@@ -1766,72 +1996,67 @@
     function adjustDifficultyAI(triggerType) {
         const ctx = battleState.battleCtx;
         if (!ctx.aiEnabled || ctx.aiAdjustCooldown) return;
-        
         let changed = false;
         let newInterval = ctx.attackInterval;
-        
-        // 玩家被击中 → 降低难度（减慢攻击）
+        const totalSent = battleState.sentences.length;
+        // 长文本怪物攻击间隔基础缩短，提升压迫
+        const longSentPenalty = totalSent > 25 ? 0.8 : 1;
+        // 玩家挨打
         if (triggerType === 'player_hit') {
             ctx.consecutiveHits++;
             ctx.consecutiveInterrupts = 0;
-            
+            const step = ctx.adjustStep * longSentPenalty;
             if (ctx.consecutiveHits >= 2) {
-                newInterval = Math.min(ctx.attackInterval + ctx.adjustStep * 2, ctx.maxInterval);
+                newInterval = Math.min(ctx.attackInterval + step * 2, ctx.maxInterval);
             } else {
-                newInterval = Math.min(ctx.attackInterval + ctx.adjustStep, ctx.maxInterval);
+                newInterval = Math.min(ctx.attackInterval + step, ctx.maxInterval);
             }
-            
             if (Math.abs(newInterval - ctx.attackInterval) > 10) {
                 ctx.attackInterval = newInterval;
                 changed = true;
             }
         }
-        
-        // 打断成功 → 提高难度（加快攻击）
+        // 打断成功缩短间隔（逻辑不变）
         else if (triggerType === 'interrupt_success') {
             ctx.consecutiveInterrupts++;
             ctx.consecutiveHits = 0;
-            
+            const step = ctx.adjustStep * longSentPenalty;
             if (ctx.consecutiveInterrupts >= 3) {
-                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep * 2, ctx.minInterval);
+                newInterval = Math.max(ctx.attackInterval - step * 2, ctx.minInterval);
             } else {
-                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep, ctx.minInterval);
+                newInterval = Math.max(ctx.attackInterval - step, ctx.minInterval);
             }
-            
             if (Math.abs(newInterval - ctx.attackInterval) > 10) {
                 ctx.attackInterval = newInterval;
                 changed = true;
             }
         }
-        
-        // 句子完成 → 准确率高时小幅提高难度
+        // 高准确率小幅加难度
         else if (triggerType === 'sentence_clear') {
             const total = battleState.correctCount + battleState.wrongCount;
             const accuracy = total > 0 ? battleState.correctCount / total : 1;
-            
             if (accuracy > 0.9) {
-                newInterval = Math.max(ctx.attackInterval - ctx.adjustStep * 0.5, ctx.minInterval);
+                const step = ctx.adjustStep * longSentPenalty * 0.5;
+                newInterval = Math.max(ctx.attackInterval - step, ctx.minInterval);
                 if (Math.abs(newInterval - ctx.attackInterval) > 10) {
                     ctx.attackInterval = newInterval;
                     changed = true;
                 }
             }
         }
-        
-        // 防止突然攻击：至少留20%反应时间
         if (changed && ctx.attackTimer > ctx.attackInterval * 0.8) {
             ctx.attackTimer = ctx.attackInterval * 0.8;
         }
-        
         if (changed) {
             ctx.aiAdjustCooldown = true;
+            setTimeout(()=>ctx.aiAdjustCooldown = false,1500); // 延长AI冷却，防止频繁波动
         }
     }
     
     // ========== 怪物攻击 ==========
     function enemyAttack() {
-        // 基础伤害 × 新手保护减半
-        let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx) * 0.5;
+        // 全局基础伤害
+        let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx) ;
         damage = Math.floor(damage);
         
         // 儿童保护：长时间不输入，伤害再减半
@@ -1854,6 +2079,10 @@
             battleState.shieldCount--;
             showShieldBreakEffect();
             showDamageNumber(elements.playerFighter, '护盾', 'heal');
+            // 护盾归零，移除activeItems里的shield
+            if(battleState.shieldCount <= 0){
+                battleState.activeItems = battleState.activeItems.filter(item => item.id !== 'shield');
+            }
             updateBattleUI();
             checkBattleEnd();
             return;
@@ -2083,6 +2312,8 @@
             }
         }, 1000);
     }
+
+
     
     // ========== 道具系统 ==========
     const itemTypes = [
@@ -2246,7 +2477,11 @@
  */
 function startSceneEventLoop() {
     const state = battleState.sceneInteract;
-    if (state.eventTimer) return;
+    // 关键：启动前先销毁旧定时器，防止多定时器叠加
+    if (state.eventTimer) {
+        clearInterval(state.eventTimer);
+        state.eventTimer = null;
+    }
     state.eventTimer = setInterval(() => {
         if (battleState.battleOver || !battleState.active) return;
         if (state.eventLock) return;
@@ -2263,6 +2498,12 @@ function startSceneEventLoop() {
  * 随机抽取并生成一种场景事件
  */
 function triggerRandomSceneEvent() {
+    // 前置强制兜底：下标超出直接重置，杜绝读取undefined句子
+    if (battleState.currentSentenceIndex >= battleState.sentences.length) {
+        battleState.currentSentenceIndex = 0;
+    }
+    // 战斗结束不再生成事件，避免后台循环干扰
+    if (battleState.battleOver || !battleState.active) return;
     const eventTypes = [SCENE_EVENT_TYPE.HEAL_STAR, SCENE_EVENT_TYPE.METEOR, SCENE_EVENT_TYPE.ENERGY_BALL];
     const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
     switch(randomType) {
@@ -2463,73 +2704,113 @@ function clearAllSceneInteract() {
     // ========== 战斗结束判定 ==========
     function checkBattleEnd() {
         if (battleState.battleOver) return;
+        // 条件1：怪物血量清空 → 提前胜利（游戏核心爽点）
         if (battleState.enemyHp <= 0) {
-            if (battleState.playerHp <= 0) {
-                battleState.playerHp = 1;
-            }
             endBattle(BATTLE_END_TYPE.ENEMY_HP_EMPTY);
             return;
         }
+        // 条件2：全部句子完成，循环从头再来，不结束战斗，直到打死怪物
+        if (battleState.currentSentenceIndex >= battleState.sentences.length) {
+            // 标记：已经完整打完一轮全部句子
+            battleState.fullSentenceRoundComplete = true;
+            // 狂暴小幅提速
+            battleState.battleCtx.minInterval *= 0.9;
+            battleState.battleCtx.attackInterval = battleState.battleCtx.minInterval;
+            // 仅重置句子索引，不再清空打字统计correctCount
+            battleState.currentSentenceIndex = 0;
+            showBattleAlert("全部练习完成，怪物狂暴！重复单词继续击败它！", "warning", 2000);
+            showCurrentSentence();
+            return;
+        }
+        // 玩家死亡判定
         if (battleState.playerHp <= 0 && !battleState.invincible) {
             endBattle(BATTLE_END_TYPE.PLAYER_DEAD);
         }
     }
     function endBattle(result) {
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
         battleState.battleOver = true;
         battleState.active = false;
         const endTime = Date.now();
         const duration = Math.floor((endTime - battleState.startTime) / 1000);
         const total = battleState.correctCount + battleState.wrongCount;
         const accuracy = total > 0 ? Math.round((battleState.correctCount / total) * 100) : 0;
-        const isWin = result === BATTLE_END_TYPE.ALL_SENTENCE_CLEAR || result === BATTLE_END_TYPE.ENEMY_HP_EMPTY;
+        const isWin = result === BATTLE_END_TYPE.ENEMY_HP_EMPTY;
+
+        // 音效
         if (isWin) {
             playWinSound();
         } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
             playLoseSound();
         }
+
+        // 1. 顶部图标区分三种场景
         if (elements.resultIcon) {
-            elements.resultIcon.textContent = isWin ? '🏆' : '💔';
+            if (isWin) {
+                if (battleState.fullSentenceRoundComplete) {
+                    // 场景A：打完完整一轮再杀怪
+                    elements.resultIcon.textContent = '🏆';
+                } else {
+                    // 场景B：中途没打完就杀怪
+                    elements.resultIcon.textContent = '⚔️';
+                }
+            } else {
+                // 失败
+                elements.resultIcon.textContent = '💔';
+            }
         }
+
+        // 2. 大标题
         if (elements.resultTitle) {
             elements.resultTitle.textContent = isWin ? '胜利！' : '失败...';
             elements.resultTitle.className = 'battle-result-title ' + (isWin ? 'win' : 'lose');
         }
+
+        // 3. 副标题文案（核心区分）
         if (elements.resultSubtitle) {
-            if (isWin) {
-                elements.resultSubtitle.textContent = `恭喜！全部 ${battleState.sentences.length} 个句子都打完啦！`;
+            if (result === BATTLE_END_TYPE.ENEMY_HP_EMPTY) {
+                if (battleState.fullSentenceRoundComplete) {
+                    // 场景A
+                    elements.resultSubtitle.textContent = `太棒了！完整练习全部句子后，击败${battleState.enemy.name}！`;
+                } else {
+                    // 场景B
+                    elements.resultSubtitle.textContent = `太棒了！成功击败${battleState.enemy.name}，无需打完所有句子`;
+                }
             } else if (result === BATTLE_END_TYPE.PLAYER_DEAD) {
                 elements.resultSubtitle.textContent = `你被 ${battleState.enemy.name} 击败了...`;
             } else {
-                elements.resultSubtitle.textContent = '所有句子都打完啦！';
+                elements.resultSubtitle.textContent = '战斗结束';
             }
         }
-        if (elements.resultCorrect) {
-            elements.resultCorrect.textContent = battleState.correctCount;
-        }
-        if (elements.resultWrong) {
-            elements.resultWrong.textContent = battleState.wrongCount;
-        }
-        if (elements.resultAccuracy) {
-            elements.resultAccuracy.textContent = accuracy + '%';
-        }
+
+        // 统计数据渲染（不变）
+        if (elements.resultCorrect) elements.resultCorrect.textContent = battleState.correctCount;
+        if (elements.resultWrong) elements.resultWrong.textContent = battleState.wrongCount;
+        if (elements.resultAccuracy) elements.resultAccuracy.textContent = accuracy + '%';
         if (elements.resultTime) {
             const minutes = Math.floor(duration / 60);
             const seconds = duration % 60;
             elements.resultTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
+
         setTimeout(() => {
-            if (elements.battleResult) {
-                elements.battleResult.classList.add('active');
-            }
+            if (elements.battleResult) elements.battleResult.classList.add('active');
         }, 800);
         clearBattleTimers();
     }
     // ========== 再来一局 ==========
     function retryBattle() {
         clearBattleTimers();
-        playClickSound();
+        clearAllSceneInteract();
         stopVoice();
         clearVoiceCache();
+        // 强制清空输入框、解除残留输入状态
+        if(elements.battleInput){
+            elements.battleInput.value = "";
+            elements.battleInput.blur();
+            elements.battleInput.classList.remove('correct','wrong');
+        }
+        playClickSound();
         if (elements.battleResult) {
             elements.battleResult.classList.remove('active');
         }
@@ -2539,6 +2820,18 @@ function clearAllSceneInteract() {
     function backToSelect() {
         playClickSound();
         clearBattleTimers();
+        clearAllSceneInteract();
+        stopVoice();
+        clearVoiceCache();
+        // 清空输入框残留样式与内容
+        if(elements.battleInput){
+            elements.battleInput.value = "";
+            elements.battleInput.classList.remove('correct','wrong');
+        }
+        // 关闭弹窗与战斗页面
+        if (elements.battleResult) {
+            elements.battleResult.classList.remove('active');
+        }
         if (elements.battleMode) {
             elements.battleMode.classList.remove('active');
         }
@@ -2550,16 +2843,28 @@ function clearAllSceneInteract() {
     function exitBattle() {
         if (!confirm('确定要退出战斗吗？当前进度将丢失。')) return;
         clearBattleTimers();
-        battleState.active = false;
-        battleState.battleOver = true;
+        clearAllSceneInteract();
+        stopVoice();
         try {
             clearVoiceCache();
         } catch (e) {
             console.warn('语音缓存释放异常');
         }
+        battleState.active = false;
+        battleState.battleOver = true;
+        // 清空输入框
+        if(elements.battleInput){
+            elements.battleInput.value = "";
+            elements.battleInput.classList.remove('correct','wrong');
+        }
         if (elements.battleMode) elements.battleMode.classList.remove('active');
         if (elements.battleSelect) elements.battleSelect.classList.remove('active');
         if (elements.battleResult) elements.battleResult.classList.remove('active');
+    }
+    
+    // 全局怒气手动释放入口
+    window.triggerRageSkill = function() {
+        if(battleState && !battleState.battleOver) useRageSkill();
     }
 
     // 全局对外挂载接口
