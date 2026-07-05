@@ -841,9 +841,6 @@
         padding: 12px 16px;
     }
     
-    .battle-scene {
-        min-height: calc(56px + 20px + 14px);
-    }
 }
 
 /* 软键盘特殊适配 */
