@@ -845,6 +845,8 @@
         gap: 16px;
         row-gap: 8px;
         flex-wrap: wrap;
+        /* 高度足够时不收缩，完整显示 */
+        flex-shrink: 0;
     }
     .battle-stat-value {
         font-size: 18px;
@@ -878,9 +880,11 @@
         padding: 10px 14px;
         font-size: 16px;
     }
+    /* 键盘弹出才允许压缩统计栏 */
     .battle-stats {
         gap: 12px;
         row-gap: 6px;
+        flex-shrink: 1;
     }
 }
 
