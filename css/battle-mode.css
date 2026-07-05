@@ -135,6 +135,8 @@
 
 /* 战斗场景区域 */
 .battle-scene {
+    position: relative; /* 必须relative，作为所有特效父级堆叠上下文 */
+    z-index: 1;
     flex: 1;
     position: relative;
     display: flex;
@@ -233,6 +235,18 @@
     80% { transform: scaleX(-1) translateX(5px); filter: brightness(1.1); }
 }
 
+/* 单飞弹轻震动：仅位移，不发光变色 */
+.enemy-shake-only {
+    animation: enemyShakeOnly 0.3s ease-out;
+}
+@keyframes enemyShakeOnly {
+    0%, 100% { transform: scaleX(-1) translateX(0); }
+    20% { transform: scaleX(-1) translateX(-8px); }
+    40% { transform: scaleX(-1) translateX(8px); }
+    60% { transform: scaleX(-1) translateX(-4px); }
+    80% { transform: scaleX(-1) translateX(4px); }
+}
+
 /* 伤害数字 */
 .damage-number {
     position: absolute;
@@ -242,7 +256,7 @@
     text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
     animation: damageFloat 1s ease-out forwards;
     pointer-events: none;
-    z-index: 10;
+    z-index: 13;
 }
 
 .damage-number.crit {
@@ -268,13 +282,13 @@
     }
 }
 
-/* 攻击特效 */
+/* 攻击特效（💥✨） */
 .attack-effect {
     position: absolute;
     font-size: 60px;
     animation: attackEffect 0.5s ease-out forwards;
     pointer-events: none;
-    z-index: 5;
+    z-index: 13;
 }
 
 @keyframes attackEffect {
@@ -895,13 +909,13 @@
 }
 
 /* ========== 护盾获得特效 ========== */
-
+/* 护盾获得 */
 .shield-gain-effect {
     position: absolute;
     font-size: 32px;
     animation: shield-gain 0.8s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
 }
 
 @keyframes shield-gain {
@@ -920,13 +934,13 @@
 }
 
 /* ========== 护盾破碎特效 ========== */
-
+/* 护盾破碎 */
 .shield-break-effect {
     position: absolute;
     font-size: 28px;
     animation: shield-break 0.6s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
 }
 
 @keyframes shield-break {
@@ -945,7 +959,7 @@
 }
 
 /* ========== 怒气满特效 ========== */
-
+/* 怒气满提示 */
 .rage-full-effect {
     position: absolute;
     font-size: 18px;
@@ -954,7 +968,7 @@
     text-shadow: 0 0 10px #ef4444, 0 0 20px #f97316;
     animation: rage-full 1.5s ease-out forwards;
     pointer-events: none;
-    z-index: 100;
+    z-index: 15;
     white-space: nowrap;
 }
 
@@ -978,13 +992,13 @@
 }
 
 /* ========== 怒气技能特效 ========== */
-
+/* 怒气大招全屏爆炸 */
 .rage-skill-effect {
     position: absolute;
     font-size: 48px;
     animation: rage-skill 1s ease-out forwards;
     pointer-events: none;
-    z-index: 200;
+    z-index: 20;/* 全屏特效最高 */
 }
 
 @keyframes rage-skill {
@@ -1003,13 +1017,13 @@
 }
 
 /* ========== 道具掉落特效 ========== */
-
+/* 道具掉落弹窗 */
 .item-drop-effect {
     position: absolute;
     text-align: center;
     animation: item-drop 1.2s ease-out forwards;
     pointer-events: none;
-    z-index: 150;
+    z-index: 15;
 }
 
 .item-drop-emoji {
@@ -1063,4 +1077,220 @@
 
 .battle-fighter.warn-flash {
     animation: warn-flash 0.3s infinite;
+}
+
+/* ======================================
+    方案6 场景互动机制 - 通用基础样式
+====================================== */
+/* 所有场景漂浮互动元素统一父类 */
+.scene-interact-item {
+    position: absolute;
+    z-index: 11;
+    font-size: 42px;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* 全局随机事件顶部提示气泡 */
+.scene-event-tip {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    padding: 6px 18px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 14px;
+    z-index: 16;
+    white-space: nowrap;
+    animation: tipFade 3s ease-out forwards;
+}
+@keyframes tipFade {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ========== 互动1：治疗星星 ⭐ ========== */
+.heal-star {
+    color: #fbbf24;
+    text-shadow: 0 0 12px #fbbf24, 0 0 24px rgba(251, 191, 36, 0.4);
+    animation: starFall 7s linear forwards, starTwinkle 0.8s infinite alternate;
+}
+/* 星星垂直下落轨迹 */
+@keyframes starFall {
+    0% { top: -60px; left: 20%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 70%; opacity: 0; }
+}
+/* 星星明暗闪烁 */
+@keyframes starTwinkle {
+    from { transform: scale(0.9); }
+    to { transform: scale(1.1); }
+}
+
+/* ========== 互动2：陨石雨 ☄️ ========== */
+.meteor {
+    font-size: 60px;
+    color: #a855f7;
+    text-shadow: 0 0 15px #a855f7, 0 0 30px rgba(168, 85, 247, 0.35);
+    animation: meteorDrop 1.2s linear forwards;
+}
+@keyframes meteorDrop {
+    0% { top: -80px; opacity: 0; transform: rotate(0deg); }
+    10% { opacity: 1; }
+    100% { top: 100%; opacity: 0; transform: rotate(180deg); }
+}
+
+/* ========== 互动3：能量球 ⚡ ========== */
+.energy-ball {
+    color: #38bdf8;
+    text-shadow: 0 0 14px #38bdf8, 0 0 28px rgba(56, 189, 248, 0.4);
+    animation: ballSwing 5s ease-in-out infinite, ballPulse 1s infinite alternate;
+}
+/* 左右横向漂浮 */
+@keyframes ballSwing {
+    0% { left: 10%; }
+    50% { left: 80%; }
+    100% { left: 10%; }
+}
+/* 大小脉冲呼吸 */
+@keyframes ballPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.25); }
+}
+
+/* ========== 拾取成功上浮特效 ========== */
+.interact-get-effect {
+    position: absolute;
+    font-size: 36px;
+    z-index: 13;
+    pointer-events: none;
+    animation: interactGetAnim 0.6s ease-out forwards;
+}
+@keyframes interactGetAnim {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2) translateY(-40px); opacity: 0; }
+}
+
+/* 普通魔法飞弹 */
+.magic-bullet {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(#a8e8ff, #2299ff);
+    box-shadow: 0 0 8px #44aaff, 0 0 16px #66bbff;
+    pointer-events: none;
+    z-index: 11; 
+    /* 左右扩展60px空白区域，容纳拖尾，不再裁剪残影 */
+    clip-path: inset(-10px -60px -10px -60px);
+}
+/* 暴击金色飞弹 */
+.magic-bullet.crit-bullet {
+    background: radial-gradient(#fff990, #ffaa00);
+    box-shadow: 0 0 10px #ffdd22, 0 0 22px #ffb000;
+    z-index: 11;
+}
+
+/* 命中爆炸粒子 */
+.hit-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #73c8ff;
+    box-shadow: 0 0 4px #44aaff;
+    pointer-events: none;
+    z-index: 12; /* 高于10 */
+}
+.crit-particle {
+    background: #ffdd33;
+    box-shadow: 0 0 8px #ffbb00;
+    width: 8px;
+    height: 8px;
+    z-index: 12;
+}
+
+/* 角色头像 z-index 基准 */
+#battlePlayerFighter, #battleEnemyFighter {
+    position: relative;
+    z-index: 10; /* 基准线：所有特效必须>10 */
+}
+
+
+/* 大招全屏震动 */
+@keyframes rageScreenShake {
+  0% { transform: translate(0,0) scale(1); }
+  10% { transform: translate(-8px,4px) scale(1.02); }
+  20% { transform: translate(8px,-4px) scale(0.98); }
+  30% { transform: translate(-6px,2px) scale(1.01); }
+  40% { transform: translate(6px,-2px) scale(0.99); }
+  50% { transform: translate(-4px,0) scale(1); }
+  60% { transform: translate(4px,0); }
+  100% { transform: translate(0,0); }
+}
+.battle-scene.rage-shake {
+  animation: rageScreenShake 0.6s ease-out;
+}
+
+/* 全屏闪光冲击波 */
+.rage-flash-layer {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(#ffffffcc,#ff772233);
+  pointer-events: none;
+  z-index: 25;
+  animation: rageFlashAnim 0.5s forwards;
+}
+@keyframes rageFlashAnim {
+  0% { opacity: 0.9; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+/* 怪物大招重伤回弹动画 */
+@keyframes enemyRageHit {
+  0% { transform: scaleX(-1) scale(1); filter: brightness(1); }
+  25% { transform: scaleX(-1) scale(1.3); filter: brightness(2) saturate(2); }
+  45% { transform: scaleX(-1) scale(0.85); }
+  70% { transform: scaleX(-1) scale(1.1); }
+  100% { transform: scaleX(-1) scale(1); }
+}
+.battle-fighter.enemy.rage-hit {
+  animation: enemyRageHit 0.6s ease-out;
+}
+
+/* 大招超大暴击数字 */
+.damage-number.rage-crit {
+  font-size: 52px;
+  text-shadow: 0 0 16px #ff4400, 0 0 30px #fb923c;
+}
+
+/* 怒气满头像脉冲发光 */
+@keyframes rageReadyPulse {
+  0%,100% { filter: drop-shadow(0 0 8px #fb923c); }
+  50% { filter: drop-shadow(0 0 22px #ff5500); }
+}
+.battle-fighter.player.rage-ready {
+  animation: rageReadyPulse 1.2s infinite;
+}
+
+/* 大招爆炸粒子 */
+.rage-particle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(#fff,#ff5500);
+  box-shadow: 0 0 10px #ff6600;
+  pointer-events: none;
+  z-index: 22;
+}
+@keyframes rageParticleFly {
+  0% { opacity:1; transform: translate(0,0) scale(1); }
+  100% { opacity:0; transform: translate(var(--tx),var(--ty)) scale(0); }
 }
