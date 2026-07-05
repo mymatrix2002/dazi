@@ -1499,6 +1499,14 @@
         }
         // 删除重复的 updateCharColors(); 只保留一次刷新
         refreshSentenceHighlight();
+        
+        // 输入时自动滚动输入框至可视区，避开软键盘
+        setTimeout(() => {
+            elements.battleInput.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }, 50); 
     }
     
         function handleWrongInput() {
