@@ -3,22 +3,25 @@
 /* 战斗模式主容器 */
 .battle-mode {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /* 适配手机底部安全区 */
+    inset: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     z-index: 1000;
     display: none;
     flex-direction: column;
-    /* 关键：视口高度单位，键盘弹出自动压缩布局 */
-    height: 100vh;
-    max-height: 100vh;
-    /* 禁止整体滚动，内部区域单独滚动 */
+    /* 优先动态视口单位，修复手机地址栏/键盘高度跳动 */
+    height: 100dvh;
+    min-height: 100svh;
+    /* Safari兼容兜底 */
+    @supports (-webkit-touch-callout: none) {
+        height: -webkit-fill-available;
+    }
     overflow: hidden;
+    /* 主渐变放在根容器，不依赖子层，减少重绘丢失 */
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+    /* 强制开启图层缓存，防止背景丢弃 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 /* 战斗模式内容区域 - 与主界面宽度一致 */
@@ -147,16 +150,41 @@
     position: relative;
     z-index: 1;
     flex: 1;
-    /* 关键：最小高度限制，键盘压缩时自动缩小，不会挤掉输入区 */
     min-height: 120px;
-    max-height: calc(100vh - 280px);
+    max-height: calc(100dvh - 280px);
     display: flex;
     align-items: center;
     justify-content: space-around;
     padding: 20px;
-    overflow: auto;
-    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+    /* 改为visible，彻底杜绝伪星星被滚动裁剪 */
+    overflow: visible;
+    /* 底层深色固定，不依赖动态渐变 */
+    background: #090a0f;
+    transform: translateZ(0);
 }
+/* 星星伪元素修复：固定宽高，不随容器压缩归零 */
+.battle-scene::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+        radial-gradient(2px 2px at 130px 80px, rgba(255,255,0.6), transparent),
+        radial-gradient(1px 1px at 160px 120px, #fff, transparent);
+    background-size: 200px 200px;
+    animation: twinkle 4s ease-in-out infinite;
+    pointer-events: none;
+    /* 强制图层常驻，动画不被回收 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
 
 /* 星星背景 */
 .battle-scene::before {
