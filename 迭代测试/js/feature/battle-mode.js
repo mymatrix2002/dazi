@@ -2,6 +2,7 @@
 /* js/feature/battle-mode.js */
 (function() {
     'use strict';
+    let rageClickLock = false; // 头像点击防抖锁
     
     // ========== 战斗数值枚举 & 平衡常量 ==========
     const HP_TARGET = {
@@ -19,9 +20,9 @@
     // 全局数值平衡配置（可调节）
     const BATTLE_BALANCE = {
         sentenceBaseHpCoeff: 2,                // 单句基础血量系数
-        enemyDifficultyHpMulti: { 1: 1.0, 2: 1.3, 3: 1.7, 4: 2.2 }, // 难度血量倍率
+        enemyDifficultyHpMulti: { 1: 1.0, 2: 1.3, 3: 1.7, 4: 1.9 }, // 难度血量倍率
         playerBaseHpMulti: 1,                  // 玩家基础血量总倍率
-        enemyRageHpThreshold: 0.3,             // 怪物狂暴血量阈值
+        enemyRageHpThreshold: 0.22,            // 怪物狂暴血量阈值
         playerMaxHpLimitMulti: 10              // 玩家血量上限保护倍率
     };
     
@@ -46,9 +47,9 @@
     // ========== 方案6 场景互动随机事件配置 ==========
     const SCENE_EVENT_CONFIG = {
         eventInterval: 12000,    // 每12秒判定一次是否触发事件
-        eventChance: 0.35,       // 单次触发概率35%
+        eventChance: 0.25,       // 单次触发概率25%
         healStarHealRatio: 0.2,  // 星星回血比例20%最大生命值
-        meteorDmgRatio: 0.1,     // 陨石双方扣血10%最大生命值
+        meteorDmgRatio: 0.06,     // 陨石双方扣血6%最大生命值
         energyBuffSentence: 3    // 能量球增伤持续3个句子
     };
     // 事件类型枚举
@@ -92,7 +93,7 @@
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
-            critRate: 0.1,
+            critRate: 0.12,
             special: 'none',
             description: '攻击高，血量稍低'
         },
@@ -101,14 +102,14 @@
             name: '小老虎',
             emoji: '🐯',
             type: '高攻型',
-            hp: 85,
-            baseHp: 85,
+            hp: 95,
+            baseHp: 95,
             attack: 14,
             baseAtk: 14,
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
-            critRate: 0.14,
+            critRate: 0.16,
             special: 'none',
             description: '伤害爆炸，比较脆'
         },
@@ -124,7 +125,7 @@
             hpGrowth: 5,
             atkGrowth: 1,
             aiFriendlyBuff: 1.0,
-            critRate: 0.22, //原0.25小幅削弱暴击
+            critRate: 0.25, //暴击
             special: 'crit',
             description: '25% 概率暴击双倍伤害'
         },
@@ -159,7 +160,7 @@
             critRate: 0.1,
             special: 'heal',
             healAmount: 6, //原5小幅提升
-            healInterval: 2, //原3，回血频率提升
+            healInterval: 3, //回血频率
             description: '每打对3个句子回5点血'
         }
     ];
@@ -287,6 +288,7 @@
         perfectSentence: 0,     // 界面【完美】连续无错短句
         letterCombo: 0,         // 字母连击（仅用于伤害、护盾，UI不展示）
         letterComboBase: 0,     // 新增：连续输入基准长度
+        letterComboMaxLen: 0,   // 新增：本句历史最长输入长度，防退格刷血
         currentSentenceHasError: false, // 当前句子是否出过错误
         healCounter: 0,
         lastInputLength: 0,
@@ -310,7 +312,8 @@
             hasEnergyBall: false,     // 当前是否存在能量球
             targetEnergyChar: "",     // 能量球需要匹配的大写字母
             starDom: null,            // 星星DOM元素缓存
-            energyDom: null           // 能量球DOM元素缓存
+            energyDom: null,           // 能量球DOM元素缓存
+            starTimer: null           // 新增星星超时定时器
         }
     };
     
@@ -382,6 +385,10 @@
             subOsc.start(now);
             subOsc.stop(now + duration + 0.02);
         }
+    }
+
+    function playT(baseFreq, duration, type, volume, detune = 60, addSubLayer = false) {
+        playTone(baseFreq, duration, type, volume, detune, addSubLayer);
     }
     
     function playCharCorrectSound() {
@@ -643,6 +650,7 @@
         if (elements.enemyHpText) {
             elements.enemyHpText.textContent = `${battleState.enemyHp}/${battleState.enemyMaxHp}`;
         }
+        
         // 怒气条
         if (elements.playerRageBar && elements.playerRageBarFill) {
             const ragePercent = (battleState.rage / battleState.maxRage) * 100;
@@ -650,17 +658,29 @@
             if (battleState.rage >= battleState.maxRage) {
                 elements.playerRageBar.classList.add('rage-full');
                 battleState.rageSkillReady = true;
-                // 重置30秒自动释放倒计时
-                if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-                battleState.rageAutoTimer = setTimeout(() => {
-                    if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
-                    useRageSkill();
-                }, 20000);
+                // 怒气满，玩家头像开启蓄力脉冲光效
+                elements.playerFighter.classList.add('rage-ready');
+                // 新增：怒气满时头像显示点击手型
+                elements.playerFighter.style.cursor = 'pointer';
+                // 修复：仅不存在计时时才创建，不重复重置倒计时
+                if (!battleState.rageAutoTimer) {
+                    battleState.rageAutoTimer = setTimeout(() => {
+                        if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
+                        useRageSkill();
+                    }, 30000);
+                }
             } else {
                 elements.playerRageBar.classList.remove('rage-full');
                 battleState.rageSkillReady = false;
+                // 怒气清空，移除蓄力发光
+                elements.playerFighter.classList.remove('rage-ready');
+                // 怒气未满恢复默认鼠标样式
+                elements.playerFighter.style.cursor = 'default';
                 // 怒气不满直接清除自动计时
-                if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+                if(battleState.rageAutoTimer) {
+                    clearTimeout(battleState.rageAutoTimer);
+                    battleState.rageAutoTimer = null;
+                }
             }
         }
         
@@ -689,28 +709,26 @@
                     case 'invincible': 
                         icon = '⭐'; 
                         num = item.remaining;
-                        break;
                     case 'doubleDmg':
                         icon = '⚡'; 
                         num = item.remaining;
-                        break;
-                    case 'shield': 
-                        icon = '🛡️'; 
-                        num = battleState.shieldCount;
                         break;
                     default: 
                         icon = '?';
                         num = '';
                 }
                 itemDom.textContent = `${icon}${num}`;
-                // 区分护盾与其他道具的悬浮提示
-                if(item.id === 'shield'){
-                    itemDom.title = `当前护盾层数：${num}`;
-                }else{
-                    itemDom.title = `剩余${num}句`;
-                }
+                itemDom.title = `剩余${num}句`;
                 elements.activeItems.appendChild(itemDom);
             });
+            // 单独渲染护盾，和其他道具并排显示
+            if (battleState.shieldCount > 0) {
+                const shieldDom = document.createElement('span');
+                shieldDom.className = 'active-item-tag';
+                shieldDom.textContent = `🛡️${battleState.shieldCount}`;
+                shieldDom.title = `当前护盾层数：${battleState.shieldCount}`;
+                elements.activeItems.appendChild(shieldDom);
+            }
         }
     }
 
@@ -790,6 +808,20 @@
         if (elements.resultBackBtn) {
             elements.resultBackBtn.addEventListener('click', backToSelect);
         }
+
+        // ========== 新增：玩家头像点击释放怒气 ==========
+        elements.playerFighter.addEventListener('click', function(){
+            // 防抖锁定中直接返回
+            if(rageClickLock) return;
+            if(!battleState.active || battleState.battleOver) return;
+            if(!battleState.rageSkillReady || battleState.battleCtx.rageSkillCooldown) return;
+            rageClickLock = true;
+            useRageSkill();
+            // 800ms冷却解锁，防止连点
+            setTimeout(()=>{
+                rageClickLock = false;
+            }, 800);
+        });
         
         // 读取本地保存的选中角色
         const savedPlayer = localStorage.getItem('battle_select_player');
@@ -1010,6 +1042,9 @@
     
     // ========== 开始战斗 ==========
     function startBattle() {
+        if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
+        battleState.rageAutoTimer = null;
+        
         if (!selectedPlayerId || !selectedEnemyId) return;
 
         const playerChar = playerCharacters.find(item => item.id === selectedPlayerId) || playerCharacters[0];
@@ -1075,6 +1110,7 @@
         battleState.inputError = false;
         battleState.letterCombo = 0;
         battleState.letterComboBase = 0;
+        battleState.letterComboMaxLen = 0; // 新增重置
         battleState.lastInputLength = 0;
         battleState.shieldCount = 0;
         battleState.rage = 0;
@@ -1228,7 +1264,7 @@
         battleState.currentSentenceHasError = false;
         // 仅重置输入基准，连击数值全程保留，跨句子持续累计
         battleState.letterComboBase = 0;
-        
+        battleState.letterComboMaxLen = 0; // 新句子清空最长输入记录
         refreshSentenceHighlight();
         
     }
@@ -1328,6 +1364,7 @@
         if (idleMs > 5000 && battleState.letterCombo > 0) {
             battleState.letterCombo = 0;
             battleState.letterComboBase = 0;
+            battleState.letterComboMaxLen = 0;
             updateBattleUI();
         }
 
@@ -1370,10 +1407,7 @@
                 ctx.interruptTimer = 0; 
                 ctx.attackLock = true;
                 setTimeout(() => { ctx.attackLock = false; }, 700);
-                
-                if (battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-                battleState.rageAutoTimer = null;
-                
+                               
                 const oldTip = document.querySelector('div[style*="top:30%"]');
                 if(oldTip) oldTip.remove();
                 
@@ -1435,29 +1469,22 @@
         
         if (!hasError && inputLen > 0) {
             playCharCorrectSound();
-            // 两种情况不清零：
-            // 1、当前输入 = 上一次长度+1（同句连续打字）
-            // 2、当前输入从头开始，但上一句已完成（跨句子继续连击）
-            const isContinueInput = inputLen === battleState.letterComboBase + 1;
-            // 跨句子首字符直接累加，无需重置
-            const isNewSentenceStart = battleState.letterComboBase === 0 && inputLen === 1;
-            // 新增：上一句打完直接打下一句，无停顿，强制叠加连击
-            if (isContinueInput || isNewSentenceStart) {
+            // 仅当本次输入长度超过历史最长记录，才算新增有效字符
+            const isNewValidChar = inputLen > battleState.letterComboMaxLen;
+            if (isNewValidChar) {
                 battleState.letterCombo += 1;
-            }
-            // 仅手动回退/退格才清空连击
-            else if (inputLen < battleState.letterComboBase) {
+                battleState.letterComboMaxLen = inputLen; // 更新本句最高输入长度
+            } else if (inputLen < battleState.letterComboBase) {
                 battleState.letterCombo = 0;
             }
-            // 补充：正常切句无操作、中途停5秒不会进else，连击保留
             battleState.letterComboBase = inputLen;
             updateBattleUI();
-            // 新增：输入正确字母生成魔法飞弹攻击怪物
-            const charAtk = getSingleCharDamage(battleState.player, battleState.letterCombo, battleState.damageMulti);   
-            // 字母命中轻魔法音效
-            playTone(1400, 0.04, 'sine', 0.05, 20, false);
-            
-            spawnMagicBullet(charAtk.dmg, charAtk.isCrit);
+            // 只有新增有效字符才生成飞弹造成伤害，退格重输不扣血
+            if (isNewValidChar) {
+                const charAtk = getSingleCharDamage(battleState.player, battleState.letterCombo, battleState.damageMulti);   
+                playTone(1400, 0.04, 'sine', 0.05, 20, false);
+                spawnMagicBullet(charAtk.dmg, charAtk.isCrit);
+            }
         }
         
         if(!skipMonsterTimer){
@@ -1518,8 +1545,7 @@
             playComboSound(battleState.letterCombo);
             battleState.shieldCount++;
             showShieldGainEffect();
-            // 新增：护盾同步存入activeItems，永久2层护盾
-            addActiveItem('shield', 999);
+
             updateBattleUI();
         }      
         
@@ -1629,33 +1655,36 @@
         const stageAtkMulti = Math.pow(1.2, stageCount);
         let totalMulti = ctx.baseAtkMulti * stageAtkMulti;
         if (ctx.isRaging) totalMulti *= enemyChar.aiRageAtkMulti;
-        // 全局伤害上限，最高2.8倍，防止多层叠加秒玩家
-        totalMulti = Math.min(totalMulti, 2.8);
-        return Math.floor(baseAtk * totalMulti);
+        totalMulti = Math.min(totalMulti, 1.8);
+        const rawDmg = baseAtk * totalMulti;
+        // 强制转为正数再取整
+        return Math.floor(Math.abs(rawDmg));
     }
     
     function getPlayerAttackValue(playerChar, comboCount, damageMulti) {
         let base = playerChar.baseAtk;
         const comboBonus = Math.floor(battleState.letterCombo / 10) * 0.1;
         base *= (1 + comboBonus);
-        // 统计当前拥有的双倍buff数量：attack力量药水 / doubleDmg能量球 各算一层
         let buffLayer = 1;
         const hasAttack = battleState.activeItems.some(i => i.id === 'attack');
         const hasDoubleDmg = battleState.activeItems.some(i => i.id === 'doubleDmg');
         if (hasAttack) buffLayer *= 2;
         if (hasDoubleDmg) buffLayer *= 2;
+        buffLayer = Math.min(buffLayer, 3);
         base *= buffLayer;
-        return Math.floor(base);
+        return Math.floor(Math.abs(base));
     }
     
     // 单个正确字母魔法小额伤害
     function getSingleCharDamage(playerChar, comboCount, damageMulti) {
-        let base = Math.floor(playerChar.attack * 0.14);
+        let base = playerChar.attack * 0.14;
+        base = Math.floor(Math.abs(base));
+        
         // 长文本单字母伤害衰减，避免碾压怪物
         const sentenceTotal = battleState.sentences.length;
         let sentenceDecay = 1;
-        if(sentenceTotal > 20) sentenceDecay = 0.85;
-        if(sentenceTotal > 40) sentenceDecay = 0.65;
+        if(sentenceTotal > 30) sentenceDecay = 0.9;
+        if(sentenceTotal > 60) sentenceDecay = 0.8;
         base *= sentenceDecay;
 
         const comboBonus = Math.floor(comboCount / 10) * 0.1;
@@ -1704,12 +1733,12 @@
         bullet.style.top = startY + 'px';
         elements.battleScene.appendChild(bullet);
 
-        // 弹道动画，移除 composite: "accumulate"
+        // 0.45秒弹道动画
         bullet.animate([
             { left: startX + 'px', top: startY + 'px', opacity: 1, scale: 1 },
             { left: endX + 'px', top: endY + 'px', opacity: 0.8, scale: 0.6 }
         ], {
-            duration: 450,
+            duration: 450, // 原300→450，飞行变慢，多颗同时存在更明显
             easing: 'ease-out'
         });
 
@@ -1729,17 +1758,8 @@
         }else if(charId === 'bear'){ //小熊土黄
             bullet.style.background = 'radial-gradient(#ffe0b3, #bb7722)';
         }else if(charId === 'panda'){ //熊猫绿色
-            bullet.style.background = 'radial(#b3ffb3, #22bb44)';
+            bullet.style.background = 'radial-gradient(#b3ffb3, #22bb44)';
         }
-
-        // 0.3秒弹道动画
-        bullet.animate([
-            { left: startX + 'px', top: startY + 'px', opacity: 1, scale: 1 },
-            { left: endX + 'px', top: endY + 'px', opacity: 0.8, scale: 0.6 }
-        ], {
-            duration: 450, // 原300→450，飞行变慢，多颗同时存在更明显
-            easing: 'ease-out'
-        });
 
         // 飞弹命中后逻辑
         setTimeout(() => {
@@ -1763,34 +1783,34 @@
         }, 300);
     }
 
-        /** 飞命中爆炸粒子 */
-        function spawnHitParticle(targetX, targetY, isCrit) {
-            if(!elements.battleScene) return;
-            const particleCount = isCrit ? 12 : 6; // 暴击更多粒子
-            for(let i = 0; i < particleCount; i++){
-                const p = document.createElement('div');
-                p.className = 'hit-particle';
-                if(isCrit) p.classList.add('crit-particle');
-                // 随机扩散角度
-                const angle = Math.PI * 2 / particleCount * i;
-                const dist = 30 + Math.random() * 40;
-                const endX = targetX + Math.cos(angle) * dist;
-                const endY = targetY + Math.sin(angle) * dist;
+    /** 飞命中爆炸粒子 */
+    function spawnHitParticle(targetX, targetY, isCrit) {
+        if(!elements.battleScene) return;
+        const particleCount = isCrit ? 12 : 6; // 暴击更多粒子
+        for(let i = 0; i < particleCount; i++){
+            const p = document.createElement('div');
+            p.className = 'hit-particle';
+            if(isCrit) p.classList.add('crit-particle');
+            // 随机扩散角度
+            const angle = Math.PI * 2 / particleCount * i;
+            const dist = 30 + Math.random() * 40;
+            const endX = targetX + Math.cos(angle) * dist;
+            const endY = targetY + Math.sin(angle) * dist;
 
-                p.style.left = targetX + 'px';
-                p.style.top = targetY + 'px';
-                elements.battleScene.appendChild(p);
+            p.style.left = targetX + 'px';
+            p.style.top = targetY + 'px';
+            elements.battleScene.appendChild(p);
 
-                p.animate([
-                    { left: targetX + 'px', top: targetY + 'px', opacity: 1, transform: 'scale(1)' },
-                    { left: endX + 'px', top: endY + 'px', opacity: 0, transform: 'scale(0)' }
-                ], { duration: 400, easing: 'ease-out' });
+            p.animate([
+                { left: targetX + 'px', top: targetY + 'px', opacity: 1, transform: 'scale(1)' },
+                { left: endX + 'px', top: endY + 'px', opacity: 0, transform: 'scale(0)' }
+            ], { duration: 400, easing: 'ease-out' });
 
-                setTimeout(()=>{
-                    if(p.parentNode) p.remove();
-                }, 400);
-            }
+            setTimeout(()=>{
+                if(p.parentNode) p.remove();
+            }, 400);
         }
+    }
 
     // 浮点数安全比较（消除JS浮点精度误差）
     const EPS = 1e-6;
@@ -1934,7 +1954,7 @@
             const monsterWrap = elements.enemyFighter;
             const monsterRect = monsterWrap.getBoundingClientRect();
             const parentBox = monsterWrap.parentElement;
-            
+            clearMonsterWarningBar(); 
             const barWrap = document.createElement('div');
             barWrap.className = 'monster-warning-bar-wrap';
             barWrap.style.cssText = `
@@ -2049,7 +2069,7 @@
         }
         if (changed) {
             ctx.aiAdjustCooldown = true;
-            setTimeout(()=>ctx.aiAdjustCooldown = false,1500); // 延长AI冷却，防止频繁波动
+            setTimeout(()=>ctx.aiAdjustCooldown = false,3000); // 延长AI冷却，防止频繁波动
         }
     }
     
@@ -2059,9 +2079,9 @@
         let damage = getEnemyAttackValue(battleState.enemy, battleState.battleCtx) ;
         damage = Math.floor(damage);
         
-        // 儿童保护：长时间不输入，伤害再减半
+        // 儿童保护：长时间8秒不输入，伤害再减半
         const idleTime = Date.now() - battleState.lastInputTime;
-        if (idleTime > 5000) {
+        if (idleTime > 8000) {
             damage = Math.floor(damage * 0.5);
         }
         
@@ -2121,33 +2141,42 @@
         const actualHeal = Math.min(amount, battleState.playerMaxHp - battleState.playerHp);
         onHpChange(HP_TARGET.PLAYER, actualHeal);
         playHealSound();
-        showDamageNumber(elements.playerFighter, '+' + actualHeal, 'heal');
+        showDamageNumber(elements.playerFighter, actualHeal, 'heal');
         showAttackEffect(elements.playerFighter, '💚');
     }
     
     // ========== 伤害数字 ==========
-    function showDamageNumber(targetElement, damage, type) {
+    function showDamageNumber(targetElement, value, type) {
         if (!targetElement || !elements.battleScene) return;
-        
+
         const targetRect = targetElement.getBoundingClientRect();
         const sceneRect = elements.battleScene.getBoundingClientRect();
-        
+
         const damageEl = document.createElement('div');
         damageEl.className = 'damage-number';
-        if (type === 'crit') {
-            damageEl.classList.add('crit');
-            damageEl.textContent = damage + '!';
-        } else if (type === 'heal') {
+
+        // 分类型自动处理显示文本
+        if (type === 'heal') {
             damageEl.classList.add('heal');
-            damageEl.textContent = damage;
+            // 纯数字回血自动加+，文本直接展示
+            if (typeof value === 'number') {
+                damageEl.textContent = '+' + value;
+            } else {
+                damageEl.textContent = value;
+            }
+        } else if (type === 'crit') {
+            damageEl.classList.add('crit');
+            // 暴击纯数字，自带减号
+            damageEl.textContent = '-' + value;
         } else {
-            damageEl.textContent = '-' + damage;
+            // 普通伤害
+            damageEl.textContent = '-' + value;
         }
-        
+
         damageEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 20) + 'px';
         damageEl.style.top = (targetRect.top - sceneRect.top) + 'px';
         elements.battleScene.appendChild(damageEl);
-        
+
         setTimeout(() => {
             if (damageEl.parentNode) {
                 damageEl.parentNode.removeChild(damageEl);
@@ -2220,18 +2249,13 @@
     // ========== 怒气系统 ==========
     function addRage(amount) {
         battleState.rage = Math.min(battleState.rage + amount, battleState.maxRage);
-        
+
         if (battleState.rage >= battleState.maxRage && !battleState.rageSkillReady) {
             battleState.rageSkillReady = true;
             showRageFullEffect();
-            
-            if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-            battleState.rageAutoTimer = setTimeout(() => {
-                if (battleState.battleOver || battleState.battleCtx.rageSkillCooldown || !battleState.rageSkillReady) return;
-                useRageSkill();
-            }, 60000);
+            // 移除所有计时器创建代码，计时全权交给updateBattleUI
         }
-        
+
         updateBattleUI();
     }
     
@@ -2258,41 +2282,107 @@
     function useRageSkill() {
         const ctx = battleState.battleCtx;
         if (!battleState.rageSkillReady || ctx.rageSkillCooldown || battleState.battleOver) return;
-        
+
         ctx.rageSkillCooldown = true;
         battleState.rageSkillReady = false;
         battleState.rage = 0;
-        
+
+        // 清空自动计时
         if(battleState.rageAutoTimer) clearTimeout(battleState.rageAutoTimer);
-        
-        setTimeout(() => {
-            ctx.rageSkillCooldown = false;
-        }, 3000);
-        
-        // 怒气技能效果：3倍攻击 + 回20%血
-        const rageDamage = Math.floor(battleState.player.attack * 3);
-        const rageHeal = Math.floor(battleState.playerMaxHp * 0.2);
-        
+        battleState.rageAutoTimer = null;
+
+        // 1. 蓄力低音音效
+        playT(220, 0.15, 'sawtooth', 0.35, 100, true);
+        setTimeout(()=>{
+            // 2. 爆炸轰鸣主音效
+            playT(90, 0.3, 'sawtooth', 0.45, 150, true);
+            playT(380, 0.2, 'square', 0.3, 80, false);
+        },150);
+
+        // 大招伤害&治疗
+        const rageDamage = Math.floor(Math.abs(battleState.player.attack * 3));
+        const rawRageHeal = battleState.playerMaxHp * 0.2;
+        const rageHeal = Math.floor(Math.abs(rawRageHeal));
+
+        // ===== 视觉冲击特效启动 =====
+        // 1. 战斗区域全屏震动
+        elements.battleScene.classList.add('rage-shake');
+        setTimeout(()=>elements.battleScene.classList.remove('rage-shake'),600);
+
+        // 2. 全屏扩散闪光冲击波
+        const flash = document.createElement('div');
+        flash.className = 'rage-flash-layer';
+        elements.battleScene.appendChild(flash);
+        setTimeout(()=>flash.remove(),500);
+
+        // 3. 怪物重伤回弹动画（专属大招受击）
+        elements.enemyFighter.classList.add('rage-hit');
+        setTimeout(()=>elements.enemyFighter.classList.remove('rage-hit'),600);
+
+        // 4. 生成20个火焰爆炸粒子
+        const enemyRect = elements.enemyFighter.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        const centerX = enemyRect.left - sceneRect.left + enemyRect.width/2;
+        const centerY = enemyRect.top - sceneRect.top + enemyRect.height/2;
+        for(let i=0;i<20;i++){
+            const p = document.createElement('div');
+            p.className = 'rage-particle';
+            const angle = (Math.PI * 2 / 20) * i;
+            const dist = 60 + Math.random()*80;
+            const tx = Math.cos(angle)*dist;
+            const ty = Math.sin(angle)*dist;
+            p.style.left = centerX + 'px';
+            p.style.top = centerY + 'px';
+            p.style.setProperty('--tx', tx+'px');
+            p.style.setProperty('--ty', ty+'');
+            p.style.animation = 'rageParticleFly 0.7s ease-out forwards';
+            elements.battleScene.appendChild(p);
+            setTimeout(()=>p.remove(),700);
+        }
+
+        // 5. 移除老旧单一文字大招特效，替换分层伤害
+        document.querySelectorAll('.rage-skill-effect').forEach(el=>el.remove());
+
+        // 扣血+回血逻辑
         onHpChange(HP_TARGET.ENEMY, -rageDamage);
-        
         const actualHeal = Math.min(rageHeal, battleState.playerMaxHp - battleState.playerHp);
         onHpChange(HP_TARGET.PLAYER, actualHeal);
-        
-        showRageSkillEffect();
-        showDamageNumber(elements.enemyFighter, rageDamage, 'crit');
-        showDamageNumber(elements.playerFighter, '+' + actualHeal);
-        
+
+        // 大招专属超大伤害数字
+        showDamageNumberRage(elements.enemyFighter, rageDamage);
+        showDamageNumber(elements.playerFighter, actualHeal, 'heal');
+
         playCritSound();
         playHealSound();
-        
+
         updateBattleUI();
         checkBattleEnd();
-        
+
+        // 大招冷却
         setTimeout(() => {
+            ctx.rageSkillCooldown = false;
             if(elements.battleInput && !battleState.battleOver){
                 elements.battleInput.focus();
             }
-        }, 300);
+        }, 3000);
+    }
+
+    // 大招专属暴击飘字（更大尺寸、更强发光）
+    function showDamageNumberRage(targetElement, value) {
+        if (!targetElement || !elements.battleScene) return;
+        const targetRect = targetElement.getBoundingClientRect();
+        const sceneRect = elements.battleScene.getBoundingClientRect();
+        const damageEl = document.createElement('div');
+        damageEl.className = 'damage-number rage-crit crit';
+        damageEl.textContent = '-' + value;
+        damageEl.style.left = (targetRect.left - sceneRect.left + targetRect.width / 2 - 25) + 'px';
+        damageEl.style.top = (targetRect.top - 40) + 'px';
+        elements.battleScene.appendChild(damageEl);
+        setTimeout(() => {
+            if (damageEl.parentNode) {
+                damageEl.parentNode.removeChild(damageEl);
+            }
+        }, 1000);
     }
     
     function showRageSkillEffect() {
@@ -2384,7 +2474,7 @@
                 battleState.rageSkillReady = true;
                 showRageFullEffect();
                 setTimeout(() => {
-                    if (!battleState.battleOver && battleState.rageSkillReady) {
+                    if (!battleState.battleOver && battleState.rageSkillReady && !battleState.battleCtx.rageSkillCooldown) {
                         useRageSkill();
                     }
                 }, 800);
@@ -2428,10 +2518,10 @@
     function tryDropItem() {
         battleState.itemDropCounter++;
         
-        // 每5个句子70%概率掉落
+        // 每5个句子45%概率掉落
         if (battleState.itemDropCounter >= 5) {
             battleState.itemDropCounter = 0;
-            if (Math.random() < 0.7) {
+            if (Math.random() < 0.45) {
                 dropRandomItem();
             }
         }
@@ -2523,7 +2613,10 @@ function triggerRandomSceneEvent() {
  */
 function spawnHealStar() {
     const state = battleState.sceneInteract;
-    if (state.hasStar) return;
+    // 先清理现有星星，避免叠加
+    if (state.hasStar && state.starDom?.parentNode) {
+        state.starDom.remove();
+    }
     state.hasStar = true;
     const starEl = document.createElement('div');
     starEl.className = "scene-interact-item heal-star";
@@ -2531,13 +2624,16 @@ function spawnHealStar() {
     elements.battleScene.appendChild(starEl);
     state.starDom = starEl;
     createSceneTip("天上掉落治愈星星！输入完整当前句子即可拾取回血");
-    setTimeout(() => {
+    // 超时自动清除
+    const starTimer = setTimeout(() => {
         if (state.starDom && state.starDom.parentNode) {
             state.starDom.remove();
         }
         state.hasStar = false;
         state.starDom = null;
-    }, 7000);
+    }, 11000);
+    // 拾取时清除定时器，防止二次删除DOM
+    state.starTimer = starTimer;
 }
 /**
  * 生成陨石雨☄️ 天罚机制
@@ -2559,12 +2655,14 @@ function spawnMeteorRain() {
     }
     createSceneTip("陨石来袭！双方损失10%最大生命值", "warning");
     playHurtSound();
-    const playerDmg = Math.floor(battleState.playerMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio);
-    const enemyDmg = Math.floor(battleState.enemyMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio);
+    const rawPlayerDmg = battleState.playerMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio;
+    const playerDmg = Math.floor(Math.abs(rawPlayerDmg));
+    const rawEnemyDmg = battleState.enemyMaxHp * SCENE_EVENT_CONFIG.meteorDmgRatio;
+    const enemyDmg = Math.floor(Math.abs(rawEnemyDmg));
     onHpChange(HP_TARGET.PLAYER, -playerDmg);
     onHpChange(HP_TARGET.ENEMY, -enemyDmg);
-    showDamageNumber(elements.playerFighter, "-" + playerDmg, "normal");
-    showDamageNumber(elements.enemyFighter, "-" + enemyDmg, "normal");
+    showDamageNumber(elements.playerFighter, playerDmg, 'normal');
+    showDamageNumber(elements.enemyFighter, enemyDmg, 'normal');
     checkBattleEnd();
 }
 /**
@@ -2604,7 +2702,7 @@ function spawnEnergyBall() {
         state.targetEnergyChar = "";
         state.energyDom = null;
         refreshSentenceHighlight();
-    }, 9000);
+    }, 13000);
 }
 /**
  * 检测拾取交互
@@ -2618,9 +2716,11 @@ function checkInteractPickup(rawInputChar) {
     const inputChar = rawInputChar?.toUpperCase().trim() || '';
     if (state.hasEnergyBall && state.targetEnergyChar) {
         const targetC = state.targetEnergyChar;
-        const isCorrectPrefix = targetFull.startsWith(userInput);
-        const hasTargetLetter = userInput.includes(targetC);
-        if (isCorrectPrefix && hasTargetLetter) {
+        // 找到目标字母在句子中的下标
+        const charIndex = targetFull.indexOf(targetC);
+        // 用户输入长度 >= 目标字母长度 且前缀完全匹配
+        const isCorrectPrefix = targetFull.startsWith(userInput) && userInput.length > charIndex;
+        if (isCorrectPrefix) {
             if (state.energyDom?.parentNode) state.energyDom.remove();
             state.hasEnergyBall = false;
             state.targetEnergyChar = "";
@@ -2641,9 +2741,12 @@ function checkInteractPickup(rawInputChar) {
         const targetTxt = sentence.english.toLowerCase();
         const inputVal = elements.battleInput.value.toLowerCase();
         if(inputVal === targetTxt) {
+            // 清除11秒自动销毁定时器，避免二次操作DOM
+            if(state.starTimer) clearTimeout(state.starTimer);
             if (state.starDom?.parentNode) state.starDom.remove();
             state.hasStar = false;
             state.starDom = null;
+            state.starTimer = null;
             const healVal = Math.floor(battleState.playerMaxHp * SCENE_EVENT_CONFIG.healStarHealRatio);
             playerHeal(healVal);
             showInteractGetEffect("⭐", elements.battleScene);
@@ -2689,6 +2792,9 @@ function clearAllSceneInteract() {
         clearInterval(state.eventTimer);
         state.eventTimer = null;
     }
+    // 清理星星定时器
+    if(state.starTimer) clearTimeout(state.starTimer);
+    state.starTimer = null;
     if(state.starDom?.parentNode) state.starDom.remove();
     if(state.energyDom?.parentNode) state.energyDom.remove();
     document.querySelectorAll(".scene-event-tip, .scene-interact-item").forEach(el => {
@@ -2864,7 +2970,9 @@ function clearAllSceneInteract() {
     
     // 全局怒气手动释放入口
     window.triggerRageSkill = function() {
-        if(battleState && !battleState.battleOver) useRageSkill();
+        if(!battleState || battleState.battleOver) return;
+        if(!battleState.rageSkillReady || battleState.battleCtx.rageSkillCooldown) return;
+        useRageSkill();
     }
 
     // 全局对外挂载接口
