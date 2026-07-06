@@ -865,7 +865,7 @@
     }
     
     .battle-input {
-        font-size: 20px;
+        font-size: 18px;
         padding: 12px 16px;
     }
     /* 新增优化内容 */
@@ -906,7 +906,7 @@
     }
     .battle-input {
         padding: 10px 14px;
-        font-size: 18px;
+        font-size: 16px;
     }
     /* 键盘弹出才允许压缩统计栏 */
     .battle-stats {
