@@ -329,7 +329,7 @@
 }
 /* 英文字母单独控制字号，覆盖JS行内样式 */
 .battle-word-text .battle-char {
-    font-size: 26px !important;
+    font-size: 32px !important;
     letter-spacing: 1px !important;
     font-weight: bold !important;
 }
@@ -754,7 +754,7 @@
     }
     /* 移动端英文字号 */
     .battle-word-text .battle-char {
-        font-size: 18px !important;
+        font-size: 20px !important;
     }
     
     .battle-input {
@@ -800,11 +800,11 @@
     }
     /* 键盘弹出英文字号 */
     .battle-word-text .battle-char {
-        font-size: 15px !important;
+        font-size: 16px !important;
     }
     .battle-input {
         padding: 10px 14px;
-        font-size: 16px;
+        font-size: 18px;
     }
     /* 键盘弹出才允许压缩统计栏 */
     .battle-stats {
