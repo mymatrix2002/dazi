@@ -858,18 +858,18 @@
 
     /* 文字、输入框、统计栏原有样式不变 */
     .battle-word-text {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.3;
     }
     .battle-word-text .battle-char {
-        font-size: 16px !important;
+        font-size: 20px !important;
     }
     .battle-input-area {
         padding-top: 10px;
     }
     .battle-input {
         padding: 10px 14px;
-        font-size: 16px;
+        font-size: 18px;
     }
     .battle-stats {
         gap: 12px;
