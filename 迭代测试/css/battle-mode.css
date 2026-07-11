@@ -35,7 +35,7 @@
 .battle-mode.active {
     display: flex;
 }
-/* 战斗顶部状态栏 */
+
 /* 战斗顶部状态栏 - 电脑端默认尺寸 */
 .battle-header {
     padding: 20px;
@@ -818,23 +818,23 @@
 
     /* ========== 所有特效手机缩放 ========== */
     /* 伤害数字 */
-    .damage-number { font-size: 24px; }
-    .damage-number.crit { font-size: 30px; }
-    .damage-number.rage-crit { font-size: 38px; }
+    .damage-number { font-size: 24px !important; }
+    .damage-number.crit { font-size: 30px !important; }
+    .damage-number.rage-crit { font-size: 38px !important; }
     /* 攻击特效 */
-    .attack-effect { font-size: 40px; }
-    /* 场景漂浮元素 */
-    .heal-star { font-size: 30px; }
-    .meteor { font-size: 36px; }
-    .energy-ball { font-size: 28px; }
-    .scene-interact-item { font-size: 30px; }
+    .attack-effect { font-size: 40px !important; }
+    /* 场景漂浮元素【星星/陨石/能量石统一强制缩小】 */
+    .heal-star { font-size: 30px !important; }
+    .meteor { font-size: 36px !important; }
+    .energy-ball { font-size: 28px !important; }
+    .scene-interact-item { font-size: 30px !important; }
     /* 拾取、护盾特效 */
-    .interact-get-effect { font-size: 24px; }
-    .shield-gain-effect { font-size: 24px; }
-    .shield-break-effect { font-size: 20px; }
+    .interact-get-effect { font-size: 24px !important; }
+    .shield-gain-effect { font-size: 24px !important; }
+    .shield-break-effect { font-size: 20px !important; }
     /* 怒气文字/大招 */
-    .rage-full-effect { font-size: 14px; }
-    .rage-skill-effect { font-size: 32px; }
+    .rage-full-effect { font-size: 14px !important; }
+    .rage-skill-effect { font-size: 32px !important; }
     /* 飞弹粒子缩小 */
     .magic-bullet { width: 12px; height: 12px; }
     .hit-particle { width: 4px; height: 4px; }
@@ -843,7 +843,7 @@
     /* 顶部提示气泡 */
     .scene-event-tip { font-size: 12px; padding: 4px 14px; }
     /* 道具掉落 */
-    .item-drop-emoji { font-size: 26px; }
+    .item-drop-emoji { font-size: 26px !important; }
     .item-drop-name { font-size: 12px; }
 }
 
@@ -915,23 +915,23 @@
 
     /* ========== 键盘矮屏 特效进一步缩小 ========== */
     /* 伤害数字 */
-    .damage-number { font-size: 18px; }
-    .damage-number.crit { font-size: 24px; }
-    .damage-number.rage-crit { font-size: 30px; }
+    .damage-number { font-size: 18px !important; }
+    .damage-number.crit { font-size: 24px !important; }
+    .damage-number.rage-crit { font-size: 30px !important; }
     /* 攻击特效 */
-    .attack-effect { font-size: 30px; }
-    /* 场景漂浮元素 */
-    .heal-star { font-size: 22px; }
-    .meteor { font-size: 26px; }
-    .energy-ball { font-size: 20px; }
-    .scene-interact-item { font-size: 22px; }
+    .attack-effect { font-size: 30px !important; }
+    /* 治疗星星、陨石、能量石 键盘更小尺寸 */
+    .heal-star { font-size: 22px !important; }
+    .meteor { font-size: 26px !important; }
+    .energy-ball { font-size: 20px !important; }
+    .scene-interact-item { font-size: 22px !important; }
     /* 拾取、护盾特效 */
-    .interact-get-effect { font-size: 18px; }
-    .shield-gain-effect { font-size: 20px; }
-    .shield-break-effect { font-size: 16px; }
+    .interact-get-effect { font-size: 18px !important; }
+    .shield-gain-effect { font-size: 20px !important; }
+    .shield-break-effect { font-size: 16px !important; }
     /* 怒气文字/大招 */
-    .rage-full-effect { font-size: 12px; }
-    .rage-skill-effect { font-size: 26px; }
+    .rage-full-effect { font-size: 12px !important; }
+    .rage-skill-effect { font-size: 26px !important; }
     /* 飞弹粒子再次缩小 */
     .magic-bullet { width: 9px; height: 9px; }
     .hit-particle { width: 3px; height: 3px; }
@@ -940,7 +940,7 @@
     /* 顶部提示气泡 */
     .scene-event-tip { font-size: 11px; padding: 3px 10px; top: 60px; }
     /* 道具掉落 */
-    .item-drop-emoji { font-size: 20px; }
+    .item-drop-emoji { font-size: 20px !important; }
     .item-drop-name { font-size: 11px; }
 }
 
