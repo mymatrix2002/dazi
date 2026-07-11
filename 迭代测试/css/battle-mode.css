@@ -182,8 +182,9 @@
     align-items: center;
     justify-content: space-around;
     padding: 20px;
-    /* 改为visible，彻底杜绝伪星星被滚动裁剪 */
-    overflow: visible;
+    /* 关键：只裁剪子特效，不裁剪伪星星背景 */
+    overflow: clip;
+    overflow-clip-margin: 0px 12px;
     /* 底层深色固定，不依赖动态渐变 */
     background: #090a0f;
     transform: translateZ(0);
@@ -883,7 +884,8 @@
     }
     /* 关键修复：移除固定max-height，改用最小高度，不再挤压顶部 */
     .battle-scene {
-        padding: 8px;
+        padding: 6px 8px !important;
+        overflow-clip-margin: 0px 8px;
         max-height: unset !important;
         min-height: 150px;
     }
@@ -1184,6 +1186,28 @@
     font-size: 42px;
     pointer-events: none;
     user-select: none;
+}
+
+/* 全局所有漂浮/特效元素统一增加边界限制，防止超出战斗区 */
+.scene-interact-item,
+.damage-number,
+.attack-effect,
+.heal-star,
+.meteor,
+.energy-ball,
+.shield-gain-effect,
+.shield-break-effect,
+.rage-full-effect,
+.rage-skill-effect,
+.item-drop-effect,
+.item-drop-emoji {
+    /* 最大宽高不超过战斗容器90%，左右上下预留安全边距 */
+    max-width: 90%;
+    max-height: 90%;
+    /* 文字/emoji不会撑破容器 */
+    box-sizing: border-box;
+    /* 超出部分自动缩小，不会溢出 */
+    transform-origin: center;
 }
 /* 全局随机事件顶部提示气泡 */
 .scene-event-tip {
