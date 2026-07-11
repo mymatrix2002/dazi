@@ -816,19 +816,19 @@
         font-size: 18px;
     }
     /* 手机普通尺寸 全部特效缩小 */
-    .scene-interact-item { font-size: 28px; }
-    .heal-star { font-size: 24px; }
-    .meteor { font-size: 40px; }
-    .energy-ball { font-size: 28px; }
-    .interact-get-effect { font-size: 24px; }
-    .shield-gain-effect { font-size: 22px; }
-    .shield-break-effect { font-size: 20px; }
-    .rage-full-effect { font-size: 14px; }
-    .rage-skill-effect { font-size: 32px; }
-    .attack-effect { font-size: 40px; }
-    .damage-number { font-size: 22px; }
-    .damage-number.crit { font-size: 28px; }
-    .damage-number.rage-crit { font-size: 36px; }
+    .battle-scene .meteor { font-size: 40px; }
+    .battle-scene .heal-star { font-size: 24px; }
+    .battle-scene .energy-ball { font-size: 28px; }
+    .battle-scene .scene-interact-item { font-size: 28px; }
+    .battle-scene .interact-get-effect { font-size: 24px; }
+    .battle-scene .shield-gain-effect { font-size: 22px; }
+    .battle-scene .shield-break-effect { font-size: 20px; }
+    .battle-scene .rage-full-effect { font-size: 14px; }
+    .battle-scene .rage-skill-effect { font-size: 32px; }
+    .battle-scene .attack-effect { font-size: 40px; }
+    .battle-scene .damage-number { font-size: 22px; }
+    .battle-scene .damage-number.crit { font-size: 28px; }
+    .battle-scene .damage-number.rage-crit { font-size: 36px; }
 }
 /* 新增：软键盘弹出竖屏矮屏专属适配 */
 @media (max-width: 640px) and (max-height: 600px) and (orientation: portrait) {
@@ -891,19 +891,19 @@
         flex-shrink: 1;
     }
     /* 键盘弹出矮屏 特效进一步缩小 */
-    .scene-interact-item { font-size: 22px; }
-    .heal-star { font-size: 18px; }
-    .meteor { font-size: 30px; }
-    .energy-ball { font-size: 22px; }
-    .interact-get-effect { font-size: 18px; }
-    .shield-gain-effect { font-size: 16px; }
-    .shield-break-effect { font-size: 14px; }
-    .rage-full-effect { font-size: 12px; }
-    .rage-skill-effect { font-size: 24px; }
-    .attack-effect { font-size: 30px; }
-    .damage-number { font-size: 16px; }
-    .damage-number.crit { font-size: 20px; }
-    .damage-number.rage-crit { font-size: 26px; }
+    .battle-scene .scene-interact-item { font-size: 22px; }
+    .battle-scene .heal-star { font-size: 18px; }
+    .battle-scene .meteor { font-size: 30px; }
+    .battle-scene .energy-ball { font-size: 22px; }
+    .battle-scene .interact-get-effect { font-size: 18px; }
+    .battle-scene .shield-gain-effect { font-size: 16px; }
+    .battle-scene .shield-break-effect { font-size: 14px; }
+    .battle-scene .rage-full-effect { font-size: 12px; }
+    .battle-scene .rage-skill-effect { font-size: 24px; }
+    .battle-scene .attack-effect { font-size: 30px; }
+    .battle-scene .damage-number { font-size: 16px; }
+    .battle-scene .damage-number.crit { font-size: 20px; }
+    .battle-scene .damage-number.rage-crit { font-size: 26px; }
 }
 /* ========== 怒气条 ========== */
 .battle-rage-bar {
