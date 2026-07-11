@@ -22,6 +22,10 @@
     /* 强制开启图层缓存，防止背景丢弃 */
     transform: translateZ(0);
     backface-visibility: hidden;
+    /* 新增防滚动关键代码 */
+    overscroll-behavior: none;
+    overflow-anchor: none;
+    touch-action: none;
 }
 /* 战斗模式内容区域 - 与主界面宽度一致 */
 .battle-header,
@@ -345,8 +349,7 @@
     border-color: #60a5fa;
     box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
     background: rgba(255, 255, 255, 0.15);
-    /* 强制输入框在可视窗口内，软键盘不遮挡 */
-    scroll-margin-bottom: 30vh;
+
 }
 /* 当前单词显示 */
 .battle-current-word {
