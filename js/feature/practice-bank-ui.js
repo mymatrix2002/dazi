@@ -6,7 +6,7 @@
     // ========== 配置 ==========
     const CONFIG = {
         defaultStage: 'primary',
-        defaultGrade: 5,      // 默认年级
+        defaultGrade: 6,      // 默认年级
         defaultVolume: 'upper', // 默认册别
         version: 'guangzhou'
     };

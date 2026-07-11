@@ -732,6 +732,17 @@
         }
     }
 
+    // 统一恢复输入框焦点，双重延时兼容移动端浏览器
+    function restoreInputFocus() {
+        if (!battleState.active || battleState.battleOver || !elements.battleInput) return;
+        // 第一时间尝试聚焦
+        elements.battleInput.focus();
+        // 兜底延时，修复安卓/iOS焦点丢失BUG
+        setTimeout(() => {
+            if (elements.battleInput) elements.battleInput.focus();
+        }, 120);
+    }
+
     // ========== 初始化 ==========
     function init() {
         elements = {
@@ -1499,6 +1510,14 @@
         }
         // 删除重复的 updateCharColors(); 只保留一次刷新
         refreshSentenceHighlight();
+        
+        // 输入时自动滚动输入框至可视区，避开软键盘
+        setTimeout(() => {
+            elements.battleInput.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }, 50); 
     }
     
         function handleWrongInput() {
@@ -2357,14 +2376,13 @@
 
         updateBattleUI();
         checkBattleEnd();
-
         // 大招冷却
         setTimeout(() => {
             ctx.rageSkillCooldown = false;
-            if(elements.battleInput && !battleState.battleOver){
-                elements.battleInput.focus();
-            }
+            restoreInputFocus();
         }, 3000);
+        // 释放大招后立刻恢复输入框焦点，防止键盘消失
+        restoreInputFocus();
     }
 
     // 大招专属暴击飘字（更大尺寸、更强发光）
