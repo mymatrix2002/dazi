@@ -811,7 +811,8 @@
     .battle-stats {
         gap: 16px;
         row-gap: 8px;
-        flex-shrink: 0;
+        flex-shrink: 0.8; /* 不再完全禁止收缩 */
+        font-size: 13px;
     }
     .battle-stat-value {
         font-size: 18px;
@@ -904,9 +905,14 @@
         font-size: 16px;
     }
     .battle-stats {
-        gap: 12px;
-        row-gap: 6px;
+        gap: 8px;
+        row-gap: 4px;
         flex-shrink: 1;
+        /* 整体文字缩小 */
+        font-size: 11px;
+    }
+    .battle-stat-value {
+        font-size: 14px;
     }
 
     /* ========== 键盘矮屏 特效进一步缩小 ========== */
