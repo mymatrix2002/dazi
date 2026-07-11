@@ -914,6 +914,10 @@
     .battle-stat-value {
         font-size: 14px;
     }
+    .battle-rage-bar {
+        height: 5px !important;
+        border-radius: 2px !important;
+    }
 
     /* ========== 键盘矮屏 特效进一步缩小 ========== */
     /* 伤害数字 */
