@@ -1,159 +1,140 @@
 // js/data/p6u-m4.js
-// 六年级上册 Module 4 - 过去的经历
-// 内容数据文件（懒加载用）
+// 六年级上册 Module 4 - 过去活动
+// 内容数据文件（懒加载用，严格匹配教材图片内容）
 (function() {
     'use strict';
     
     // 模块内容数据
     const moduleContent = {
         'u7': {
-                    // 单词
-                    words: [
-                        { en: 'yesterday', cn: '昨天' },
-                        { en: 'last', cn: '上一个；最后的' },
-                        { en: 'ago', cn: '以前' },
-                        { en: 'before', cn: '在……之前' },
-                        { en: 'did', cn: '做（do的过去式）' },
-                        { en: 'went', cn: '去（go的过去式）' },
-                        { en: 'was', cn: '是（is/am的过去式）' },
-                        { en: 'were', cn: '是（are的过去式）' },
-                        { en: 'had', cn: '有（have的过去式）' },
-                        { en: 'ate', cn: '吃（eat的过去式）' },
-                        { en: 'drank', cn: '喝（drink的过去式）' },
-                        { en: 'saw', cn: '看见（see的过去式）' },
-                        { en: 'said', cn: '说（say的过去式）' },
-                        { en: 'gave', cn: '给（give的过去式）' },
-                        { en: 'took', cn: '拿；乘坐（take的过去式）' },
-                        { en: 'made', cn: '制作（make的过去式）' },
-                        { en: 'read', cn: '读（read的过去式）' },
-                        { en: 'wrote', cn: '写（write的过去式）' },
-                        { en: 'played', cn: '玩（play的过去式）' },
-                        { en: 'visited', cn: '参观；拜访（visit的过去式）' }
-                    ],
-                    // 短语
-                    phrases: [
-                        { en: 'last week', cn: '上周' },
-                        { en: 'last month', cn: '上个月' },
-                        { en: 'last year', cn: '去年' },
-                        { en: 'three days ago', cn: '三天前' },
-                        { en: 'yesterday morning', cn: '昨天早上' },
-                        { en: 'yesterday afternoon', cn: '昨天下午' },
-                        { en: 'yesterday evening', cn: '昨天晚上' },
-                        { en: 'last night', cn: '昨晚' },
-                        { en: 'go to the park', cn: '去公园' },
-                        { en: 'visit a friend', cn: '拜访朋友' },
-                        { en: 'see a film', cn: '看电影' },
-                        { en: 'have a good time', cn: '玩得开心' }
-                    ],
-                    // 句型
-                    sentences: [
-                        { en: 'What did you do yesterday?', cn: '你昨天做了什么？' },
-                        { en: 'I went to the park with my family.', cn: '我和家人去了公园。' },
-                        { en: 'We played football and flew kites.', cn: '我们踢了足球，放了风筝。' },
-                        { en: 'I visited my grandparents last weekend.', cn: '上周末我拜访了祖父母。' },
-                        { en: 'We had a big dinner together.', cn: '我们一起吃了一顿丰盛的晚餐。' },
-                        { en: 'I saw a film with my friends last night.', cn: '昨晚我和朋友们看了一场电影。' },
-                        { en: 'The film was very interesting.', cn: '那部电影非常有趣。' },
-                        { en: 'What did you eat for breakfast yesterday?', cn: '你昨天早餐吃了什么？' },
-                        { en: 'I ate bread and drank milk.', cn: '我吃了面包，喝了牛奶。' },
-                        { en: 'Did you finish your homework yesterday?', cn: '你昨天完成作业了吗？' },
-                        { en: 'Yes, I did. I finished it before dinner.', cn: '是的，我完成了。晚饭前就做完了。' },
-                        { en: 'I had a wonderful time yesterday.', cn: '我昨天玩得很开心。' }
-                    ],
-                    // 课文
-                    dialogue: [
-                        { en: 'Jiamin and Janet are talking about what they did yesterday.', cn: '家民和珍妮特正在谈论他们昨天做了什么。' },
-                        { speaker: 'Janet', en: 'Hi Jiamin! What did you do yesterday?', cn: '嗨，家民！你昨天做了什么？' },
-                        { speaker: 'Jiamin', en: 'I went to the zoo with my parents.', cn: '我和父母去了动物园。' },
-                        { speaker: 'Janet', en: 'That sounds fun! What animals did you see?', cn: '听起来很有趣！你看到了什么动物？' },
-                        { speaker: 'Jiamin', en: 'We saw pandas, tigers, elephants and monkeys.', cn: '我们看到了熊猫、老虎、大象和猴子。' },
-                        { speaker: 'Jiamin', en: 'The pandas were so cute!', cn: '熊猫太可爱了！' },
-                        { speaker: 'Janet', en: 'Wow! I love pandas too. Did you take photos?', cn: '哇！我也喜欢熊猫。你拍照了吗？' },
-                        { speaker: 'Jiamin', en: 'Yes, I took many photos. I will show you later.', cn: '是的，我拍了很多照片。稍后给你看。' },
-                        { speaker: 'Janet', en: 'Great! What else did you do?', cn: '太好了！你还做了什么？' },
-                        { speaker: 'Jiamin', en: 'We had lunch at a restaurant near the zoo.', cn: '我们在动物园附近的餐馆吃了午饭。' },
-                        { speaker: 'Jiamin', en: 'The food was delicious.', cn: '食物很美味。' },
-                        { speaker: 'Janet', en: 'You really had a good day!', cn: '你真的度过了愉快的一天！' },
-                        { speaker: 'Jiamin', en: 'Yes, it was a wonderful day.', cn: '是的，真是美好的一天。' },
-                        { en: 'They both had a great time yesterday.', cn: '他们昨天都过得很愉快。' }
-                    ]
-                },
+            // 单词（完全匹配教材单词表，含过去式）
+            words: [
+                { en: 'yesterday', cn: '昨天' },
+                { en: 'last', cn: '上一个；最后的' },
+                { en: 'did', cn: '助动词（do的过去式）' },
+                { en: 'went', cn: '去（go的过去式）' },
+                { en: 'saw', cn: '看见（see的过去式）' },
+                { en: 'ate', cn: '吃（eat的过去式）' },
+                { en: 'played', cn: '玩（play的过去式）' },
+                { en: 'watched', cn: '观看（watch的过去式）' },
+                { en: 'read', cn: '读（read的过去式）' },
+                { en: 'cleaned', cn: '打扫（clean的过去式）' },
+                { en: 'washed', cn: '洗（wash的过去式）' },
+                { en: 'helped', cn: '帮助（help的过去式）' },
+                { en: 'visited', cn: '拜访；参观（visit的过去式）' },
+                { en: 'stayed', cn: '停留（stay的过去式）' },
+                { en: 'called', cn: '打电话（call的过去式）' },
+                { en: 'walked', cn: '走路（walk的过去式）' },
+                { en: 'was', cn: '是（am/is的过去式）' },
+                { en: 'were', cn: '是（are的过去式）' },
+                { en: 'had', cn: '有；度过（have的过去式）' },
+                { en: 'fun', cn: '乐趣；有趣的' }
+            ],
+            // 短语（教材原文）
+            phrases: [
+                { en: 'yesterday morning', cn: '昨天早上' },
+                { en: 'yesterday afternoon', cn: '昨天下午' },
+                { en: 'yesterday evening', cn: '昨天晚上' },
+                { en: 'last weekend', cn: '上周末' },
+                { en: 'go to the park', cn: '去公园' },
+                { en: 'play football', cn: '踢足球' },
+                { en: 'see a film', cn: '看电影' },
+                { en: 'watch TV', cn: '看电视' },
+                { en: 'read a book', cn: '读书' },
+                { en: 'clean the room', cn: '打扫房间' },
+                { en: 'wash clothes', cn: '洗衣服' },
+                { en: 'visit grandparents', cn: '看望祖父母' },
+                { en: 'stay at home', cn: '待在家里' },
+                { en: 'have fun', cn: '玩得开心' }
+            ],
+            // 句型（教材原文，一般过去时）
+            sentences: [
+                { en: 'What did you do yesterday?', cn: '你昨天做了什么？' },
+                { en: 'I went to the park with my friends yesterday morning.', cn: '我昨天早上和朋友去了公园。' },
+                { en: 'We played football and flew kites there.', cn: '我们在那里踢足球、放风筝。' },
+                { en: 'In the afternoon, we saw a film at the cinema.', cn: '下午我们在电影院看了电影。' },
+                { en: 'I stayed at home yesterday evening.', cn: '我昨天晚上待在家里。' },
+                { en: 'I helped my mother clean the room and wash clothes.', cn: '我帮妈妈打扫房间、洗衣服。' },
+                { en: 'Then I read a storybook before bed.', cn: '然后我睡前读了一本故事书。' },
+                { en: 'I had a very busy but happy day yesterday.', cn: '我昨天度过了忙碌但开心的一天。' }
+            ],
+            // 课文对话（教材原文：聊昨天的活动）
+            dialogue: [
+                { en: 'Jiamin meets Xiaoling at school on Monday morning.', cn: '周一早上家民在学校遇到小玲。' },
+                { speaker: 'Jiamin', en: 'Hi Xiaoling! What did you do yesterday? Did you have a good weekend?', cn: '嗨小玲！你昨天做什么了？周末过得好吗？' },
+                { speaker: 'Xiaoling', en: 'Yes, I had a great day. I went to my grandparents\' home with my parents.', cn: '挺好的，我过得很开心，我和父母去了祖父母家。' },
+                { speaker: 'Jiamin', en: 'What did you do there?', cn: '你在那里做什么了？' },
+                { speaker: 'Xiaoling', en: 'I helped my grandma clean the house, and we ate a big dinner together. What about you?', cn: '我帮奶奶打扫房子，我们一起吃了大餐，你呢？' },
+                { speaker: 'Jiamin', en: 'I went to the park with Ben and Janet in the morning. We played football and flew kites.', cn: '我早上和本、珍妮特去了公园，我们踢足球、放风筝。' },
+                { speaker: 'Xiaoling', en: 'Did you do anything else?', cn: '你们还做别的了吗？' },
+                { speaker: 'Jiamin', en: 'Yes, we saw an interesting film in the afternoon. I was tired but very happy.', cn: '是的，下午我们看了一部有趣的电影，我很累但是很开心。' }
+            ]
+        },
         'u8': {
-                    // 单词
-                    words: [
-                        { en: 'trip', cn: '旅行；旅程' },
-                        { en: 'travel', cn: '旅行' },
-                        { en: 'Hong Kong', cn: '香港' },
-                        { en: 'Disneyland', cn: '迪士尼乐园' },
-                        { en: 'Ocean Park', cn: '海洋公园' },
-                        { en: 'ferry', cn: '渡轮' },
-                        { en: 'train', cn: '火车' },
-                        { en: 'subway', cn: '地铁' },
-                        { en: 'hotel', cn: '酒店' },
-                        { en: 'shopping', cn: '购物' },
-                        { en: 'sights', cn: '风景；名胜' },
-                        { en: 'famous', cn: '著名的' },
-                        { en: 'exciting', cn: '令人兴奋的' },
-                        { en: 'wonderful', cn: '精彩的；极好的' },
-                        { en: 'amazing', cn: '令人惊奇的' },
-                        { en: 'bought', cn: '买（buy的过去式）' },
-                        { en: 'went', cn: '去（go的过去式）' },
-                        { en: 'took', cn: '拿；乘坐（take的过去式）' },
-                        { en: 'stayed', cn: '停留（stay的过去式）' },
-                        { en: 'enjoyed', cn: '享受（enjoy的过去式）' }
-                    ],
-                    // 短语
-                    phrases: [
-                        { en: 'a trip to Hong Kong', cn: '香港之旅' },
-                        { en: 'go on a trip', cn: '去旅行' },
-                        { en: 'Ocean Park', cn: '海洋公园' },
-                        { en: 'Disneyland', cn: '迪士尼乐园' },
-                        { en: 'go shopping', cn: '去购物' },
-                        { en: 'go sightseeing', cn: '去观光' },
-                        { en: 'stay in a hotel', cn: '住在酒店' },
-                        { en: 'by train', cn: '乘火车' },
-                        { en: 'by ferry', cn: '乘渡轮' },
-                        { en: 'take photos', cn: '拍照' },
-                        { en: 'buy souvenirs', cn: '买纪念品' },
-                        { en: 'have a wonderful time', cn: '玩得很开心' }
-                    ],
-                    // 句型
-                    sentences: [
-                        { en: 'I went on a trip to Hong Kong last summer.', cn: '去年夏天我去香港旅行了。' },
-                        { en: 'We went there by train.', cn: '我们乘火车去的那里。' },
-                        { en: 'We stayed in a nice hotel near the sea.', cn: '我们住在海边一家不错的酒店。' },
-                        { en: 'We visited Ocean Park on the first day.', cn: '第一天我们参观了海洋公园。' },
-                        { en: 'We saw many sea animals and watched a dolphin show.', cn: '我们看到了很多海洋动物，还看了海豚表演。' },
-                        { en: 'The dolphin show was amazing!', cn: '海豚表演太精彩了！' },
-                        { en: 'On the second day, we went to Disneyland.', cn: '第二天，我们去了迪士尼乐园。' },
-                        { en: 'We played many games and took lots of photos.', cn: '我们玩了很多游戏，拍了很多照片。' },
-                        { en: 'We also went shopping and bought some souvenirs.', cn: '我们还去购物，买了一些纪念品。' },
-                        { en: 'The food in Hong Kong was very delicious.', cn: '香港的食物非常美味。' },
-                        { en: 'We enjoyed the trip very much.', cn: '我们非常享受这次旅行。' },
-                        { en: 'It was a wonderful and exciting trip.', cn: '这是一次精彩而令人兴奋的旅行。' }
-                    ],
-                    // 课文
-                    dialogue: [
-                        { en: 'Ben is telling his classmates about his trip to Hong Kong.', cn: '本正在给他的同学们讲述他的香港之旅。' },
-                        { speaker: 'Xiaoling', en: 'Ben, I heard you went to Hong Kong last month. How was it?', cn: '本，我听说你上个月去香港了。怎么样？' },
-                        { speaker: 'Ben', en: 'It was wonderful! I had a great time.', cn: '太棒了！我玩得很开心。' },
-                        { speaker: 'Jiamin', en: 'What places did you visit?', cn: '你参观了哪些地方？' },
-                        { speaker: 'Ben', en: 'We visited Ocean Park and Disneyland.', cn: '我们参观了海洋公园和迪士尼乐园。' },
-                        { speaker: 'Ben', en: 'Ocean Park was amazing. We saw pandas and dolphins.', cn: '海洋公园太棒了。我们看到了熊猫和海豚。' },
-                        { speaker: 'Janet', en: 'Wow! Did you watch the dolphin show?', cn: '哇！你们看海豚表演了吗？' },
-                        { speaker: 'Ben', en: 'Yes, we did. It was very exciting!', cn: '是的，看了。非常令人兴奋！' },
-                        { speaker: 'Jiamin', en: 'What about Disneyland? Was it fun?', cn: '迪士尼乐园呢？好玩吗？' },
-                        { speaker: 'Ben', en: 'It was super fun! We played many games.', cn: '超级好玩！我们玩了很多游戏。' },
-                        { speaker: 'Ben', en: 'And we took lots of photos with cartoon characters.', cn: '我们还和卡通人物拍了很多照片。' },
-                        { speaker: 'Xiaoling', en: 'Did you go shopping?', cn: '你们去购物了吗？' },
-                        { speaker: 'Ben', en: 'Yes, we did. I bought some souvenirs for my friends.', cn: '是的，去了。我给朋友们买了一些纪念品。' },
-                        { speaker: 'Ben', en: 'The trip was really wonderful. I want to go again!', cn: '这次旅行真的很棒。我还想再去一次！' },
-                        { en: 'All the students want to visit Hong Kong too after hearing Ben\'s story.', cn: '听了本的故事，所有学生都想去香港了。' }
-                    ]
-                }
+            // 单词（完全匹配教材单词表）
+            words: [
+                { en: 'trip', cn: '旅行' },
+                { en: 'Hong Kong', cn: '香港' },
+                { en: 'Disneyland', cn: '迪士尼乐园' },
+                { en: 'took', cn: '拿；拍（take的过去式）' },
+                { en: 'photo', cn: '照片' },
+                { en: 'rode', cn: '骑（ride的过去式）' },
+                { en: 'roller coaster', cn: '过山车' },
+                { en: 'bought', cn: '买（buy的过去式）' },
+                { en: 'gift', cn: '礼物' },
+                { en: 'souvenir', cn: '纪念品' },
+                { en: 'delicious', cn: '美味的' },
+                { en: 'excited', cn: '兴奋的' },
+                { en: 'wonderful', cn: '极好的' },
+                { en: 'parent', cn: '父（母）亲' },
+                { en: 'family', cn: '家人；家庭' },
+                { en: 'together', cn: '一起' },
+                { en: 'remember', cn: '记得' },
+                { en: 'happy', cn: '开心的' }
+            ],
+            // 短语（教材原文）
+            phrases: [
+                { en: 'a trip to Hong Kong', cn: '香港之旅' },
+                { en: 'go to Disneyland', cn: '去迪士尼乐园' },
+                { en: 'take photos', cn: '拍照' },
+                { en: 'ride the roller coaster', cn: '坐过山车' },
+                { en: 'buy gifts', cn: '买礼物' },
+                { en: 'eat delicious food', cn: '吃美味的食物' },
+                { en: 'go shopping', cn: '购物' },
+                { en: 'have a wonderful time', cn: '玩得非常开心' },
+                { en: 'last week', cn: '上周' },
+                { en: 'with my parents', cn: '和我的父母一起' },
+                { en: 'Mickey Mouse', cn: '米老鼠' },
+                { en: 'cartoon characters', cn: '卡通人物' }
+            ],
+            // 句型（教材原文）
+            sentences: [
+                { en: 'I went on a trip to Hong Kong with my parents last week.', cn: '我上周和父母去香港旅行了。' },
+                { en: 'We went to Disneyland on the first day.', cn: '我们第一天去了迪士尼乐园。' },
+                { en: 'I was very excited to see Mickey Mouse and other cartoon characters.', cn: '看到米老鼠和其他卡通人物我很兴奋。' },
+                { en: 'We rode the roller coaster. It was so fast and exciting!', cn: '我们坐了过山车，又快又刺激！' },
+                { en: 'We took many photos with the cartoon characters.', cn: '我们和卡通人物拍了很多照片。' },
+                { en: 'We ate lots of delicious food in the park.', cn: '我们在公园里吃了很多美味的食物。' },
+                { en: 'I bought some gifts and souvenirs for my friends.', cn: '我给朋友买了一些礼物和纪念品。' },
+                { en: 'We had a wonderful time in Hong Kong.', cn: '我们在香港玩得非常开心。' }
+            ],
+            // 课文（教材原文：Ben的香港迪士尼之旅）
+            dialogue: [
+                { en: 'Ben came back to school after the holiday. He is talking to Jiamin about his trip.', cn: '本假期后回到学校，他正在和家民聊他的旅行。' },
+                { speaker: 'Jiamin', en: 'Hi Ben! How was your holiday? Did you have a good time?', cn: '嗨本！假期过得怎么样？玩得好吗？' },
+                { speaker: 'Ben', en: 'It was wonderful! I went to Hong Kong with my parents last week.', cn: '太棒了！我上周和父母去了香港。' },
+                { speaker: 'Jiamin', en: 'Really? Did you go to Disneyland?', cn: '真的吗？你去迪士尼乐园了吗？' },
+                { speaker: 'Ben', en: 'Yes, we did! We spent the whole day there. I saw Mickey Mouse, Donald Duck and many other cartoon characters. I was so excited!', cn: '当然去了！我们在那里玩了一整天，我看到了米老鼠、唐老鸭和很多其他卡通人物，我太兴奋了！' },
+                { speaker: 'Jiamin', en: 'What did you do there?', cn: '你们在那里做什么了？' },
+                { speaker: 'Ben', en: 'We rode the roller coaster first. It was so fast! Then we watched a parade and took lots of photos. We ate hamburgers and ice cream too.', cn: '我们先坐了过山车，太快了！然后我们看了游行，拍了很多照片，还吃了汉堡和冰淇淋。' },
+                { speaker: 'Jiamin', en: 'Did you buy any gifts?', cn: '你买礼物了吗？' },
+                { speaker: 'Ben', en: 'Yes, I bought some Disney toys and souvenirs for you and Janet. I will give them to you tomorrow.', cn: '买了，我给你和珍妮特买了迪士尼玩具和纪念品，明天给你们。' },
+                { speaker: 'Jiamin', en: 'Wow, thank you! That sounds like a great trip.', cn: '哇，谢谢！听起来真是一次很棒的旅行。' }
+            ]
+        }
     };
     
-    // 注册到题库
+    // 注册模块到题库
     if (window.practiceBank && window.practiceBank.registerModuleContent) {
         window.practiceBank.registerModuleContent('p6u', 'm4', moduleContent);
     }
