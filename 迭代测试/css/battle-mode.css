@@ -914,11 +914,20 @@
     .battle-stat-value {
         font-size: 14px;
     }
+    /* 怒气条变细 */
     .battle-rage-bar {
         height: 5px !important;
         border-radius: 2px !important;
     }
-
+    /* 怪物攻击倒计时条键盘下变细 */
+    .monster-warning-bar-wrap {
+        height: 4px !important;
+        border-radius: 2px !important;
+    }
+    .monster-warning-wrap > div {
+        border-radius: 2px !important;
+    }
+    
     /* ========== 键盘矮屏 特效进一步缩小 ========== */
     /* 伤害数字 */
     .damage-number { font-size: 18px !important; }
@@ -1004,6 +1013,7 @@
 .active-item {
     display: inline-flex;
     align-items: center;
+    gap: 2px;
     gap: 2px;
     background: rgba(255, 255, 255, 0.15);
     padding: 2px 6px;
