@@ -1239,7 +1239,7 @@
 }
 /* 星星垂直下落轨迹 */
 @keyframes starFall {
-    0% { top: -60px; left: 20%; opacity: 0; }
+    0% { top: -60px; left: 50%; opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 1; }
     100% { top: 70%; opacity: 0; }
