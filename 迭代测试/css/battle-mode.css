@@ -27,16 +27,11 @@
     overflow-anchor: none;
     touch-action: none;
 }
-/* 战斗模式内容区域 - 与主界面宽度一致 */
-.battle-header,
-.battle-scene,
-.battle-input-area {
-    max-width: 64rem;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    box-sizing: border-box;
-}
+/* 三层分区强制固定高度，绝不互相挤压 */
+.battle-header { flex-shrink: 0 !important; }
+.battle-input-area { flex-shrink: 0 !important; }
+.battle-scene { flex: 1; overflow: visible; }
+
 .battle-mode.active {
     display: flex;
 }
