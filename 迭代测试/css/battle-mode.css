@@ -177,7 +177,7 @@
     position: relative;
     z-index: 1;
     flex: 1;
-    min-height: 180px; /* 最小高度 */
+    min-height: 120px;
     max-height: calc(100dvh - 280px);
     display: flex;
     align-items: center;
@@ -887,7 +887,7 @@
     .battle-scene {
         padding: 8px;
         max-height: unset !important;
-        min-height: 110px;
+        min-height: 150px;
     }
     /* 文字、输入框、统计栏原有样式不变 */
     .battle-word-text {
