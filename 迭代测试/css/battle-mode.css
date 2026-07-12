@@ -45,6 +45,16 @@
         left: 0;
         right: 0;
     }
+    .character-card-emoji {
+        font-size: 56px !important;
+    }
+    .character-card {
+        padding: 16px;
+        gap: 16px;
+    }
+    .character-grid {
+        gap: 16px;
+    }
 }
 /* 三层分区强制固定高度，绝不互相挤压 */
 .battle-header { flex-shrink: 0 !important; }
@@ -496,8 +506,9 @@
     max-width: 64rem;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 30px;
-    padding-right: 30px;
+    /* 左右边距窄屏缩小，最小15px，大屏30px */
+    padding-left: clamp(15px, 4vw, 30px);
+    padding-right: clamp(15px, 4vw, 30px);
     box-sizing: border-box;
 }
 .battle-select-title,
@@ -510,23 +521,24 @@
 }
 .battle-select-title {
     text-align: center;
-    font-size: 28px;
+    font-size: clamp(22px, 5vw, 28px);
     font-weight: bold;
     color: #fff;
-    margin-bottom: 10px;
+    margin-bottom: clamp(8px, 2vw, 10px);
 }
 .battle-select-subtitle {
     text-align: center;
-    font-size: 16px;
+    font-size: clamp(14px, 2vw, 16px);
     color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 30px;
+    margin-bottom: clamp(20px, 5vw, 30px);
 }
 /* 角色卡片网格 */
 .character-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 30px;
+    /* 自适应间距，窄屏缩小，大屏16px */
+    gap: clamp(12px, 2.5vw, 16px);
+    margin-bottom: clamp(20px, 4vw, 30px);
 }
 @media (max-width: 640px) {
     .character-grid {
@@ -535,13 +547,15 @@
 }
 /* 角色卡片 */
 .character-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 0.1);
     border-radius: 16px;
-    padding: 16px;
+    /* 替换固定16px：最小10px，动态2vw，最大16px */
+    padding: clamp(10px, 2vw, 16px);
     display: flex;
     align-items: center;
-    gap: 16px;
+    /* 卡片内部间距自适应 */
+    gap: clamp(10px, 2vw, 16px);
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -561,8 +575,10 @@
     box-shadow: 0 0 20px rgba(248, 113, 113, 0.3);
 }
 .character-card-emoji {
-    font-size: 56px;
+    /* 最小36px，动态3.5vw，上限56px，电脑锁定56不变 */
+    font-size: clamp(36px, 3.5vw, 56px);
     flex-shrink: 0;
+    line-height: 1;
 }
 /* 角色卡片信息容器 */
 .character-card-info {
@@ -572,13 +588,13 @@
     gap: 4px;
 }
 .character-card-name {
-    font-size: 16px;
+    font-size: clamp(14px, 2vw, 16px);
     font-weight: 600;
     color: #fff;
 }
 .character-card-type {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: clamp(11px, 1.8vw, 12px);
+    color: rgba(255, 255, 0.5);
 }
 .character-card-stats {
     display: flex;
@@ -586,7 +602,8 @@
     font-size: 12px;
 }
 .character-card-stat {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 0.7);
+    font-size: clamp(11px, 1.8vw, 12px);
 }
 .character-card-stat span {
     color: #fff;
@@ -595,14 +612,14 @@
 /* 难度星星 */
 .difficulty-stars {
     color: #fbbf24;
-    font-size: 14px;
+    font-size: clamp(12px, 1.8vw, 14px);
 }
 /* 选择步骤 */
 .battle-step {
-    font-size: 18px;
+    font-size: clamp(16px, 3vw, 18px);
     font-weight: 600;
     color: #fff;
-    margin-bottom: 16px;
+    margin-bottom: clamp(12px, 3vw, 16px);
     display: flex;
     align-items: center;
     gap: 10px;
