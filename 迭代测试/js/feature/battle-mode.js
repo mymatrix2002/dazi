@@ -2655,7 +2655,7 @@ function spawnHealStar() {
 }
 
 /**
- * 生成陨石雨☄️ 天罚机制（优化版：方案3实时落点+限定陨石横向范围在两角色中间）
+ * 生成陨石雨☄️ 天罚机制（优化版：方案3实时落点+限定陨石横向25%~75%区间）
  */
 function spawnMeteorRain() {
     const state = battleState.sceneInteract;
@@ -2663,43 +2663,43 @@ function spawnMeteorRain() {
 
     // 生成5颗随机位置下落陨石
     const meteorCount = 5;
-    for(let i = 0; i < setTimeout(() => {
-        if(battleState.battleOver) return;
-        const meteor = document.createElement('div');
-        meteor.className = "scene-interact-item meteor";
-        meteor.textContent = "☄️";
-        // 【修复】限定25%~75%，仅玩家与怪物中间区域生成，不超出两侧角色
-        const randomX = 25 + Math.random() * 50;
-        meteor.style.left = randomX + "%";
-        elements.battleScene.appendChild(meteor);
-
-        // 陨石下落1.2秒后落地，实时读取陨石坐标生成爆炸（方案3核心）
+    for(let i = 0; i < meteorCount; i++) {
         setTimeout(() => {
-            // 陨石已被提前移除则跳过爆炸
-            if(!meteor.parentNode) return;
-            // 实时获取陨石当前相对战斗场景的坐标
-            const meteorRect = meteor.getBoundingClientRect();
-            const sceneRect = elements.battleScene.getBoundingClientRect();
-            const realY = meteorRect.top - sceneRect;
+            if(battleState.battleOver) return;
+            const meteor = document.createElement('div');
+            meteor.className = "scene-interact-item meteor";
+            meteor.textContent = "☄️";
+            // 限定25%~75%，仅玩家怪物中间区域，不超出两侧
+            const randomX = 25 + Math.random() * 50;
+            meteor.style.left = randomX + "%";
+            elements.battleScene.appendChild(meteor);
 
-            // 落地爆炸特效
-            const boom = document.createElement('div');
-            boom.className = 'attack-effect';
-            boom.textContent = '💥';
-            boom.style.left = `calc(${randomX}% - 30px)`;
-            // 爆炸垂直位置 = 陨石落地实时Y坐标，完全贴合落点
-            boom.style.top = `${realY}px`;
-            elements.battleScene.appendChild(boom);
-            // 移除陨石本体
-            meteor.remove();
-            // 爆炸自动销毁
-            setTimeout(() => boom.parentNode && boom.remove(), 500);
-            // 小爆炸音效
-            playTone(220, 0.1, 'sawtooth', 0.15, 80, true);
-        }, 120);
-    }, i * 150);
+            // 陨石下落1.2秒后落地，实时读取坐标生成爆炸（方案3）
+            setTimeout(() => {
+                if(!meteor.parentNode) return;
+                // 实时获取陨石相对战斗场景垂直像素
+                const meteorRect = meteor.getBoundingClientRect();
+                const sceneRect = elements.battleScene.getBoundingClientRect();
+                const realY = meteorRect.top - sceneRect;
 
-    // 所有陨石落地后触发双方受击结算
+                // 落地爆炸特效
+                const boom = document.createElement('div');
+                boom.className = 'attack-effect';
+                boom.textContent = '💥';
+                boom.style.left = `calc(${randomX}% - 30px)`;
+                // 爆炸跟随陨石实时落地Y坐标
+                boom.style.top = `${realY}px`;
+                elements.battleScene.appendChild(boom);
+                meteor.remove();
+                // 爆炸自动销毁
+                setTimeout(() => boom.parentNode && boom.remove(), 500);
+                // 爆炸音效
+                playTone(220, 0.1, 'sawtooth', 0.15, 80, true);
+            }, 1200);
+        }, i * 150);
+    } // 修复：补充for循环闭合大括号
+
+    // 所有陨石落地后统一结算扣血
     setTimeout(() => {
         if(battleState.battleOver) return;
         const meteorDmgRatio = SCENE_EVENT_CONFIG.meteorDmgRatio;
@@ -2708,7 +2708,7 @@ function spawnMeteorRain() {
         const rawEnemyDmg = battleState.enemyMaxHp * meteorDmgRatio;
         const enemyDmg = Math.floor(Math.abs(rawEnemyDmg));
 
-        // ========== 玩家受击逻辑（护盾/无敌判断） ==========
+        // 玩家受击逻辑
         if (battleState.invincible) {
             showDamageNumber(elements.playerFighter, '免疫', 'heal');
             showAttackEffect(elements.playerFighter, '✨');
@@ -2717,11 +2717,12 @@ function spawnMeteorRain() {
             battleState.shieldCount--;
             showShieldBreakEffect();
             showDamageNumber(elements.playerFighter, '护盾', 'heal');
-            if(battleState.activeItems = battleState.activeItems.filter(item => item.id !== 'shield');
+            // 修复：删除多余if，纯赋值语句
+            battleState.activeItems = battleState.activeItems.filter(item => item.id !== 'shield');
         } 
         else {
             onHpChange(HP_TARGET.PLAYER, -playerDmg);
-            addRage(playerDmg * 2); // 受击获得怒气
+            addRage(playerDmg * 2);
             playHurtSound();
             elements.playerFighter.classList.add('hurt');
             setTimeout(() => elements.playerFighter.classList.remove('hurt'), 400);
@@ -2729,7 +2730,7 @@ function spawnMeteorRain() {
             showAttackEffect(elements.playerFighter, '💢');
         }
 
-        // ========== 怪物受击逻辑 ==========
+        // 怪物受击逻辑
         onHpChange(HP_TARGET.ENEMY, -enemyDmg);
         elements.enemyFighter.classList.add('hurt');
         setTimeout(() => elements.enemyFighter.classList.remove('hurt'), 400);
