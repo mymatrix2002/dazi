@@ -1,160 +1,136 @@
 // js/data/p6u-m5.js
-// 六年级上册 Module 5 - 变化
-// 内容数据文件（懒加载用）
+// 六年级上册 Module 5 - 成长变化
+// 内容数据文件（懒加载用，严格匹配教材图片内容）
 (function() {
     'use strict';
     
     // 模块内容数据
     const moduleContent = {
         'u9': {
-                    // 单词
-                    words: [
-                        { en: 'then', cn: '那时；然后' },
-                        { en: 'now', cn: '现在' },
-                        { en: 'back', cn: '回；向后' },
-                        { en: 'back then', cn: '那时候' },
-                        { en: 'baby', cn: '婴儿；宝贝' },
-                        { en: 'child', cn: '孩子' },
-                        { en: 'kid', cn: '小孩' },
-                        { en: 'teenager', cn: '青少年' },
-                        { en: 'adult', cn: '成年人' },
-                        { en: 'grow', cn: '成长；生长' },
-                        { en: 'grew', cn: '成长（grow的过去式）' },
-                        { en: 'change', cn: '变化；改变' },
-                        { en: 'different', cn: '不同的' },
-                        { en: 'same', cn: '相同的' },
-                        { en: 'cute', cn: '可爱的' },
-                        { en: 'naughty', cn: '淘气的' },
-                        { en: 'quiet', cn: '安静的' },
-                        { en: 'active', cn: '积极的；活跃的' },
-                        { en: 'polite', cn: '有礼貌的' },
-                        { en: 'photo', cn: '照片' }
-                    ],
-                    // 短语
-                    phrases: [
-                        { en: 'back then', cn: '那时候' },
-                        { en: 'when I was young', cn: '当我小的时候' },
-                        { en: 'a long time ago', cn: '很久以前' },
-                        { en: 'when you were a baby', cn: '当你还是个婴儿的时候' },
-                        { en: 'primary school', cn: '小学' },
-                        { en: 'look at', cn: '看' },
-                        { en: 'old photos', cn: '旧照片' },
-                        { en: 'family photos', cn: '家庭照片' },
-                        { en: 'be different from', cn: '与……不同' },
-                        { en: 'the same as', cn: '和……一样' },
-                        { en: 'grow up', cn: '长大' },
-                        { en: 'good girl', cn: '好女孩' }
-                    ],
-                    // 句型
-                    sentences: [
-                        { en: 'Was I a good girl back then?', cn: '那时候我是个好女孩吗？' },
-                        { en: 'Yes, you were. You were very cute.', cn: '是的，你是。你非常可爱。' },
-                        { en: 'When I was a baby, I was very small.', cn: '当我还是个婴儿的时候，我非常小。' },
-                        { en: 'I couldn\'t walk or talk back then.', cn: '那时候我不会走路也不会说话。' },
-                        { en: 'You were a very quiet baby.', cn: '你是个非常安静的宝宝。' },
-                        { en: 'But sometimes you were a little naughty.', cn: '但有时候你有点淘气。' },
-                        { en: 'Look at this photo. You were only two years old.', cn: '看这张照片。你那时候才两岁。' },
-                        { en: 'I was in primary school five years ago.', cn: '五年前我在上小学。' },
-                        { en: 'I was short and thin back then.', cn: '那时候我又矮又瘦。' },
-                        { en: 'Now I am tall and strong.', cn: '现在我又高又壮。' },
-                        { en: 'I have changed a lot over the years.', cn: '这些年我变化很大。' },
-                        { en: 'We all grow up and change.', cn: '我们都会长大和改变。' }
-                    ],
-                    // 课文
-                    dialogue: [
-                        { en: 'Xiaoling is looking at old family photos with her mother.', cn: '小玲正在和妈妈一起看旧的家庭照片。' },
-                        { speaker: 'Xiaoling', en: 'Mum, who is this baby in the photo?', cn: '妈妈，照片里的这个宝宝是谁？' },
-                        { speaker: 'Mum', en: 'That is you! You were only one year old.', cn: '那是你啊！你那时候才一岁。' },
-                        { speaker: 'Xiaoling', en: 'Really? Was I a good girl back then?', cn: '真的吗？那时候我是个好女孩吗？' },
-                        { speaker: 'Mum', en: 'Yes, you were a very good baby.', cn: '是的，你是个非常好的宝宝。' },
-                        { speaker: 'Mum', en: 'You were very quiet and cute.', cn: '你非常安静，很可爱。' },
-                        { speaker: 'Xiaoling', en: 'What could I do back then?', cn: '那时候我会做什么？' },
-                        { speaker: 'Mum', en: 'You could smile and laugh, but you couldn\'t talk.', cn: '你会微笑和大笑，但你不会说话。' },
-                        { speaker: 'Mum', en: 'And you couldn\'t walk either.', cn: '你也不会走路。' },
-                        { speaker: 'Xiaoling', en: 'Wow! I have changed so much!', cn: '哇！我变化好大啊！' },
-                        { speaker: 'Mum', en: 'Yes, you have grown up a lot.', cn: '是的，你长大了很多。' },
-                        { speaker: 'Xiaoling', en: 'Look at this photo. I was in Grade 1.', cn: '看这张照片。我那时候上一年级。' },
-                        { speaker: 'Mum', en: 'Yes. You were so small and cute.', cn: '是啊。你那时候又小又可爱。' },
-                        { speaker: 'Xiaoling', en: 'Now I am in Grade 6. I am a big girl!', cn: '现在我上六年级了。我是个大女孩了！' },
-                        { en: 'Xiaoling is happy to see how much she has grown.', cn: '小玲很高兴看到自己长大了这么多。' }
-                    ]
-                },
+            // 单词（完全匹配教材单词表）
+            words: [
+                { en: 'back then', cn: '那时候' },
+                { en: 'naughty', cn: '淘气的' },
+                { en: 'cute', cn: '可爱的' },
+                { en: 'polite', cn: '有礼貌的' },
+                { en: 'helpful', cn: '乐于助人的' },
+                { en: 'shy', cn: '害羞的' },
+                { en: 'active', cn: '活跃的' },
+                { en: 'quiet', cn: '安静的' },
+                { en: 'hard-working', cn: '努力的' },
+                { en: 'lazy', cn: '懒惰的' },
+                { en: 'cry', cn: '哭' },
+                { en: 'cried', cn: '哭（cry的过去式）' },
+                { en: 'smile', cn: '微笑' },
+                { en: 'smiled', cn: '微笑（smile的过去式）' },
+                { en: 'good', cn: '好的' },
+                { en: 'nice', cn: '好的；友善的' },
+                { en: 'photo', cn: '照片' },
+                { en: 'young', cn: '年轻的；小的' },
+                { en: 'old', cn: '老的；旧的' },
+                { en: 'remember', cn: '记得' }
+            ],
+            // 短语（教材原文）
+            phrases: [
+                { en: 'look at this photo', cn: '看这张照片' },
+                { en: 'back then', cn: '那时候' },
+                { en: 'a good girl', cn: '一个好女孩' },
+                { en: 'very cute', cn: '非常可爱' },
+                { en: 'a little naughty', cn: '有点淘气' },
+                { en: 'very polite', cn: '很有礼貌' },
+                { en: 'quite active', cn: '相当活跃' },
+                { en: 'very shy', cn: '很害羞' },
+                { en: 'helpful at home', cn: '在家乐于助人' },
+                { en: 'when I was young', cn: '当我小的时候' },
+                { en: 'cry a lot', cn: '经常哭' },
+                { en: 'smile a lot', cn: '经常笑' }
+            ],
+            // 句型（教材原文）
+            sentences: [
+                { en: 'Was I a good girl back then?', cn: '那时候我是个好女孩吗？' },
+                { en: 'Yes, you were. You were very cute and polite.', cn: '是的，你是，你非常可爱有礼貌。' },
+                { en: 'You were a little naughty sometimes.', cn: '你有时候有点淘气。' },
+                { en: 'Were you very active when you were young?', cn: '你小的时候很活跃吗？' },
+                { en: 'No, I wasn\'t. I was very shy and quiet back then.', cn: '不，我不是，那时候我很害羞安静。' },
+                { en: 'I didn\'t like to talk to strangers.', cn: '我不喜欢和陌生人说话。' },
+                { en: 'Did you cry a lot when you were a baby?', cn: '你是婴儿的时候经常哭吗？' },
+                { en: 'No, I smiled a lot and was very helpful.', cn: '不，我经常笑，还很乐于助人。' }
+            ],
+            // 课文对话（教材原文：看小时候的照片）
+            dialogue: [
+                { en: 'Xiaoling is looking at her old class photos with Ms White after class.', cn: '下课后小玲和怀特老师一起看班级旧照片。' },
+                { speaker: 'Ms White', en: 'Look at this photo! You were only six years old back then, Xiaoling. It was your first day at school.', cn: '看这张照片！小玲，你那时候才6岁，是你上学第一天。' },
+                { speaker: 'Xiaoling', en: 'Oh wow! I was so little back then. Was I a good girl in class, Ms White?', cn: '哇！我那时候好小啊，怀特老师，我那时候在班里是乖女孩吗？' },
+                { speaker: 'Ms White', en: 'Yes, you were. You were very cute and polite. You always said hello to teachers and helped your classmates.', cn: '是的，你是，你非常可爱有礼貌，总是和老师打招呼，还帮助同学。' },
+                { speaker: 'Xiaoling', en: 'Was I naughty? I remember I liked to run in the classroom sometimes.', cn: '我淘气吗？我记得我有时候喜欢在教室里跑。' },
+                { speaker: 'Ms White', en: 'Haha, you were a little naughty sometimes, but you were always a good girl. You didn\'t cry much, you smiled a lot.', cn: '哈哈，你有时候有点淘气，但你一直是个好女孩，你不怎么哭，总是笑。' },
+                { speaker: 'Xiaoling', en: 'That sounds like me! I am still helpful now, but I am not shy anymore.', cn: '听起来就是我！我现在还是乐于助人，但是我不害羞了。' }
+            ]
+        },
         'u10': {
-                    // 单词
-                    words: [
-                        { en: 'past', cn: '过去' },
-                        { en: 'present', cn: '现在；礼物' },
-                        { en: 'compare', cn: '比较' },
-                        { en: 'difference', cn: '不同；差异' },
-                        { en: 'similarity', cn: '相似；相似点' },
-                        { en: 'appearance', cn: '外貌；外观' },
-                        { en: 'personality', cn: '性格；个性' },
-                        { en: 'hobby', cn: '爱好' },
-                        { en: 'hobbies', cn: '爱好（复数）' },
-                        { en: 'used to', cn: '过去常常' },
-                        { en: 'short', cn: '矮的；短的' },
-                        { en: 'tall', cn: '高的' },
-                        { en: 'fat', cn: '胖的' },
-                        { en: 'thin', cn: '瘦的' },
-                        { en: 'strong', cn: '强壮的' },
-                        { en: 'weak', cn: '虚弱的' },
-                        { en: 'outgoing', cn: '外向的' },
-                        { en: 'shy', cn: '害羞的' },
-                        { en: 'hard-working', cn: '努力的' },
-                        { en: 'smart', cn: '聪明的' }
-                    ],
-                    // 短语
-                    phrases: [
-                        { en: 'then and now', cn: '过去和现在' },
-                        { en: 'in the past', cn: '在过去' },
-                        { en: 'at present', cn: '现在；目前' },
-                        { en: 'used to be', cn: '过去曾经是' },
-                        { en: 'used to do', cn: '过去常常做' },
-                        { en: 'compare with', cn: '和……比较' },
-                        { en: 'the same as', cn: '和……一样' },
-                        { en: 'be different from', cn: '与……不同' },
-                        { en: 'a lot of changes', cn: '很多变化' },
-                        { en: 'change a lot', cn: '变化很大' },
-                        { en: 'stay the same', cn: '保持不变' },
-                        { en: 'grow taller', cn: '长高了' }
-                    ],
-                    // 句型
-                    sentences: [
-                        { en: 'Then and now, I have changed a lot.', cn: '从过去到现在，我变化了很多。' },
-                        { en: 'In the past, I was short and thin.', cn: '过去，我又矮又瘦。' },
-                        { en: 'Now I am tall and strong.', cn: '现在我又高又壮。' },
-                        { en: 'I used to be very shy when I was young.', cn: '我小的时候曾经很害羞。' },
-                        { en: 'But now I am more outgoing.', cn: '但现在我更外向了。' },
-                        { en: 'I used to like playing toys.', cn: '我过去喜欢玩玩具。' },
-                        { en: 'Now I like reading books and playing sports.', cn: '现在我喜欢读书和运动。' },
-                        { en: 'My hobbies have changed a lot.', cn: '我的爱好变化了很多。' },
-                        { en: 'Some things stay the same, and some things change.', cn: '有些事情保持不变，有些事情改变了。' },
-                        { en: 'Compare with last year, I have grown taller.', cn: '和去年比，我长高了。' },
-                        { en: 'I am still a hard-working student.', cn: '我仍然是一个努力学习的学生。' },
-                        { en: 'We all change as we grow up.', cn: '我们都会随着长大而改变。' }
-                    ],
-                    // 课文
-                    dialogue: [
-                        { en: 'The students are talking about how they have changed over the years.', cn: '学生们正在谈论这些年他们发生了怎样的变化。' },
-                        { speaker: 'Teacher', en: 'Boys and girls, let\'s talk about changes.', cn: '孩子们，我们来谈谈变化吧。' },
-                        { speaker: 'Teacher', en: 'How have you changed since Grade 1?', cn: '从一年级到现在，你们发生了怎样的变化？' },
-                        { speaker: 'Jiamin', en: 'I have changed a lot. I was short and thin before.', cn: '我变化了很多。我以前又矮又瘦。' },
-                        { speaker: 'Jiamin', en: 'Now I am tall and strong.', cn: '现在我又高又壮。' },
-                        { speaker: 'Janet', en: 'I used to be very shy. I didn\'t talk much.', cn: '我以前很害羞。我不怎么说话。' },
-                        { speaker: 'Janet', en: 'But now I am more outgoing.', cn: '但现在我更外向了。' },
-                        { speaker: 'Ben', en: 'My hobbies have changed a lot.', cn: '我的爱好变化了很多。' },
-                        { speaker: 'Ben', en: 'I used to like playing computer games.', cn: '我以前喜欢玩电脑游戏。' },
-                        { speaker: 'Ben', en: 'Now I like playing basketball and reading.', cn: '现在我喜欢打篮球和读书。' },
-                        { speaker: 'Xiaoling', en: 'Some things stay the same for me.', cn: '对我来说有些事情没有变。' },
-                        { speaker: 'Xiaoling', en: 'I was hard-working then, and I am still hard-working now.', cn: '我那时候很努力，现在仍然很努力。' },
-                        { speaker: 'Teacher', en: 'Great! We all grow and change.', cn: '太好了！我们都会成长和改变。' },
-                        { speaker: 'Teacher', en: 'It is good to see how you have all grown.', cn: '很高兴看到你们都长大了。' },
-                        { en: 'The students are happy to talk about their changes and growth.', cn: '学生们很高兴谈论他们的变化和成长。' }
-                    ]
-                }
+            // 单词（完全匹配教材单词表，含过去式/情态动词过去式）
+            words: [
+                { en: 'then', cn: '那时' },
+                { en: 'now', cn: '现在' },
+                { en: 'tall', cn: '高的' },
+                { en: 'short', cn: '矮的；短的' },
+                { en: 'long', cn: '长的' },
+                { en: 'hair', cn: '头发' },
+                { en: 'could', cn: '能够（can的过去式）' },
+                { en: 'couldn\'t', cn: '不能（can\'t的过去式）' },
+                { en: 'before', cn: '以前' },
+                { en: 'change', cn: '改变；变化' },
+                { en: 'grow', cn: '成长' },
+                { en: 'grew', cn: '成长（grow的过去式）' },
+                { en: 'fast', cn: '快的' },
+                { en: 'slowly', cn: '慢地' },
+                { en: 'read', cn: '读' },
+                { en: 'write', cn: '写' },
+                { en: 'draw', cn: '画画' },
+                { en: 'ride', cn: '骑' },
+                { en: 'swim', cn: '游泳' },
+                { en: 'difference', cn: '不同；变化' }
+            ],
+            // 短语（教材原文）
+            phrases: [
+                { en: 'then and now', cn: '过去和现在' },
+                { en: 'short hair', cn: '短发' },
+                { en: 'long hair', cn: '长发' },
+                { en: 'very short', cn: '很矮' },
+                { en: 'tall and strong', cn: '又高又壮' },
+                { en: 'couldn\'t read or write', cn: '不会读书写字' },
+                { en: 'could ride a bike', cn: '会骑自行车' },
+                { en: 'grow up fast', cn: '长得快' },
+                { en: 'change a lot', cn: '变化很大' },
+                { en: 'six years ago', cn: '六年前' },
+                { en: 'play with toys', cn: '玩玩具' },
+                { en: 'play basketball', cn: '打篮球' }
+            ],
+            // 句型（教材原文）
+            sentences: [
+                { en: 'Let\'s talk about the changes between then and now.', cn: '我们来谈谈过去和现在的变化。' },
+                { en: 'I was short and fat before, but now I am tall and strong.', cn: '我以前又矮又胖，现在又高又壮。' },
+                { en: 'I had short hair back then, but now I have long hair.', cn: '我那时候是短发，现在是长发。' },
+                { en: 'I couldn\'t read or write when I was five years old.', cn: '我五岁的时候不会读书写字。' },
+                { en: 'Now I can read, write and draw very well.', cn: '现在我读书、写字、画画都很好。' },
+                { en: 'I couldn\'t ride a bike two years ago, but now I can ride very fast.', cn: '两年前我不会骑自行车，现在我骑得很快。' },
+                { en: 'We all grow and change as we get older.', cn: '我们长大都会成长和变化。' },
+                { en: 'I have changed a lot these years.', cn: '这些年我变化很大。' }
+            ],
+            // 课文（教材原文：过去和现在对比）
+            dialogue: [
+                { en: 'Everyone changes as they grow up. Let\'s look at Jiamin then and now.', cn: '每个人长大都会变化，我们来看看家明的过去和现在。' },
+                { en: 'Six years ago, Jiamin was in Grade 1. He was short and fat. He had very short hair. He was shy and quiet, and he didn\'t like to talk in class.', cn: '六年前，家明上一年级，他又矮又胖，留着很短的头发，害羞安静，不喜欢在课堂上说话。' },
+                { en: 'Back then, he couldn\'t read or write very well. He couldn\'t ride a bike or swim. He liked playing with toy cars and watching cartoons at home.', cn: '那时候，他读书写字都不太好，不会骑自行车也不会游泳，喜欢在家玩玩具车、看动画片。' },
+                { en: 'Now Jiamin is in Grade 6. He is 12 years old. He is tall and strong. He still has short hair, but he is active and polite now. He likes to answer questions in class.', cn: '现在家明上六年级，12岁了，他又高又壮，还是短发，但现在他活跃又有礼貌，喜欢在课堂上回答问题。' },
+                { en: 'He can read and write very well. He can ride a bike fast and swim very well. He likes playing basketball and reading storybooks now.', cn: '他读书写字都很好，自行车骑得很快，游泳也很好，现在喜欢打篮球、看故事书。' },
+                { en: 'Jiamin has changed a lot. He grew up fast. But he is still a kind and helpful boy.', cn: '家明变化很大，他长得很快，但他还是一个善良、乐于助人的男孩。' },
+                { en: 'All of us change as we grow up. We learn new things and become better people.', cn: '我们所有人长大都会变化，我们学习新东西，成为更好的自己。' }
+            ]
+        }
     };
     
-    // 注册到题库
+    // 注册模块到题库
     if (window.practiceBank && window.practiceBank.registerModuleContent) {
         window.practiceBank.registerModuleContent('p6u', 'm5', moduleContent);
     }

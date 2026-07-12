@@ -424,13 +424,13 @@
                                             nameCn: '健康',
                                             units: [
                                                 { id: 'u5', name: 'Unit 5 What\'s the matter with you?', nameCn: '你怎么了？', difficulty: 3 },
-                                                { id: 'u6', name: 'Unit 6 The secret of good health', nameCn: '健康的秘诀', difficulty: 3 }
+                                                { id: 'u6', name: 'Unit 6 The secret to good health', nameCn: '健康的秘诀', difficulty: 3 }
                                             ]
                                         },
                                         {
                                             id: 'm4',
-                                            name: 'Module 4 Past experiences',
-                                            nameCn: '过去的经历',
+                                            name: 'Module 4 Past activities',
+                                            nameCn: '过去活动',
                                             units: [
                                                 { id: 'u7', name: 'Unit 7 What did you do yesterday?', nameCn: '你昨天做了什么？', difficulty: 3 },
                                                 { id: 'u8', name: 'Unit 8 A trip to Hong Kong', nameCn: '香港之旅', difficulty: 3 }
@@ -438,8 +438,8 @@
                                         },
                                         {
                                             id: 'm5',
-                                            name: 'Module 5 Changes',
-                                            nameCn: '变化',
+                                            name: 'Module 5 Growing up',
+                                            nameCn: '成长变化',
                                             units: [
                                                 { id: 'u9', name: 'Unit 9 Was I a good girl back then?', nameCn: '那时候我是个好女孩吗？', difficulty: 3 },
                                                 { id: 'u10', name: 'Unit 10 Then and now', nameCn: '过去和现在', difficulty: 3 }
@@ -451,7 +451,7 @@
                                             nameCn: '节日',
                                             units: [
                                                 { id: 'u11', name: 'Unit 11 I like the Spring Festival best', nameCn: '我最喜欢春节', difficulty: 3 },
-                                                { id: 'u12', name: 'Unit 12 Other festivals in China', nameCn: '中国的其他节日', difficulty: 3 }
+                                                { id: 'u12', name: 'Unit 12 Christmas', nameCn: '圣诞节', difficulty: 3 }
                                             ]
                                         }
                                     ]
