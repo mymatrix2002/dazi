@@ -27,6 +27,25 @@
     overflow-anchor: none;
     touch-action: none;
 }
+/* ========== 新增：电脑端限制宽度，与页面max-w-5xl(64rem)统一 ========== */
+@media (min-width: 641px) {
+    .battle-mode {
+        /* 左右居中，最大宽度和主页5xl一致 */
+        max-width: 64rem;
+        margin: 0 auto;
+        /* 上下保持铺满视口，左右留白 */
+        inset-inline: auto;
+        left: 0;
+        right: 0;
+    }
+    .battle-select {
+        max-width: 64rem;
+        margin: 0 auto;
+        inset-inline: auto;
+        left: 0;
+        right: 0;
+    }
+}
 /* 三层分区强制固定高度，绝不互相挤压 */
 .battle-header { flex-shrink: 0 !important; }
 .battle-input-area { flex-shrink: 0 !important; }
@@ -1249,19 +1268,24 @@
 .heal-star {
     color: #fbbf24;
     text-shadow: 0 0 12px #fbbf24, 0 0 24px rgba(251, 191, 36, 0.4);
+    /* 修复：强制水平居中，以自身中心对齐战斗区中线 */
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: center center;
+    /* 两个动画合并：下落 + 闪烁，互不干扰水平位置 */
     animation: starFall 7s linear forwards, starTwinkle 0.8s infinite alternate;
 }
-/* 星星垂直下落轨迹 */
+/* 星星垂直下落轨迹：全程水平居中，仅Y轴移动 */
 @keyframes starFall {
-    0% { top: -60px; left: 50%; opacity: 0; }
+    0% { top: -60px; opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 1; }
     100% { top: 70%; opacity: 0; }
 }
-/* 星星明暗闪烁 */
+/* 星星明暗闪烁：仅缩放，不再影响水平位移 */
 @keyframes starTwinkle {
-    from { transform: scale(0.9); }
-    to { transform: scale(1.1); }
+    from { transform: translateX(-50%) scale(0.9); }
+    to { transform: translateX(-50%) scale(1.1); }
 }
 /* ========== 互动2：陨石雨 ☄️ ========== */
 .meteor {
